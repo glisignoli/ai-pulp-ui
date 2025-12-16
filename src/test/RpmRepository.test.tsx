@@ -1,0 +1,296 @@
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { RpmRepository } from '../components/rpm/RpmRepository';
+import { apiService } from '../services/api';
+
+vi.mock('../services/api');
+
+const mockRepositories = [
+  {
+    pulp_href: '/pulp/api/v3/repositories/rpm/rpm/1/',
+    name: 'test-repo',
+    description: 'Test repository',
+    retain_repo_versions: 5,
+  },
+  {
+    pulp_href: '/pulp/api/v3/repositories/rpm/rpm/2/',
+    name: 'another-repo',
+    description: 'Another repository',
+    retain_repo_versions: 3,
+  },
+];
+
+describe('RpmRepository', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('renders loading state initially', () => {
+    vi.mocked(apiService.get).mockImplementation(
+      () => new Promise(() => {}) // Never resolves
+    );
+
+    render(<RpmRepository />);
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+  });
+
+  it('renders repositories after loading', async () => {
+    vi.mocked(apiService.get).mockResolvedValue({
+      count: 2,
+      next: null,
+      previous: null,
+      results: mockRepositories,
+    });
+
+    render(<RpmRepository />);
+
+    await waitFor(() => {
+      expect(screen.getByText('test-repo')).toBeInTheDocument();
+      expect(screen.getByText('another-repo')).toBeInTheDocument();
+    });
+  });
+
+  it('shows error when loading fails', async () => {
+    vi.mocked(apiService.get).mockRejectedValue(new Error('Failed to load'));
+
+    render(<RpmRepository />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Failed to load repositories')).toBeInTheDocument();
+    });
+  });
+
+  it('opens create dialog when Create Repository button is clicked', async () => {
+    vi.mocked(apiService.get).mockResolvedValue({
+      count: 0,
+      next: null,
+      previous: null,
+      results: [],
+    });
+
+    render(<RpmRepository />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Create Repository')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Create Repository'));
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+      expect(screen.getByRole('textbox', { name: /name/i })).toBeInTheDocument();
+    });
+  });
+
+  it('creates a new repository', async () => {
+    vi.mocked(apiService.get).mockResolvedValue({
+      count: 0,
+      next: null,
+      previous: null,
+      results: [],
+    });
+    vi.mocked(apiService.post).mockResolvedValue({});
+
+    render(<RpmRepository />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Create Repository')).toBeInTheDocument();
+    });
+
+    // Open create dialog
+    fireEvent.click(screen.getByText('Create Repository'));
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+
+    // Fill in form
+    const nameInput = screen.getByRole('textbox', { name: /name/i });
+    const descInput = screen.getByRole('textbox', { name: /description/i });
+    
+    fireEvent.change(nameInput, { target: { value: 'new-repo' } });
+    fireEvent.change(descInput, { target: { value: 'New repo description' } });
+
+    // Submit form
+    const createButton = screen.getAllByText('Create').find(
+      (button) => button.closest('button') !== null
+    );
+    if (createButton) {
+      fireEvent.click(createButton);
+    }
+
+    await waitFor(() => {
+      expect(apiService.post).toHaveBeenCalledWith('/repositories/rpm/rpm/', {
+        name: 'new-repo',
+        description: 'New repo description',
+        retain_repo_versions: undefined,
+        autopublish: false,
+        retain_package_versions: undefined,
+      });
+    });
+  });
+
+  it('opens edit dialog when edit button is clicked', async () => {
+    vi.mocked(apiService.get).mockResolvedValue({
+      count: 1,
+      next: null,
+      previous: null,
+      results: [mockRepositories[0]],
+    });
+
+    render(<RpmRepository />);
+
+    await waitFor(() => {
+      expect(screen.getByText('test-repo')).toBeInTheDocument();
+    });
+
+    // Click edit button
+    const editButtons = screen.getAllByTitle('Edit');
+    fireEvent.click(editButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('test-repo')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('Test repository')).toBeInTheDocument();
+    });
+  });
+
+  it('updates an existing repository', async () => {
+    vi.mocked(apiService.get).mockResolvedValue({
+      count: 1,
+      next: null,
+      previous: null,
+      results: [mockRepositories[0]],
+    });
+    vi.mocked(apiService.put).mockResolvedValue({});
+
+    render(<RpmRepository />);
+
+    await waitFor(() => {
+      expect(screen.getByText('test-repo')).toBeInTheDocument();
+    });
+
+    // Click edit button
+    const editButtons = screen.getAllByTitle('Edit');
+    fireEvent.click(editButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+
+    // Update description
+    const descInput = screen.getByRole('textbox', { name: /description/i });
+    fireEvent.change(descInput, { target: { value: 'Updated description' } });
+
+    // Submit form
+    const updateButton = screen.getByText('Update');
+    fireEvent.click(updateButton);
+
+    await waitFor(() => {
+      expect(apiService.put).toHaveBeenCalledWith(
+        '/pulp/api/v3/repositories/rpm/rpm/1/',
+        {
+          name: 'test-repo',
+          description: 'Updated description',
+          retain_repo_versions: 5,
+          autopublish: false,
+          retain_package_versions: undefined,
+        }
+      );
+    });
+  });
+
+  it('opens delete confirmation dialog', async () => {
+    vi.mocked(apiService.get).mockResolvedValue({
+      count: 1,
+      next: null,
+      previous: null,
+      results: [mockRepositories[0]],
+    });
+
+    render(<RpmRepository />);
+
+    await waitFor(() => {
+      expect(screen.getByText('test-repo')).toBeInTheDocument();
+    });
+
+    // Click delete button
+    const deleteButtons = screen.getAllByTitle('Delete');
+    fireEvent.click(deleteButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText('Confirm Delete')).toBeInTheDocument();
+      expect(screen.getByText(/Are you sure you want to delete/)).toBeInTheDocument();
+    });
+  });
+
+  it('deletes a repository', async () => {
+    vi.mocked(apiService.get).mockResolvedValue({
+      count: 1,
+      next: null,
+      previous: null,
+      results: [mockRepositories[0]],
+    });
+    vi.mocked(apiService.delete).mockResolvedValue({});
+
+    render(<RpmRepository />);
+
+    await waitFor(() => {
+      expect(screen.getByText('test-repo')).toBeInTheDocument();
+    });
+
+    // Click delete button
+    const deleteButtons = screen.getAllByTitle('Delete');
+    fireEvent.click(deleteButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText('Confirm Delete')).toBeInTheDocument();
+    });
+
+    // Confirm deletion
+    const confirmButton = screen.getAllByText('Delete').find(
+      (button) => button.closest('button') !== null
+    );
+    if (confirmButton) {
+      fireEvent.click(confirmButton);
+    }
+
+    await waitFor(() => {
+      expect(apiService.delete).toHaveBeenCalledWith('/pulp/api/v3/repositories/rpm/rpm/1/');
+    });
+  });
+
+  it('cancels delete operation', async () => {
+    vi.mocked(apiService.get).mockResolvedValue({
+      count: 1,
+      next: null,
+      previous: null,
+      results: [mockRepositories[0]],
+    });
+    vi.mocked(apiService.delete).mockResolvedValue({});
+
+    render(<RpmRepository />);
+
+    await waitFor(() => {
+      expect(screen.getByText('test-repo')).toBeInTheDocument();
+    });
+
+    // Click delete button
+    const deleteButtons = screen.getAllByTitle('Delete');
+    fireEvent.click(deleteButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText('Confirm Delete')).toBeInTheDocument();
+    });
+
+    // Cancel deletion
+    const cancelButton = screen.getAllByText('Cancel')[0];
+    fireEvent.click(cancelButton);
+
+    await waitFor(() => {
+      expect(screen.queryByText('Confirm Delete')).not.toBeInTheDocument();
+    });
+
+    expect(apiService.delete).not.toHaveBeenCalled();
+  });
+});
