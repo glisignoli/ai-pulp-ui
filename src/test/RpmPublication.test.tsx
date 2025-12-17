@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import RpmPublication from '../components/rpm/RpmPublication';
-import { ApiService } from '../services/api';
 
 // Create a single mock API service instance that will be reused
 const mockApiService = {

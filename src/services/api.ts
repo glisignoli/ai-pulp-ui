@@ -2,6 +2,23 @@ import axios from 'axios';
 
 const API_BASE_URL = '/pulp/api/v3';
 
+const buildApiUrl = (endpoint: string) => {
+  // Accept full URLs, full API paths, or API-relative endpoints.
+  if (endpoint.startsWith('http://') || endpoint.startsWith('https://')) {
+    return endpoint;
+  }
+
+  if (endpoint.startsWith(API_BASE_URL)) {
+    return endpoint;
+  }
+
+  if (endpoint.startsWith('/')) {
+    return `${API_BASE_URL}${endpoint}`;
+  }
+
+  return `${API_BASE_URL}/${endpoint}`;
+};
+
 export interface LoginCredentials {
   username: string;
   password: string;
@@ -88,7 +105,7 @@ class ApiService {
 
   async get<T>(endpoint: string): Promise<T> {
     try {
-      const response = await axios.get(`${API_BASE_URL}${endpoint}`);
+      const response = await axios.get(buildApiUrl(endpoint));
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.status === 401) {
@@ -101,7 +118,7 @@ class ApiService {
 
   async post<T>(endpoint: string, data: any): Promise<T> {
     try {
-      const response = await axios.post(`${API_BASE_URL}${endpoint}`, data);
+      const response = await axios.post(buildApiUrl(endpoint), data);
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.status === 401) {
@@ -114,7 +131,7 @@ class ApiService {
 
   async put<T>(endpoint: string, data: any): Promise<T> {
     try {
-      const response = await axios.put(`${API_BASE_URL}${endpoint}`, data);
+      const response = await axios.put(buildApiUrl(endpoint), data);
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.status === 401) {
@@ -127,7 +144,7 @@ class ApiService {
 
   async delete<T>(endpoint: string): Promise<T> {
     try {
-      const response = await axios.delete(`${API_BASE_URL}${endpoint}`);
+      const response = await axios.delete(buildApiUrl(endpoint));
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.status === 401) {

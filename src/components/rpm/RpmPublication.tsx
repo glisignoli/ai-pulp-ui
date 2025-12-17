@@ -30,7 +30,7 @@ import {
 } from '@mui/material';
 import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { Publication, PulpListResponse, Repository } from '../../types/pulp';
-import { ApiService } from '../../services/api';
+import { apiService } from '../../services/api';
 
 interface PublicationFormData {
   repository_version: string;
@@ -63,8 +63,6 @@ const RpmPublication: React.FC = () => {
     compression_type: 'zstd',
     layout: 'nested_alphabetically',
   });
-
-  const apiService = ApiService.getInstance();
 
   useEffect(() => {
     loadPublications();

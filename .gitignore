@@ -36,3 +36,7 @@ Thumbs.db
 
 # Pulp
 tests/settings/certs
+
+# Test stuff
+test-results/
+playwright-report/

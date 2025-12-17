@@ -2,7 +2,14 @@ export interface Distribution {
   pulp_href: string;
   name: string;
   base_path: string;
-  content_guard?: string;
+  base_url?: string;
+  content_guard?: string | null;
+  hidden?: boolean;
+  repository?: string | null;
+  publication?: string | null;
+  generate_repo_config?: boolean;
+  checkpoint?: boolean;
+  pulp_labels?: { [key: string]: string };
 }
 
 export interface Publication {

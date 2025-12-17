@@ -65,7 +65,7 @@ const navigationItems: NavigationItem[] = [
     ],
   },
   {
-    title: 'Deb',
+    title: 'Debian',
     path: '/debian',
     icon: <Storage />,
     children: [

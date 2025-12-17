@@ -52,6 +52,8 @@ Preview the production build:
 
 ## Testing
 
+### Unit & Integration Tests
+
 Run tests:
 
 ```bash
@@ -67,8 +69,38 @@ Run tests in UI mode:
 Run tests with coverage:
 
 ```bash
-./tests/run_container.sh  npm run test:coverage
+./tests/run_container.sh npm run test:coverage
 ```
+
+### End-to-End Tests (Playwright)
+
+Run browser rendering tests:
+
+```bash
+./tests/run_container.sh npm run test:e2e
+```
+
+Run E2E tests with interactive UI:
+
+```bash
+./tests/run_container.sh npm run test:e2e:ui
+```
+
+Run E2E tests in debug mode:
+
+```bash
+./tests/run_container.sh npm run test:e2e:debug
+```
+
+The Playwright tests verify:
+- Pages render without console errors
+- No JavaScript module import errors
+- UI elements are visible and functional
+- Navigation works correctly
+- Authentication flow
+- All RPM, File, and Debian sections
+
+See [e2e/README.md](e2e/README.md) for more details about E2E testing.
 
 ### Testing in Container
 
@@ -101,6 +133,20 @@ src/
 │   └── *.test.tsx      # Component tests
 ├── App.tsx             # Main application component
 └── main.tsx            # Application entry point
+e2e/                    # End-to-end tests (Playwright)
+├── helpers/            # Test helpers and utilities
+│   └── api-mocker.ts   # API mocking utilities
+├── auth.spec.ts        # Authentication tests
+├── debian.spec.ts      # Debian section tests
+├── file.spec.ts        # File section tests
+├── mocked-api.spec.ts  # Tests with mocked API
+├── navigation.spec.ts  # Navigation tests
+├── render.spec.ts      # Basic rendering tests
+├── rpm.spec.ts         # RPM section tests
+└── README.md           # E2E testing documentation
+tests/                  # Test infrastructure
+├── run_container.sh    # Container runner for unit tests
+└── run_playwright.sh   # Container runner for E2E tests
 ```
 
 ## API Configuration
@@ -122,8 +168,9 @@ The login system validates credentials against the `/groups/` endpoint of the Pu
 - **React Router**: Client-side routing
 - **Axios**: HTTP client
 - **Vite**: Build tool and dev server
-- **Vitest**: Testing framework
+- **Vitest**: Unit testing framework
 - **Testing Library**: Component testing utilities
+- **Playwright**: End-to-end browser testing
 
 ## License
 
