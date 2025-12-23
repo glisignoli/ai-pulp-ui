@@ -2,20 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import RpmPublication from '../components/rpm/RpmPublication';
+import { apiService } from '../services/api';
 
-// Create a single mock API service instance that will be reused
-const mockApiService = {
-  get: vi.fn(),
-  post: vi.fn(),
-  delete: vi.fn(),
-};
-
-// Mock ApiService
-vi.mock('../services/api', () => ({
-  ApiService: {
-    getInstance: vi.fn(() => mockApiService),
-  },
-}));
+vi.mock('../services/api');
 
 describe('RpmPublication', () => {
   beforeEach(() => {
@@ -51,14 +40,14 @@ describe('RpmPublication', () => {
       ],
     };
 
-    mockApiService.get.mockImplementation((url: string) => {
+    (apiService.get as any).mockImplementation((url: string) => {
       if (url.includes('publications')) {
         return Promise.resolve(mockPublications);
       }
       if (url.includes('repositories')) {
         return Promise.resolve(mockRepositories);
       }
-      return Promise.resolve({ count: 0, results: [] });
+      return Promise.resolve({ count: 0, next: null, previous: null, results: [] });
     });
 
     render(<RpmPublication />);
@@ -67,11 +56,11 @@ describe('RpmPublication', () => {
       expect(screen.getByText('sha256')).toBeInTheDocument();
     });
 
-    expect(mockApiService.get).toHaveBeenCalledWith('/pulp/api/v3/publications/rpm/rpm/');
+    expect(apiService.get).toHaveBeenCalledWith('/pulp/api/v3/publications/rpm/rpm/');
   });
 
   it('should open create dialog when Create button is clicked', async () => {
-    mockApiService.get.mockImplementation((url: string) => {
+    apiService.get.mockImplementation((url: string) => {
       return Promise.resolve({ count: 0, next: null, previous: null, results: [] });
     });
 
@@ -102,7 +91,7 @@ describe('RpmPublication', () => {
       ],
     };
 
-    mockApiService.get.mockImplementation((url: string) => {
+    apiService.get.mockImplementation((url: string) => {
       if (url.includes('publications')) {
         return Promise.resolve({ count: 0, next: null, previous: null, results: [] });
       }
@@ -112,7 +101,7 @@ describe('RpmPublication', () => {
       return Promise.resolve({ count: 0, results: [] });
     });
 
-    mockApiService.post.mockResolvedValueOnce({});
+    apiService.post.mockResolvedValueOnce({});
 
     render(<RpmPublication />);
 
@@ -144,7 +133,7 @@ describe('RpmPublication', () => {
     await userEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(mockApiService.post).toHaveBeenCalledWith(
+      expect(apiService.post).toHaveBeenCalledWith(
         '/pulp/api/v3/publications/rpm/rpm/',
         expect.objectContaining({
           checkpoint: false,
@@ -169,7 +158,7 @@ describe('RpmPublication', () => {
       ],
     };
 
-    mockApiService.get.mockImplementation((url: string) => {
+    apiService.get.mockImplementation((url: string) => {
       if (url.includes('publications')) {
         return Promise.resolve({ count: 0, next: null, previous: null, results: [] });
       }
@@ -179,7 +168,7 @@ describe('RpmPublication', () => {
       return Promise.resolve({ count: 0, results: [] });
     });
 
-    mockApiService.post.mockResolvedValueOnce({});
+    apiService.post.mockResolvedValueOnce({});
 
     render(<RpmPublication />);
 
@@ -215,7 +204,7 @@ describe('RpmPublication', () => {
     await userEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(mockApiService.post).toHaveBeenCalledWith(
+      expect(apiService.post).toHaveBeenCalledWith(
         '/pulp/api/v3/publications/rpm/rpm/',
         expect.objectContaining({
           checkpoint: true,
@@ -241,7 +230,7 @@ describe('RpmPublication', () => {
       ],
     };
 
-    mockApiService.get.mockImplementation((url: string) => {
+    apiService.get.mockImplementation((url: string) => {
       if (url.includes('publications')) {
         return Promise.resolve(mockPublications);
       }
@@ -282,7 +271,7 @@ describe('RpmPublication', () => {
       ],
     };
 
-    mockApiService.get.mockImplementation((url: string) => {
+    apiService.get.mockImplementation((url: string) => {
       if (url.includes('publications')) {
         return Promise.resolve(mockPublications);
       }
@@ -292,7 +281,7 @@ describe('RpmPublication', () => {
       return Promise.resolve({ count: 0, results: [] });
     });
 
-    mockApiService.delete.mockResolvedValueOnce({});
+    apiService.delete.mockResolvedValueOnce({});
 
     render(<RpmPublication />);
 
@@ -312,7 +301,7 @@ describe('RpmPublication', () => {
     await userEvent.click(confirmButton);
 
     await waitFor(() => {
-      expect(mockApiService.delete).toHaveBeenCalledWith('/pulp/api/v3/publications/rpm/rpm/1/');
+      expect(apiService.delete).toHaveBeenCalledWith('/pulp/api/v3/publications/rpm/rpm/1/');
     });
   });
 
@@ -329,7 +318,7 @@ describe('RpmPublication', () => {
       ],
     };
 
-    mockApiService.get.mockImplementation((url: string) => {
+    apiService.get.mockImplementation((url: string) => {
       if (url.includes('publications')) {
         return Promise.resolve({ count: 0, next: null, previous: null, results: [] });
       }
@@ -339,7 +328,7 @@ describe('RpmPublication', () => {
       return Promise.resolve({ count: 0, results: [] });
     });
 
-    mockApiService.post.mockRejectedValueOnce(new Error('Creation failed'));
+    apiService.post.mockRejectedValueOnce(new Error('Creation failed'));
 
     render(<RpmPublication />);
 
@@ -387,7 +376,7 @@ describe('RpmPublication', () => {
       ],
     };
 
-    mockApiService.get.mockImplementation((url: string) => {
+    apiService.get.mockImplementation((url: string) => {
       if (url.includes('publications')) {
         return Promise.resolve({ count: 0, next: null, previous: null, results: [] });
       }
@@ -397,7 +386,7 @@ describe('RpmPublication', () => {
       return Promise.resolve({ count: 0, results: [] });
     });
 
-    mockApiService.post.mockResolvedValueOnce({});
+    apiService.post.mockResolvedValueOnce({});
 
     render(<RpmPublication />);
 
@@ -440,7 +429,7 @@ describe('RpmPublication', () => {
     await userEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(mockApiService.post).toHaveBeenCalledWith(
+      expect(apiService.post).toHaveBeenCalledWith(
         '/pulp/api/v3/publications/rpm/rpm/',
         expect.objectContaining({
           checksum_type: 'sha512',

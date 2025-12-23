@@ -25,10 +25,11 @@ import {
   FormControlLabel,
   FormHelperText,
   Checkbox,
+  Autocomplete,
 } from '@mui/material';
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { apiService } from '../../services/api';
-import { Repository, PulpListResponse } from '../../types/pulp';
+import { Repository, Remote, PulpListResponse } from '../../types/pulp';
 
 interface RepositoryFormData {
   name: string;
@@ -42,11 +43,14 @@ interface RepositoryFormData {
   package_signing_fingerprint: string;
   compression_type: string;
   layout: string;
+  remote: string;
 }
 
 export const RpmRepository: React.FC = () => {
   const [repositories, setRepositories] = useState<Repository[]>([]);
+  const [remotes, setRemotes] = useState<Remote[]>([]);
   const [loading, setLoading] = useState(true);
+  const [remotesLoading, setRemotesLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingRepo, setEditingRepo] = useState<Repository | null>(null);
@@ -62,6 +66,7 @@ export const RpmRepository: React.FC = () => {
     package_signing_fingerprint: '',
     compression_type: '',
     layout: '',
+    remote: '',
   });
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -82,8 +87,23 @@ export const RpmRepository: React.FC = () => {
     }
   };
 
+  const fetchRemotes = async () => {
+    try {
+      setRemotesLoading(true);
+      const response = await apiService.get<PulpListResponse<Remote>>(
+        '/remotes/rpm/rpm/'
+      );
+      setRemotes(response.results);
+    } catch (err) {
+      console.error('Failed to load remotes:', err);
+    } finally {
+      setRemotesLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchRepositories();
+    fetchRemotes();
   }, []);
 
   const handleOpenDialog = (repo?: Repository) => {
@@ -101,6 +121,7 @@ export const RpmRepository: React.FC = () => {
         package_signing_fingerprint: repo.package_signing_fingerprint || '',
         compression_type: repo.compression_type || '',
         layout: repo.layout || '',
+        remote: repo.remote || '',
       });
     } else {
       setEditingRepo(null);
@@ -116,6 +137,7 @@ export const RpmRepository: React.FC = () => {
         package_signing_fingerprint: '',
         compression_type: '',
         layout: '',
+        remote: '',
       });
     }
     setOpenDialog(true);
@@ -136,6 +158,7 @@ export const RpmRepository: React.FC = () => {
       package_signing_fingerprint: '',
       compression_type: '',
       layout: '',
+      remote: '',
     });
   };
 
@@ -157,6 +180,7 @@ export const RpmRepository: React.FC = () => {
       };
 
       // Only include optional fields if they have values
+      if (formData.remote) payload.remote = formData.remote;
       if (formData.checksum_type) payload.checksum_type = formData.checksum_type;
       if (formData.metadata_signing_service) payload.metadata_signing_service = formData.metadata_signing_service;
       if (formData.package_signing_service) payload.package_signing_service = formData.package_signing_service;
@@ -306,6 +330,20 @@ export const RpmRepository: React.FC = () => {
               rows={3}
               value={formData.description}
               onChange={(e) => handleFormChange('description', e.target.value)}
+            />
+            <Autocomplete
+              options={remotes}
+              getOptionLabel={(option) => option.name}
+              value={remotes.find(r => r.pulp_href === formData.remote) || null}
+              onChange={(_, newValue) => handleFormChange('remote', newValue?.pulp_href || '')}
+              loading={remotesLoading}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Remote"
+                  helperText="Optional: Select a remote repository to sync content from"
+                />
+              )}
             />
             <TextField
               label="Retain Repository Versions"

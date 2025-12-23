@@ -22,10 +22,11 @@ import {
   Snackbar,
   FormControlLabel,
   Checkbox,
+  Autocomplete,
 } from '@mui/material';
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { apiService } from '../../services/api';
-import { Distribution, PulpListResponse } from '../../types/pulp';
+import { Distribution, PulpListResponse, Publication, RepositoryVersion } from '../../types/pulp';
 
 interface DistributionFormData {
   name: string;
@@ -40,7 +41,11 @@ interface DistributionFormData {
 
 export const RpmDistribution: React.FC = () => {
   const [distributions, setDistributions] = useState<Distribution[]>([]);
+  const [publications, setPublications] = useState<Publication[]>([]);
+  const [repositoryVersions, setRepositoryVersions] = useState<RepositoryVersion[]>([]);
   const [loading, setLoading] = useState(true);
+  const [publicationsLoading, setPublicationsLoading] = useState(false);
+  const [versionsLoading, setVersionsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [openDialog, setOpenDialog] = useState(false);
@@ -74,7 +79,33 @@ export const RpmDistribution: React.FC = () => {
 
   useEffect(() => {
     fetchDistributions();
+    fetchPublications();
+    fetchRepositoryVersions();
   }, []);
+
+  const fetchPublications = async () => {
+    try {
+      setPublicationsLoading(true);
+      const response = await apiService.get<PulpListResponse<Publication>>('/publications/rpm/rpm/');
+      setPublications(response.results);
+    } catch (err) {
+      console.error('Failed to load publications:', err);
+    } finally {
+      setPublicationsLoading(false);
+    }
+  };
+
+  const fetchRepositoryVersions = async () => {
+    try {
+      setVersionsLoading(true);
+      const response = await apiService.get<PulpListResponse<RepositoryVersion>>('/repositories/rpm/rpm/versions/');
+      setRepositoryVersions(response.results);
+    } catch (err) {
+      console.error('Failed to load repository versions:', err);
+    } finally {
+      setVersionsLoading(false);
+    }
+  };
 
   const handleOpenDialog = (distribution?: Distribution) => {
     if (distribution) {
@@ -290,20 +321,41 @@ export const RpmDistribution: React.FC = () => {
               helperText="Base (relative) path component of the published URL"
             />
 
-            <TextField
-              label="Repository HREF"
-              fullWidth
-              value={formData.repository}
-              onChange={(e) => handleFormChange('repository', e.target.value)}
-              helperText="Optional. Repository HREF to serve (e.g. /pulp/api/v3/repositories/rpm/rpm/...)"
+            <Autocomplete
+              options={publications}
+              getOptionLabel={(option) => {
+                const repoName = option.repository ? option.repository.split('/').filter(Boolean).pop() : 'Unknown';
+                const created = option.pulp_created ? new Date(option.pulp_created).toLocaleDateString() : '';
+                return `${repoName} (${created})`;
+              }}
+              value={publications.find(p => p.pulp_href === formData.publication) || null}
+              onChange={(_, newValue) => handleFormChange('publication', newValue?.pulp_href || '')}
+              loading={publicationsLoading}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Publication"
+                  helperText="Optional. Select a publication to serve"
+                />
+              )}
             />
 
-            <TextField
-              label="Publication HREF"
-              fullWidth
-              value={formData.publication}
-              onChange={(e) => handleFormChange('publication', e.target.value)}
-              helperText="Optional. Publication HREF to serve (e.g. /pulp/api/v3/publications/rpm/rpm/...)"
+            <Autocomplete
+              options={repositoryVersions}
+              getOptionLabel={(option) => {
+                const repoName = option.repository ? option.repository.split('/').filter(Boolean).pop() : 'Unknown';
+                return `${repoName} - Version ${option.number || 'N/A'}`;
+              }}
+              value={repositoryVersions.find(v => v.pulp_href === formData.repository) || null}
+              onChange={(_, newValue) => handleFormChange('repository', newValue?.pulp_href || '')}
+              loading={versionsLoading}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Repository Version"
+                  helperText="Optional. Select a repository version to serve"
+                />
+              )}
             />
 
             <TextField

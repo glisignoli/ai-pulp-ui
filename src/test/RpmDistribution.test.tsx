@@ -68,7 +68,32 @@ describe('RpmDistribution Component', () => {
       ],
     };
 
-    vi.mocked(apiService.get).mockResolvedValueOnce(mockDistributions);
+    const mockPublications = {
+      count: 0,
+      next: null,
+      previous: null,
+      results: [],
+    };
+
+    const mockVersions = {
+      count: 0,
+      next: null,
+      previous: null,
+      results: [],
+    };
+
+    vi.mocked(apiService.get).mockImplementation((url: string) => {
+      if (url.includes('/distributions/')) {
+        return Promise.resolve(mockDistributions);
+      }
+      if (url.includes('/publications/')) {
+        return Promise.resolve(mockPublications);
+      }
+      if (url.includes('/versions/')) {
+        return Promise.resolve(mockVersions);
+      }
+      return Promise.resolve({ count: 0, next: null, previous: null, results: [] });
+    });
 
     renderRpmDistribution();
 
@@ -82,7 +107,8 @@ describe('RpmDistribution Component', () => {
   });
 
   it('renders error message on API failure', async () => {
-    vi.mocked(apiService.get).mockRejectedValueOnce(new Error('API Error'));
+    vi.mocked(apiService.get).mockRejectedValueOnce(new Error('API Error'))
+      .mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
 
     renderRpmDistribution();
 
@@ -99,7 +125,7 @@ describe('RpmDistribution Component', () => {
       results: [],
     };
 
-    vi.mocked(apiService.get).mockResolvedValueOnce(emptyResponse);
+    vi.mocked(apiService.get).mockResolvedValue(emptyResponse);
 
     renderRpmDistribution();
 
@@ -110,7 +136,7 @@ describe('RpmDistribution Component', () => {
 
   it('opens create dialog', async () => {
     const user = userEvent.setup();
-    vi.mocked(apiService.get).mockResolvedValueOnce({
+    vi.mocked(apiService.get).mockResolvedValue({
       count: 0,
       next: null,
       previous: null,
@@ -133,29 +159,42 @@ describe('RpmDistribution Component', () => {
 
   it('submits create distribution', async () => {
     const user = userEvent.setup();
-    vi.mocked(apiService.get)
-      .mockResolvedValueOnce({
-        count: 0,
-        next: null,
-        previous: null,
-        results: [],
-      })
-      .mockResolvedValueOnce({
-        count: 1,
-        next: null,
-        previous: null,
-        results: [
-          {
-            pulp_href: '/pulp/api/v3/distributions/rpm/rpm/1/',
-            name: 'new-distribution',
-            base_path: 'new/path',
-            content_guard: null,
-            hidden: false,
-            repository: null,
-            publication: null,
-          },
-        ],
-      });
+    
+    const emptyResponse = {
+      count: 0,
+      next: null,
+      previous: null,
+      results: [],
+    };
+    
+    const newDistResponse = {
+      count: 1,
+      next: null,
+      previous: null,
+      results: [
+        {
+          pulp_href: '/pulp/api/v3/distributions/rpm/rpm/1/',
+          name: 'new-distribution',
+          base_path: 'new/path',
+          content_guard: null,
+          hidden: false,
+          repository: null,
+          publication: null,
+        },
+      ],
+    };
+
+    let callCount = 0;
+    vi.mocked(apiService.get).mockImplementation(() => {
+      callCount++;
+      // First 3 calls: initial load (distributions, publications, versions)
+      // Next 3 calls: after create (distributions, publications, versions)
+      if (callCount <= 3) {
+        return Promise.resolve(emptyResponse);
+      }
+      return Promise.resolve(newDistResponse);
+    });
+    
     vi.mocked(apiService.post).mockResolvedValueOnce({ task: '/pulp/api/v3/tasks/1/' } as any);
 
     renderRpmDistribution();
@@ -173,39 +212,41 @@ describe('RpmDistribution Component', () => {
 
   it('opens edit dialog and submits update', async () => {
     const user = userEvent.setup();
-    vi.mocked(apiService.get)
-      .mockResolvedValueOnce({
-        count: 1,
-        next: null,
-        previous: null,
-        results: [
-          {
-            pulp_href: '/pulp/api/v3/distributions/rpm/rpm/1/',
-            name: 'test-distribution',
-            base_path: 'test/path',
-            content_guard: null,
-            hidden: true,
-            repository: '/pulp/api/v3/repositories/rpm/rpm/1/',
-            publication: null,
-          },
-        ],
-      })
-      .mockResolvedValueOnce({
-        count: 1,
-        next: null,
-        previous: null,
-        results: [
-          {
-            pulp_href: '/pulp/api/v3/distributions/rpm/rpm/1/',
-            name: 'test-distribution',
-            base_path: 'updated/path',
-            content_guard: null,
-            hidden: true,
-            repository: '/pulp/api/v3/repositories/rpm/rpm/1/',
-            publication: null,
-          },
-        ],
-      });
+    
+    const initialResponse = {
+      count: 1,
+      next: null,
+      previous: null,
+      results: [
+        {
+          pulp_href: '/pulp/api/v3/distributions/rpm/rpm/1/',
+          name: 'test-distribution',
+          base_path: 'test/path',
+          content_guard: null,
+          hidden: true,
+          repository: '/pulp/api/v3/repositories/rpm/rpm/1/',
+          publication: null,
+        },
+      ],
+    };
+    
+    const emptyResponse = {
+      count: 0,
+      next: null,
+      previous: null,
+      results: [],
+    };
+    
+    let callCount = 0;
+    vi.mocked(apiService.get).mockImplementation(() => {
+      callCount++;
+      // First 3 calls: initial load (distributions, publications, versions)
+      if (callCount === 1) {
+        return Promise.resolve(initialResponse);
+      }
+      return Promise.resolve(emptyResponse);
+    });
+    
     vi.mocked(apiService.put).mockResolvedValueOnce({} as any);
 
     renderRpmDistribution();
@@ -231,29 +272,41 @@ describe('RpmDistribution Component', () => {
 
   it('submits delete distribution', async () => {
     const user = userEvent.setup();
-    vi.mocked(apiService.get)
-      .mockResolvedValueOnce({
-        count: 1,
-        next: null,
-        previous: null,
-        results: [
-          {
-            pulp_href: '/pulp/api/v3/distributions/rpm/rpm/1/',
-            name: 'test-distribution',
-            base_path: 'test/path',
-            content_guard: null,
-            hidden: false,
-            repository: null,
-            publication: null,
-          },
-        ],
-      })
-      .mockResolvedValueOnce({
-        count: 0,
-        next: null,
-        previous: null,
-        results: [],
-      });
+    
+    const initialResponse = {
+      count: 1,
+      next: null,
+      previous: null,
+      results: [
+        {
+          pulp_href: '/pulp/api/v3/distributions/rpm/rpm/1/',
+          name: 'test-distribution',
+          base_path: 'test/path',
+          content_guard: null,
+          hidden: false,
+          repository: null,
+          publication: null,
+        },
+      ],
+    };
+    
+    const emptyResponse = {
+      count: 0,
+      next: null,
+      previous: null,
+      results: [],
+    };
+    
+    let callCount = 0;
+    vi.mocked(apiService.get).mockImplementation(() => {
+      callCount++;
+      // First 3 calls: initial load (distributions, publications, versions)
+      if (callCount === 1) {
+        return Promise.resolve(initialResponse);
+      }
+      return Promise.resolve(emptyResponse);
+    });
+    
     vi.mocked(apiService.delete).mockResolvedValueOnce({ task: '/pulp/api/v3/tasks/2/' } as any);
 
     renderRpmDistribution();

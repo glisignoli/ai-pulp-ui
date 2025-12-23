@@ -65,6 +65,16 @@ export interface Repository {
   pulp_labels?: { [key: string]: string };
 }
 
+export interface RepositoryVersion {
+  pulp_href: string;
+  prn?: string;
+  pulp_created?: string;
+  number?: number;
+  repository?: string;
+  base_version?: string;
+  content_summary?: any;
+}
+
 export interface Remote {
   pulp_href: string;
   prn?: string;

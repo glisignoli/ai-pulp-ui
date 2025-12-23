@@ -115,6 +115,7 @@ describe('RpmRemote', () => {
         url: 'https://example.com/new-repo',
         tls_validation: true,
         policy: 'immediate',
+        max_retries: 3,
       });
     });
   });
@@ -160,6 +161,7 @@ describe('RpmRemote', () => {
         policy: 'immediate',
         username: 'testuser',
         password: 'testpass',
+        max_retries: 3,
       });
     });
   });
@@ -199,7 +201,47 @@ describe('RpmRemote', () => {
       const dialogNameInput = nameInputs.find(input => (input as HTMLInputElement).disabled) as HTMLInputElement;
       const dialogUrlInput = urlInputs.find(input => !(input as HTMLInputElement).hasAttribute('disabled')) as HTMLInputElement;
       expect(dialogNameInput.value).toBe('existing-remote');
-      expect(dialogUrlInput.value).toBe('https://example.com/repo');
+      expect(dialogUrlInput?.value).toBe('https://example.com/repo');
+    });
+  });
+
+  it('creates a remote with default max_retries of 3', async () => {
+    (apiService.get as any).mockResolvedValue({ count: 0, results: [] });
+    (apiService.post as any).mockResolvedValue({});
+
+    render(<RpmRemote />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No remotes found')).toBeInTheDocument();
+    });
+
+    const createButton = screen.getByRole('button', { name: /Create Remote/i });
+    fireEvent.click(createButton);
+
+    await waitFor(() => {
+      const dialogs = screen.getAllByText('Create Remote');
+      expect(dialogs.length).toBeGreaterThan(0);
+    });
+
+    const nameInputs = screen.getAllByRole('textbox', { name: /Name/i });
+    const urlInputs = screen.getAllByRole('textbox', { name: /^URL$/i });
+
+    fireEvent.change(nameInputs[0], { target: { value: 'new-remote' } });
+    fireEvent.change(urlInputs[0], { target: { value: 'https://example.com/new-repo' } });
+
+    const submitButton = screen.getAllByRole('button', { name: /Create/i }).find(
+      (btn) => btn.closest('[role="dialog"]')
+    );
+    fireEvent.click(submitButton!);
+
+    await waitFor(() => {
+      expect(apiService.post).toHaveBeenCalledWith('/remotes/rpm/rpm/', {
+        name: 'new-remote',
+        url: 'https://example.com/new-repo',
+        tls_validation: true,
+        policy: 'immediate',
+        max_retries: 3,
+      });
     });
   });
 
@@ -245,6 +287,7 @@ describe('RpmRemote', () => {
         url: 'https://updated.example.com/repo',
         tls_validation: true,
         policy: 'immediate',
+        max_retries: 3,
       });
     });
   });

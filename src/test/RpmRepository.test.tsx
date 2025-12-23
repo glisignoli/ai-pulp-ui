@@ -35,11 +35,24 @@ describe('RpmRepository', () => {
   });
 
   it('renders repositories after loading', async () => {
-    vi.mocked(apiService.get).mockResolvedValue({
-      count: 2,
-      next: null,
-      previous: null,
-      results: mockRepositories,
+    vi.mocked(apiService.get).mockImplementation((url) => {
+      if (url.includes('repositories')) {
+        return Promise.resolve({
+          count: 2,
+          next: null,
+          previous: null,
+          results: mockRepositories,
+        });
+      }
+      if (url.includes('remotes')) {
+        return Promise.resolve({
+          count: 0,
+          next: null,
+          previous: null,
+          results: [],
+        });
+      }
+      return Promise.resolve({ count: 0, results: [] });
     });
 
     render(<RpmRepository />);
@@ -61,11 +74,24 @@ describe('RpmRepository', () => {
   });
 
   it('opens create dialog when Create Repository button is clicked', async () => {
-    vi.mocked(apiService.get).mockResolvedValue({
-      count: 0,
-      next: null,
-      previous: null,
-      results: [],
+    vi.mocked(apiService.get).mockImplementation((url) => {
+      if (url.includes('repositories')) {
+        return Promise.resolve({
+          count: 0,
+          next: null,
+          previous: null,
+          results: [],
+        });
+      }
+      if (url.includes('remotes')) {
+        return Promise.resolve({
+          count: 0,
+          next: null,
+          previous: null,
+          results: [],
+        });
+      }
+      return Promise.resolve({ count: 0, results: [] });
     });
 
     render(<RpmRepository />);
@@ -83,11 +109,24 @@ describe('RpmRepository', () => {
   });
 
   it('creates a new repository', async () => {
-    vi.mocked(apiService.get).mockResolvedValue({
-      count: 0,
-      next: null,
-      previous: null,
-      results: [],
+    vi.mocked(apiService.get).mockImplementation((url) => {
+      if (url.includes('repositories')) {
+        return Promise.resolve({
+          count: 0,
+          next: null,
+          previous: null,
+          results: [],
+        });
+      }
+      if (url.includes('remotes')) {
+        return Promise.resolve({
+          count: 0,
+          next: null,
+          previous: null,
+          results: [],
+        });
+      }
+      return Promise.resolve({ count: 0, results: [] });
     });
     vi.mocked(apiService.post).mockResolvedValue({});
 
@@ -131,11 +170,24 @@ describe('RpmRepository', () => {
   });
 
   it('opens edit dialog when edit button is clicked', async () => {
-    vi.mocked(apiService.get).mockResolvedValue({
-      count: 1,
-      next: null,
-      previous: null,
-      results: [mockRepositories[0]],
+    vi.mocked(apiService.get).mockImplementation((url) => {
+      if (url.includes('repositories')) {
+        return Promise.resolve({
+          count: 1,
+          next: null,
+          previous: null,
+          results: [mockRepositories[0]],
+        });
+      }
+      if (url.includes('remotes')) {
+        return Promise.resolve({
+          count: 0,
+          next: null,
+          previous: null,
+          results: [],
+        });
+      }
+      return Promise.resolve({ count: 0, results: [] });
     });
 
     render(<RpmRepository />);
@@ -156,11 +208,24 @@ describe('RpmRepository', () => {
   });
 
   it('updates an existing repository', async () => {
-    vi.mocked(apiService.get).mockResolvedValue({
-      count: 1,
-      next: null,
-      previous: null,
-      results: [mockRepositories[0]],
+    vi.mocked(apiService.get).mockImplementation((url) => {
+      if (url.includes('repositories')) {
+        return Promise.resolve({
+          count: 1,
+          next: null,
+          previous: null,
+          results: [mockRepositories[0]],
+        });
+      }
+      if (url.includes('remotes')) {
+        return Promise.resolve({
+          count: 0,
+          next: null,
+          previous: null,
+          results: [],
+        });
+      }
+      return Promise.resolve({ count: 0, results: [] });
     });
     vi.mocked(apiService.put).mockResolvedValue({});
 
@@ -201,11 +266,24 @@ describe('RpmRepository', () => {
   });
 
   it('opens delete confirmation dialog', async () => {
-    vi.mocked(apiService.get).mockResolvedValue({
-      count: 1,
-      next: null,
-      previous: null,
-      results: [mockRepositories[0]],
+    vi.mocked(apiService.get).mockImplementation((url) => {
+      if (url.includes('repositories')) {
+        return Promise.resolve({
+          count: 1,
+          next: null,
+          previous: null,
+          results: [mockRepositories[0]],
+        });
+      }
+      if (url.includes('remotes')) {
+        return Promise.resolve({
+          count: 0,
+          next: null,
+          previous: null,
+          results: [],
+        });
+      }
+      return Promise.resolve({ count: 0, results: [] });
     });
 
     render(<RpmRepository />);
@@ -225,11 +303,24 @@ describe('RpmRepository', () => {
   });
 
   it('deletes a repository', async () => {
-    vi.mocked(apiService.get).mockResolvedValue({
-      count: 1,
-      next: null,
-      previous: null,
-      results: [mockRepositories[0]],
+    vi.mocked(apiService.get).mockImplementation((url) => {
+      if (url.includes('repositories')) {
+        return Promise.resolve({
+          count: 1,
+          next: null,
+          previous: null,
+          results: [mockRepositories[0]],
+        });
+      }
+      if (url.includes('remotes')) {
+        return Promise.resolve({
+          count: 0,
+          next: null,
+          previous: null,
+          results: [],
+        });
+      }
+      return Promise.resolve({ count: 0, results: [] });
     });
     vi.mocked(apiService.delete).mockResolvedValue({});
 
@@ -261,11 +352,24 @@ describe('RpmRepository', () => {
   });
 
   it('cancels delete operation', async () => {
-    vi.mocked(apiService.get).mockResolvedValue({
-      count: 1,
-      next: null,
-      previous: null,
-      results: [mockRepositories[0]],
+    vi.mocked(apiService.get).mockImplementation((url) => {
+      if (url.includes('repositories')) {
+        return Promise.resolve({
+          count: 1,
+          next: null,
+          previous: null,
+          results: [mockRepositories[0]],
+        });
+      }
+      if (url.includes('remotes')) {
+        return Promise.resolve({
+          count: 0,
+          next: null,
+          previous: null,
+          results: [],
+        });
+      }
+      return Promise.resolve({ count: 0, results: [] });
     });
     vi.mocked(apiService.delete).mockResolvedValue({});
 
@@ -292,5 +396,54 @@ describe('RpmRepository', () => {
     });
 
     expect(apiService.delete).not.toHaveBeenCalled();
+  });
+
+  it('creates a repository with a remote', async () => {
+    const mockRemotes = [
+      {
+        pulp_href: '/pulp/api/v3/remotes/rpm/rpm/1/',
+        name: 'test-remote',
+        url: 'https://example.com/repo',
+      },
+    ];
+
+    vi.mocked(apiService.get).mockImplementation((url) => {
+      if (url.includes('repositories')) {
+        return Promise.resolve({
+          count: 0,
+          next: null,
+          previous: null,
+          results: [],
+        });
+      }
+      if (url.includes('remotes')) {
+        return Promise.resolve({
+          count: 1,
+          next: null,
+          previous: null,
+          results: mockRemotes,
+        });
+      }
+      return Promise.resolve({ count: 0, results: [] });
+    });
+    vi.mocked(apiService.post).mockResolvedValue({});
+
+    render(<RpmRepository />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Create Repository')).toBeInTheDocument();
+    });
+
+    // Open create dialog
+    fireEvent.click(screen.getByText('Create Repository'));
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+
+    // Verify remotes are loaded for the autocomplete
+    await waitFor(() => {
+      expect(apiService.get).toHaveBeenCalledWith('/remotes/rpm/rpm/');
+    });
   });
 });
