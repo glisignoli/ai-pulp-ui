@@ -171,12 +171,12 @@ const RpmPublication: React.FC = () => {
         layout: formData.layout,
       };
 
-      // Add repository or repository_version (at least one is required)
-      if (formData.repository) {
-        payload.repository = formData.repository;
-      }
+      // Add repository or repository_version (at least one is required, but not both)
+      // If repository_version is specified, use it; otherwise use repository
       if (formData.repository_version) {
         payload.repository_version = formData.repository_version;
+      } else if (formData.repository) {
+        payload.repository = formData.repository;
       }
 
       // Add repo_config if provided

@@ -285,4 +285,97 @@ test.describe('RPM CRUD (Real API)', () => {
       if (repoName) await deleteByName(request, 'repositories/rpm/rpm', repoName);
     }
   });
+
+  test('Publications: create with repository version', async ({ page, request }) => {
+    const repoName = uniqueName('pw-pub-ver-repo');
+    let repoHref: string | undefined;
+
+    try {
+      // Create a repository first
+      const repo = await createRepository(request, repoName, 'repo for publication version test');
+      repoHref = repo.pulp_href;
+
+      // Get the repository versions using the versions_href from the repository
+      const versionsHref = repo.versions_href || `${repo.pulp_href}versions/`;
+      const versionsUrl = versionsHref.startsWith('http') ? versionsHref : `${API_ORIGIN}${versionsHref}`;
+      const versionsData = await apiGetJson<{ results?: Array<{ pulp_href: string; number: number }> }>(
+        request,
+        versionsUrl
+      );
+      expect(versionsData.results).toBeDefined();
+      expect(versionsData.results!.length).toBeGreaterThan(0);
+      const version0 = versionsData.results![0];
+
+      await setAuthToken(page);
+      await page.goto('/rpm/publication');
+
+      await expect(page.getByRole('heading', { name: /rpm publications/i })).toBeVisible();
+      await page.getByRole('button', { name: /create publication/i }).click();
+
+      const dialog = page.getByRole('dialog', { name: /create rpm publication/i });
+      await expect(dialog).toBeVisible();
+
+      // Select the repository
+      const repoSelect = dialog
+        .getByText(/^Repository \*$/)
+        .first()
+        .locator('..')
+        .getByRole('combobox');
+      await repoSelect.click();
+      await page.getByRole('option', { name: repoName, exact: true }).click();
+
+      // Wait for repository versions to load
+      await page.waitForTimeout(1000);
+
+      // Select a specific repository version
+      const versionInput = dialog.getByLabel(/repository version \(optional\)/i);
+      await versionInput.click();
+      
+      // Wait for the dropdown options to appear and select the first version
+      await page.waitForTimeout(500);
+      const versionOption = page.getByRole('option').filter({ hasText: `Version ${version0.number}` }).first();
+      await versionOption.click();
+
+      await dialog.getByRole('button', { name: /^create$/i }).click();
+
+      // Publication creation is async in Pulp; poll via UI refresh until it appears.
+      await expect
+        .poll(
+          async () => {
+            await page.reload();
+            await page.waitForLoadState('networkidle');
+            return await page.getByRole('cell', { name: repoName, exact: true }).count();
+          },
+          { timeout: 60_000, intervals: [1000, 2000, 2000, 3000, 5000] }
+        )
+        .toBeGreaterThan(0);
+
+      // Verify the publication was created successfully
+      const row = page.getByRole('row', { name: new RegExp(repoName, 'i') });
+      await expect(row).toBeVisible();
+
+      // Clean up - delete the publication
+      await row.getByRole('button', { name: /^delete$/i }).click();
+
+      const confirm = page.getByRole('dialog', { name: /confirm delete/i });
+      await expect(confirm).toBeVisible();
+      await confirm.getByRole('button', { name: /^delete$/i }).click();
+
+      await expect(page.getByText(repoName)).toHaveCount(0);
+    } finally {
+      // Best-effort cleanup: delete any publications tied to this repo, then the repo itself.
+      if (repoHref) {
+        const pubs = await apiGetJson<{ results?: Array<{ pulp_href: string; repository?: string; repository_version?: string }> }>(
+          request,
+          `${API_BASE}/publications/rpm/rpm/?limit=200`
+        );
+        for (const pub of pubs.results ?? []) {
+          if (pub.repository === repoHref || (pub.repository_version && pub.repository_version.includes(repoHref))) {
+            await apiDelete(request, pub.pulp_href);
+          }
+        }
+      }
+      if (repoName) await deleteByName(request, 'repositories/rpm/rpm', repoName);
+    }
+  });
 });
