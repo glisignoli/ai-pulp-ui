@@ -1,10 +1,15 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
 import { RpmRemote } from '../components/rpm/RpmRemote';
 import { apiService } from '../services/api';
 
 vi.mock('../services/api');
+
+const renderWithRouter = (component: React.ReactElement) => {
+  return render(<MemoryRouter>{component}</MemoryRouter>);
+};
 
 describe('RpmRemote', () => {
   beforeEach(() => {
@@ -13,7 +18,7 @@ describe('RpmRemote', () => {
 
   it('displays loading state initially', () => {
     (apiService.get as any).mockImplementation(() => new Promise(() => {}));
-    render(<RpmRemote />);
+    renderWithRouter(<RpmRemote />);
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 
@@ -40,7 +45,7 @@ describe('RpmRemote', () => {
 
     (apiService.get as any).mockResolvedValue(mockRemotes);
 
-    render(<RpmRemote />);
+    renderWithRouter(<RpmRemote />);
 
     await waitFor(() => {
       expect(screen.getByText('test-remote-1')).toBeInTheDocument();
@@ -53,7 +58,7 @@ describe('RpmRemote', () => {
   it('shows error message when loading fails', async () => {
     (apiService.get as any).mockRejectedValue(new Error('Network error'));
 
-    render(<RpmRemote />);
+    renderWithRouter(<RpmRemote />);
 
     await waitFor(() => {
       expect(screen.getByText('Failed to load remotes')).toBeInTheDocument();
@@ -63,7 +68,7 @@ describe('RpmRemote', () => {
   it('opens create dialog when Create Remote button is clicked', async () => {
     (apiService.get as any).mockResolvedValue({ count: 0, results: [] });
 
-    render(<RpmRemote />);
+    renderWithRouter(<RpmRemote />);
 
     await waitFor(() => {
       expect(screen.getByText('No remotes found')).toBeInTheDocument();
@@ -84,7 +89,7 @@ describe('RpmRemote', () => {
     (apiService.get as any).mockResolvedValue({ count: 0, results: [] });
     (apiService.post as any).mockResolvedValue({});
 
-    render(<RpmRemote />);
+    renderWithRouter(<RpmRemote />);
 
     await waitFor(() => {
       expect(screen.getByText('No remotes found')).toBeInTheDocument();
@@ -124,7 +129,7 @@ describe('RpmRemote', () => {
     (apiService.get as any).mockResolvedValue({ count: 0, results: [] });
     (apiService.post as any).mockResolvedValue({});
 
-    render(<RpmRemote />);
+    renderWithRouter(<RpmRemote />);
 
     await waitFor(() => {
       expect(screen.getByText('No remotes found')).toBeInTheDocument();
@@ -184,7 +189,7 @@ describe('RpmRemote', () => {
 
     (apiService.get as any).mockResolvedValue(mockRemotes);
 
-    render(<RpmRemote />);
+    renderWithRouter(<RpmRemote />);
 
     await waitFor(() => {
       expect(screen.getByText('existing-remote')).toBeInTheDocument();
@@ -209,7 +214,7 @@ describe('RpmRemote', () => {
     (apiService.get as any).mockResolvedValue({ count: 0, results: [] });
     (apiService.post as any).mockResolvedValue({});
 
-    render(<RpmRemote />);
+    renderWithRouter(<RpmRemote />);
 
     await waitFor(() => {
       expect(screen.getByText('No remotes found')).toBeInTheDocument();
@@ -262,7 +267,7 @@ describe('RpmRemote', () => {
     (apiService.get as any).mockResolvedValue(mockRemotes);
     (apiService.put as any).mockResolvedValue({});
 
-    render(<RpmRemote />);
+    renderWithRouter(<RpmRemote />);
 
     await waitFor(() => {
       expect(screen.getByText('existing-remote')).toBeInTheDocument();
@@ -308,7 +313,7 @@ describe('RpmRemote', () => {
 
     (apiService.get as any).mockResolvedValue(mockRemotes);
 
-    render(<RpmRemote />);
+    renderWithRouter(<RpmRemote />);
 
     await waitFor(() => {
       expect(screen.getByText('remote-to-delete')).toBeInTheDocument();
@@ -340,7 +345,7 @@ describe('RpmRemote', () => {
     (apiService.get as any).mockResolvedValue(mockRemotes);
     (apiService.delete as any).mockResolvedValue({});
 
-    render(<RpmRemote />);
+    renderWithRouter(<RpmRemote />);
 
     await waitFor(() => {
       expect(screen.getByText('remote-to-delete')).toBeInTheDocument();

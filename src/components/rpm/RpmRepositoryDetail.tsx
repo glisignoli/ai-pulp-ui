@@ -237,6 +237,9 @@ export const RpmRepositoryDetail: React.FC = () => {
     return (
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
         <Alert severity="error">{error || 'Repository not found'}</Alert>
+        <Button sx={{ mt: 2 }} variant="contained" onClick={() => navigate('/rpm/repository')}>
+          Back to Repositories
+        </Button>
       </Container>
     );
   }

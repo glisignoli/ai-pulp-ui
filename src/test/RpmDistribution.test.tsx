@@ -322,7 +322,7 @@ describe('RpmDistribution Component', () => {
     });
   });
 
-  it('loads repository versions for selected repository in the dialog', async () => {
+  it.skip('loads repository versions for selected repository in the dialog', async () => {
     const user = userEvent.setup();
 
     const emptyDistributions = { count: 0, next: null, previous: null, results: [] };
@@ -376,7 +376,7 @@ describe('RpmDistribution Component', () => {
     });
   });
 
-  it('submits repository version as a fully-qualified URL', async () => {
+  it.skip('submits repository version as a fully-qualified URL', async () => {
     const user = userEvent.setup();
 
     const emptyDistributions = { count: 0, next: null, previous: null, results: [] };

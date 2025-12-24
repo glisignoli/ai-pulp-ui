@@ -1,10 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 import RpmPublication from '../components/rpm/RpmPublication';
 import { apiService } from '../services/api';
 
 vi.mock('../services/api');
+
+const renderWithRouter = (component: React.ReactElement) => {
+  return render(<MemoryRouter>{component}</MemoryRouter>);
+};
 
 describe('RpmPublication', () => {
   beforeEach(() => {
@@ -61,7 +66,7 @@ describe('RpmPublication', () => {
       return Promise.resolve({ count: 0, next: null, previous: null, results: [] });
     });
 
-    render(<RpmPublication />);
+    renderWithRouter(<RpmPublication />);
 
     await waitFor(() => {
       expect(screen.getByText('sha256')).toBeInTheDocument();
@@ -75,7 +80,7 @@ describe('RpmPublication', () => {
       return Promise.resolve({ count: 0, next: null, previous: null, results: [] });
     });
 
-    render(<RpmPublication />);
+    renderWithRouter(<RpmPublication />);
 
     await waitFor(() => {
       expect(screen.getByText('No publications found')).toBeInTheDocument();
@@ -117,7 +122,7 @@ describe('RpmPublication', () => {
 
     apiService.post.mockResolvedValueOnce({});
 
-    render(<RpmPublication />);
+    renderWithRouter(<RpmPublication />);
 
     await waitFor(() => {
       expect(screen.getByText('No publications found')).toBeInTheDocument();
@@ -187,7 +192,7 @@ describe('RpmPublication', () => {
 
     apiService.post.mockResolvedValueOnce({});
 
-    render(<RpmPublication />);
+    renderWithRouter(<RpmPublication />);
 
     await waitFor(() => {
       expect(screen.getByText('No publications found')).toBeInTheDocument();
@@ -257,7 +262,7 @@ describe('RpmPublication', () => {
       return Promise.resolve({ count: 0, results: [] });
     });
 
-    render(<RpmPublication />);
+    renderWithRouter(<RpmPublication />);
 
     await waitFor(() => {
       expect(screen.getByText('sha256')).toBeInTheDocument();
@@ -300,7 +305,7 @@ describe('RpmPublication', () => {
 
     apiService.delete.mockResolvedValueOnce({});
 
-    render(<RpmPublication />);
+    renderWithRouter(<RpmPublication />);
 
     await waitFor(() => {
       expect(screen.getByText('sha256')).toBeInTheDocument();
@@ -350,7 +355,7 @@ describe('RpmPublication', () => {
 
     apiService.post.mockRejectedValueOnce(new Error('Creation failed'));
 
-    render(<RpmPublication />);
+    renderWithRouter(<RpmPublication />);
 
     await waitFor(() => {
       expect(screen.getByText('No publications found')).toBeInTheDocument();
@@ -411,7 +416,7 @@ describe('RpmPublication', () => {
 
     apiService.post.mockResolvedValueOnce({});
 
-    render(<RpmPublication />);
+    renderWithRouter(<RpmPublication />);
 
     await waitFor(() => {
       expect(screen.getByText('No publications found')).toBeInTheDocument();
