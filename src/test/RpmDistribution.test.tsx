@@ -75,7 +75,7 @@ describe('RpmDistribution Component', () => {
       results: [],
     };
 
-    const mockVersions = {
+    const mockRepositories = {
       count: 0,
       next: null,
       previous: null,
@@ -89,8 +89,8 @@ describe('RpmDistribution Component', () => {
       if (url.includes('/publications/')) {
         return Promise.resolve(mockPublications);
       }
-      if (url.includes('/versions/')) {
-        return Promise.resolve(mockVersions);
+      if (url.includes('/repositories/')) {
+        return Promise.resolve(mockRepositories);
       }
       return Promise.resolve({ count: 0, next: null, previous: null, results: [] });
     });
@@ -187,8 +187,8 @@ describe('RpmDistribution Component', () => {
     let callCount = 0;
     vi.mocked(apiService.get).mockImplementation(() => {
       callCount++;
-      // First 3 calls: initial load (distributions, publications, versions)
-      // Next 3 calls: after create (distributions, publications, versions)
+      // First 3 calls: initial load (distributions, publications, repositories)
+      // Next 3 calls: after create (distributions, publications, repositories)
       if (callCount <= 3) {
         return Promise.resolve(emptyResponse);
       }
@@ -240,7 +240,7 @@ describe('RpmDistribution Component', () => {
     let callCount = 0;
     vi.mocked(apiService.get).mockImplementation(() => {
       callCount++;
-      // First 3 calls: initial load (distributions, publications, versions)
+      // First 3 calls: initial load (distributions, publications, repositories)
       if (callCount === 1) {
         return Promise.resolve(initialResponse);
       }
@@ -300,7 +300,7 @@ describe('RpmDistribution Component', () => {
     let callCount = 0;
     vi.mocked(apiService.get).mockImplementation(() => {
       callCount++;
-      // First 3 calls: initial load (distributions, publications, versions)
+      // First 3 calls: initial load (distributions, publications, repositories)
       if (callCount === 1) {
         return Promise.resolve(initialResponse);
       }
@@ -319,6 +319,120 @@ describe('RpmDistribution Component', () => {
 
     await waitFor(() => {
       expect(apiService.delete).toHaveBeenCalledWith('/pulp/api/v3/distributions/rpm/rpm/1/');
+    });
+  });
+
+  it('loads repository versions for selected repository in the dialog', async () => {
+    const user = userEvent.setup();
+
+    const emptyDistributions = { count: 0, next: null, previous: null, results: [] };
+    const emptyPublications = { count: 0, next: null, previous: null, results: [] };
+
+    const repoHref = '/pulp/api/v3/repositories/rpm/rpm/1/';
+    const mockRepositories = {
+      count: 1,
+      next: null,
+      previous: null,
+      results: [{ pulp_href: repoHref, name: 'test-repo' }],
+    };
+
+    const mockVersions = {
+      count: 1,
+      next: null,
+      previous: null,
+      results: [{ pulp_href: `${repoHref}versions/1/`, number: 1, repository: repoHref }],
+    };
+
+    vi.mocked(apiService.get).mockImplementation((url: string) => {
+      if (url.includes('/distributions/')) return Promise.resolve(emptyDistributions);
+      if (url.includes('/publications/')) return Promise.resolve(emptyPublications);
+      if (url === '/repositories/rpm/rpm/') return Promise.resolve(mockRepositories);
+      if (url === `${repoHref}versions/`) return Promise.resolve(mockVersions);
+      return Promise.resolve({ count: 0, next: null, previous: null, results: [] });
+    });
+
+    renderRpmDistribution();
+
+    await user.click(await screen.findByRole('button', { name: /create distribution/i }));
+    const dialog = screen.getByRole('dialog');
+
+    const repoCombobox = within(dialog).getByRole('combobox', { name: /^Repository$/i });
+    await user.click(repoCombobox);
+
+    await waitFor(() => {
+      expect(screen.getByRole('option', { name: 'test-repo' })).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole('option', { name: 'test-repo' }));
+
+    await waitFor(() => {
+      expect(apiService.get).toHaveBeenCalledWith(`${repoHref}versions/`);
+    });
+
+    const versionCombobox = within(dialog).getByRole('combobox', { name: /^Repository Version$/i });
+    await user.click(versionCombobox);
+
+    await waitFor(() => {
+      expect(screen.getByRole('option', { name: 'Version 1' })).toBeInTheDocument();
+    });
+  });
+
+  it('submits repository version as a fully-qualified URL', async () => {
+    const user = userEvent.setup();
+
+    const emptyDistributions = { count: 0, next: null, previous: null, results: [] };
+    const emptyPublications = { count: 0, next: null, previous: null, results: [] };
+
+    const repoHref = '/pulp/api/v3/repositories/rpm/rpm/1/';
+    const mockRepositories = {
+      count: 1,
+      next: null,
+      previous: null,
+      results: [{ pulp_href: repoHref, name: 'test-repo' }],
+    };
+
+    const versionHref = `${repoHref}versions/1/`;
+    const mockVersions = {
+      count: 1,
+      next: null,
+      previous: null,
+      results: [{ pulp_href: versionHref, number: 1, repository: repoHref }],
+    };
+
+    vi.mocked(apiService.get).mockImplementation((url: string) => {
+      if (url.includes('/distributions/')) return Promise.resolve(emptyDistributions);
+      if (url.includes('/publications/')) return Promise.resolve(emptyPublications);
+      if (url === '/repositories/rpm/rpm/') return Promise.resolve(mockRepositories);
+      if (url === `${repoHref}versions/`) return Promise.resolve(mockVersions);
+      return Promise.resolve({ count: 0, next: null, previous: null, results: [] });
+    });
+
+    vi.mocked(apiService.post).mockResolvedValueOnce({ task: '/pulp/api/v3/tasks/1/' } as any);
+
+    renderRpmDistribution();
+
+    await user.click(await screen.findByRole('button', { name: /create distribution/i }));
+    const dialog = screen.getByRole('dialog');
+
+    await user.type(within(dialog).getByLabelText(/name/i), 'new-distribution');
+    await user.type(within(dialog).getByLabelText(/base path/i), 'new/path');
+
+    const repoCombobox = within(dialog).getByRole('combobox', { name: /^Repository$/i });
+    await user.click(repoCombobox);
+    await user.click(await screen.findByRole('option', { name: 'test-repo' }));
+
+    const versionCombobox = within(dialog).getByRole('combobox', { name: /^Repository Version$/i });
+    await user.click(versionCombobox);
+    await user.click(await screen.findByRole('option', { name: 'Version 1' }));
+
+    await user.click(within(dialog).getByRole('button', { name: /^create$/i }));
+
+    await waitFor(() => {
+      expect(apiService.post).toHaveBeenCalledWith(
+        '/distributions/rpm/rpm/',
+        expect.objectContaining({
+          repository: `http://localhost:8080${versionHref}`,
+        })
+      );
     });
   });
 });

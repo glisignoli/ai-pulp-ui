@@ -27,7 +27,8 @@ import {
   Checkbox,
   Autocomplete,
 } from '@mui/material';
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import { apiService } from '../../services/api';
 import { Repository, Remote, PulpListResponse } from '../../types/pulp';
 
@@ -47,6 +48,7 @@ interface RepositoryFormData {
 }
 
 export const RpmRepository: React.FC = () => {
+  const navigate = useNavigate();
   const [repositories, setRepositories] = useState<Repository[]>([]);
   const [remotes, setRemotes] = useState<Remote[]>([]);
   const [loading, setLoading] = useState(true);
@@ -286,6 +288,15 @@ export const RpmRepository: React.FC = () => {
                   <TableCell>{repo.description || 'N/A'}</TableCell>
                   <TableCell>{repo.retain_repo_versions || 'N/A'}</TableCell>
                   <TableCell align="right">
+                    <IconButton
+                      color="primary"
+                      onClick={() =>
+                        navigate(`/rpm/repository/view?href=${encodeURIComponent(repo.pulp_href)}`)
+                      }
+                      title="View"
+                    >
+                      <VisibilityIcon />
+                    </IconButton>
                     <IconButton
                       color="primary"
                       onClick={() => handleOpenDialog(repo)}

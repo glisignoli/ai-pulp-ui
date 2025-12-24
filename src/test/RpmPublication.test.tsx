@@ -11,6 +11,14 @@ describe('RpmPublication', () => {
     vi.clearAllMocks();
   });
 
+  const getMuiSelectComboboxes = (): HTMLElement[] => {
+    // Autocomplete uses an <input role="combobox" aria-autocomplete="list"/>
+    // MUI Select uses role="combobox" without aria-autocomplete.
+    return screen
+      .getAllByRole('combobox')
+      .filter((el) => !el.getAttribute('aria-autocomplete')) as unknown as HTMLElement[];
+  };
+
   it('should load and display publications', async () => {
     const mockPublications = {
       count: 1,
@@ -41,6 +49,9 @@ describe('RpmPublication', () => {
     };
 
     (apiService.get as any).mockImplementation((url: string) => {
+      if (url.includes('/versions/')) {
+        return Promise.resolve({ count: 0, next: null, previous: null, results: [] });
+      }
       if (url.includes('publications')) {
         return Promise.resolve(mockPublications);
       }
@@ -92,6 +103,9 @@ describe('RpmPublication', () => {
     };
 
     apiService.get.mockImplementation((url: string) => {
+      if (url.includes('/versions/')) {
+        return Promise.resolve({ count: 0, next: null, previous: null, results: [] });
+      }
       if (url.includes('publications')) {
         return Promise.resolve({ count: 0, next: null, previous: null, results: [] });
       }
@@ -116,9 +130,9 @@ describe('RpmPublication', () => {
       expect(screen.getByText('Create RPM Publication')).toBeInTheDocument();
     });
 
-    // Select repository using getAllByRole
-    const selects = screen.getAllByRole('combobox');
-    const repositorySelect = selects[0]; // First select is Repository
+    // Select repository (do not rely on combobox index; Autocomplete adds one)
+    const selects = getMuiSelectComboboxes();
+    const repositorySelect = selects[0];
     await userEvent.click(repositorySelect);
     
     await waitFor(() => {
@@ -159,6 +173,9 @@ describe('RpmPublication', () => {
     };
 
     apiService.get.mockImplementation((url: string) => {
+      if (url.includes('/versions/')) {
+        return Promise.resolve({ count: 0, next: null, previous: null, results: [] });
+      }
       if (url.includes('publications')) {
         return Promise.resolve({ count: 0, next: null, previous: null, results: [] });
       }
@@ -183,8 +200,8 @@ describe('RpmPublication', () => {
       expect(screen.getByText('Create RPM Publication')).toBeInTheDocument();
     });
 
-    // Select repository
-    const selects = screen.getAllByRole('combobox');
+    // Select repository (do not rely on combobox index; Autocomplete adds one)
+    const selects = getMuiSelectComboboxes();
     const repositorySelect = selects[0];
     await userEvent.click(repositorySelect);
     
@@ -319,6 +336,9 @@ describe('RpmPublication', () => {
     };
 
     apiService.get.mockImplementation((url: string) => {
+      if (url.includes('/versions/')) {
+        return Promise.resolve({ count: 0, next: null, previous: null, results: [] });
+      }
       if (url.includes('publications')) {
         return Promise.resolve({ count: 0, next: null, previous: null, results: [] });
       }
@@ -343,7 +363,7 @@ describe('RpmPublication', () => {
       expect(screen.getByText('Create RPM Publication')).toBeInTheDocument();
     });
 
-    const selects = screen.getAllByRole('combobox');
+    const selects = getMuiSelectComboboxes();
     const repositorySelect = selects[0];
     await userEvent.click(repositorySelect);
     
@@ -377,6 +397,9 @@ describe('RpmPublication', () => {
     };
 
     apiService.get.mockImplementation((url: string) => {
+      if (url.includes('/versions/')) {
+        return Promise.resolve({ count: 0, next: null, previous: null, results: [] });
+      }
       if (url.includes('publications')) {
         return Promise.resolve({ count: 0, next: null, previous: null, results: [] });
       }
@@ -402,7 +425,7 @@ describe('RpmPublication', () => {
     });
 
     // Select repository
-    const selects = screen.getAllByRole('combobox');
+    const selects = getMuiSelectComboboxes();
     const repositorySelect = selects[0];
     await userEvent.click(repositorySelect);
     
@@ -414,7 +437,7 @@ describe('RpmPublication', () => {
     await userEvent.click(repoOption);
 
     // Select SHA512 checksum type
-    const checksumSelect = selects[1]; // Second select is Checksum Type
+    const checksumSelect = selects[1];
     await userEvent.click(checksumSelect);
     
     await waitFor(() => {

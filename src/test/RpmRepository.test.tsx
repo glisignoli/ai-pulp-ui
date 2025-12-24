@@ -2,6 +2,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { RpmRepository } from '../components/rpm/RpmRepository';
 import { apiService } from '../services/api';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
 vi.mock('../services/api');
 
@@ -30,7 +31,11 @@ describe('RpmRepository', () => {
       () => new Promise(() => {}) // Never resolves
     );
 
-    render(<RpmRepository />);
+    render(
+      <MemoryRouter>
+        <RpmRepository />
+      </MemoryRouter>
+    );
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 
@@ -55,7 +60,11 @@ describe('RpmRepository', () => {
       return Promise.resolve({ count: 0, results: [] });
     });
 
-    render(<RpmRepository />);
+    render(
+      <MemoryRouter>
+        <RpmRepository />
+      </MemoryRouter>
+    );
 
     await waitFor(() => {
       expect(screen.getByText('test-repo')).toBeInTheDocument();
@@ -66,7 +75,11 @@ describe('RpmRepository', () => {
   it('shows error when loading fails', async () => {
     vi.mocked(apiService.get).mockRejectedValue(new Error('Failed to load'));
 
-    render(<RpmRepository />);
+    render(
+      <MemoryRouter>
+        <RpmRepository />
+      </MemoryRouter>
+    );
 
     await waitFor(() => {
       expect(screen.getByText('Failed to load repositories')).toBeInTheDocument();
@@ -94,7 +107,11 @@ describe('RpmRepository', () => {
       return Promise.resolve({ count: 0, results: [] });
     });
 
-    render(<RpmRepository />);
+    render(
+      <MemoryRouter>
+        <RpmRepository />
+      </MemoryRouter>
+    );
 
     await waitFor(() => {
       expect(screen.getByText('Create Repository')).toBeInTheDocument();
@@ -130,7 +147,11 @@ describe('RpmRepository', () => {
     });
     vi.mocked(apiService.post).mockResolvedValue({});
 
-    render(<RpmRepository />);
+    render(
+      <MemoryRouter>
+        <RpmRepository />
+      </MemoryRouter>
+    );
 
     await waitFor(() => {
       expect(screen.getByText('Create Repository')).toBeInTheDocument();
@@ -190,7 +211,11 @@ describe('RpmRepository', () => {
       return Promise.resolve({ count: 0, results: [] });
     });
 
-    render(<RpmRepository />);
+    render(
+      <MemoryRouter>
+        <RpmRepository />
+      </MemoryRouter>
+    );
 
     await waitFor(() => {
       expect(screen.getByText('test-repo')).toBeInTheDocument();
@@ -229,7 +254,11 @@ describe('RpmRepository', () => {
     });
     vi.mocked(apiService.put).mockResolvedValue({});
 
-    render(<RpmRepository />);
+    render(
+      <MemoryRouter>
+        <RpmRepository />
+      </MemoryRouter>
+    );
 
     await waitFor(() => {
       expect(screen.getByText('test-repo')).toBeInTheDocument();
@@ -286,7 +315,11 @@ describe('RpmRepository', () => {
       return Promise.resolve({ count: 0, results: [] });
     });
 
-    render(<RpmRepository />);
+    render(
+      <MemoryRouter>
+        <RpmRepository />
+      </MemoryRouter>
+    );
 
     await waitFor(() => {
       expect(screen.getByText('test-repo')).toBeInTheDocument();
@@ -324,7 +357,11 @@ describe('RpmRepository', () => {
     });
     vi.mocked(apiService.delete).mockResolvedValue({});
 
-    render(<RpmRepository />);
+    render(
+      <MemoryRouter>
+        <RpmRepository />
+      </MemoryRouter>
+    );
 
     await waitFor(() => {
       expect(screen.getByText('test-repo')).toBeInTheDocument();
@@ -373,7 +410,11 @@ describe('RpmRepository', () => {
     });
     vi.mocked(apiService.delete).mockResolvedValue({});
 
-    render(<RpmRepository />);
+    render(
+      <MemoryRouter>
+        <RpmRepository />
+      </MemoryRouter>
+    );
 
     await waitFor(() => {
       expect(screen.getByText('test-repo')).toBeInTheDocument();
@@ -428,7 +469,11 @@ describe('RpmRepository', () => {
     });
     vi.mocked(apiService.post).mockResolvedValue({});
 
-    render(<RpmRepository />);
+    render(
+      <MemoryRouter>
+        <RpmRepository />
+      </MemoryRouter>
+    );
 
     await waitFor(() => {
       expect(screen.getByText('Create Repository')).toBeInTheDocument();
@@ -447,3 +492,43 @@ describe('RpmRepository', () => {
     });
   });
 });
+  it('navigates to repository view when View is clicked', async () => {
+    vi.mocked(apiService.get).mockImplementation((url) => {
+      if (url.includes('repositories')) {
+        return Promise.resolve({
+          count: 1,
+          next: null,
+          previous: null,
+          results: [mockRepositories[0]],
+        });
+      }
+      if (url.includes('remotes')) {
+        return Promise.resolve({
+          count: 0,
+          next: null,
+          previous: null,
+          results: [],
+        });
+      }
+      return Promise.resolve({ count: 0, results: [] });
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/rpm/repository']}>
+        <Routes>
+          <Route path="/rpm/repository" element={<RpmRepository />} />
+          <Route path="/rpm/repository/view" element={<div>Repository Detail View</div>} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('test-repo')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getAllByTitle('View')[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText('Repository Detail View')).toBeInTheDocument();
+    });
+  });

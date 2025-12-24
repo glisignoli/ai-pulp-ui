@@ -133,4 +133,111 @@ test.describe('Navigation Tests', () => {
 
     await expect(drawer.getByRole('button', { name: 'Distribution', exact: true })).toHaveCount(0);
   });
+
+  test('can navigate to RPM Distribution detail view', async ({ page }) => {
+    await page.goto('/rpm/distribution');
+    await page.waitForLoadState('networkidle');
+
+    // Try to find a view button and click it
+    const viewButtons = page.locator('button[title="View"]');
+    const count = await viewButtons.count();
+
+    if (count > 0) {
+      await viewButtons.first().click();
+      await page.waitForLoadState('networkidle');
+
+      // Should be on detail view page
+      await expect(page.locator('h4').filter({ hasText: 'Distribution:' })).toBeVisible();
+      await expect(page.getByRole('button', { name: /back/i })).toBeVisible();
+
+      // Click back button
+      await page.getByRole('button', { name: /back/i }).click();
+      await expect(page).toHaveURL('/rpm/distribution');
+    }
+  });
+
+  test('can navigate to RPM Publication detail view', async ({ page }) => {
+    await page.goto('/rpm/publication');
+    await page.waitForLoadState('networkidle');
+
+    // Try to find a view button and click it
+    const viewButtons = page.locator('button[aria-label="view"]');
+    const count = await viewButtons.count();
+
+    if (count > 0) {
+      await viewButtons.first().click();
+      await page.waitForLoadState('networkidle');
+
+      // Should be on detail view page
+      await expect(page.locator('h4').filter({ hasText: 'Publication Details' })).toBeVisible();
+      await expect(page.getByRole('button', { name: /back/i })).toBeVisible();
+
+      // Click back button
+      await page.getByRole('button', { name: /back/i }).click();
+      await expect(page).toHaveURL('/rpm/publication');
+    }
+  });
+
+  test('can navigate to RPM Remote detail view', async ({ page }) => {
+    await page.goto('/rpm/remote');
+    await page.waitForLoadState('networkidle');
+
+    // Try to find a view button and click it
+    const viewButtons = page.locator('button[title="View"]');
+    const count = await viewButtons.count();
+
+    if (count > 0) {
+      await viewButtons.first().click();
+      await page.waitForLoadState('networkidle');
+
+      // Should be on detail view page
+      await expect(page.locator('h4').filter({ hasText: 'Remote:' })).toBeVisible();
+      await expect(page.getByRole('button', { name: /back/i })).toBeVisible();
+
+      // Click back button
+      await page.getByRole('button', { name: /back/i }).click();
+      await expect(page).toHaveURL('/rpm/remote');
+    }
+  });
+
+  test('can navigate to RPM Repository detail view', async ({ page }) => {
+    await page.goto('/rpm/repository');
+    await page.waitForLoadState('networkidle');
+
+    // Try to find a view button and click it
+    const viewButtons = page.locator('button[title="View"]');
+    const count = await viewButtons.count();
+
+    if (count > 0) {
+      await viewButtons.first().click();
+      await page.waitForLoadState('networkidle');
+
+      // Should be on detail view page
+      await expect(page.locator('h4').filter({ hasText: 'Repository:' })).toBeVisible();
+      await expect(page.getByRole('button', { name: /back/i })).toBeVisible();
+
+      // Click back button
+      await page.getByRole('button', { name: /back/i }).click();
+      await expect(page).toHaveURL('/rpm/repository');
+    }
+  });
+
+  test('detail view routes are accessible directly', async ({ page }) => {
+    // These should load without crashing, even if resource not found
+    const detailRoutes = [
+      '/rpm/distribution/view?href=%2Fpulp%2Fapi%2Fv3%2Fdistributions%2Frpm%2Frpm%2Ftest%2F',
+      '/rpm/publication/view?href=%2Fpulp%2Fapi%2Fv3%2Fpublications%2Frpm%2Frpm%2Ftest%2F',
+      '/rpm/remote/view?href=%2Fpulp%2Fapi%2Fv3%2Fremotes%2Frpm%2Frpm%2Ftest%2F',
+      '/rpm/repository/view?href=%2Fpulp%2Fapi%2Fv3%2Frepositories%2Frpm%2Frpm%2Ftest%2F',
+    ];
+
+    for (const route of detailRoutes) {
+      await page.goto(route);
+      await page.waitForLoadState('networkidle');
+      
+      // Should not crash - either shows detail or error message
+      await expect(page.locator('h4')).toBeVisible();
+      await expect(page.getByRole('button', { name: /back/i })).toBeVisible();
+    }
+  });
 });

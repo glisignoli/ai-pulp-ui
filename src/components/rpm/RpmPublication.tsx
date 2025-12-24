@@ -8,6 +8,7 @@ import {
   DialogContent,
   DialogActions,
   TextField,
+  Autocomplete,
   Select,
   MenuItem,
   FormControl,
@@ -28,8 +29,9 @@ import {
   IconButton,
   CircularProgress,
 } from '@mui/material';
-import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
-import { Publication, PulpListResponse, Repository } from '../../types/pulp';
+import { Add as AddIcon, Delete as DeleteIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
+import { Publication, PulpListResponse, Repository, RepositoryVersion } from '../../types/pulp';
 import { apiService } from '../../services/api';
 
 interface PublicationFormData {
@@ -43,10 +45,13 @@ interface PublicationFormData {
 }
 
 const RpmPublication: React.FC = () => {
+  const navigate = useNavigate();
   const [publications, setPublications] = useState<Publication[]>([]);
   const [repositories, setRepositories] = useState<Repository[]>([]);
+  const [repositoryVersions, setRepositoryVersions] = useState<RepositoryVersion[]>([]);
   const [repositoryMap, setRepositoryMap] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
+  const [versionsLoading, setVersionsLoading] = useState(false);
   const [openCreateDialog, setOpenCreateDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [selectedPublication, setSelectedPublication] = useState<Publication | null>(null);
@@ -101,7 +106,29 @@ const RpmPublication: React.FC = () => {
     }
   };
 
+  const loadRepositoryVersions = async (repositoryHref: string) => {
+    if (!repositoryHref) {
+      setRepositoryVersions([]);
+      return;
+    }
+
+    try {
+      setVersionsLoading(true);
+      const versionsEndpoint = repositoryHref.endsWith('/')
+        ? `${repositoryHref}versions/`
+        : `${repositoryHref}/versions/`;
+      const response = await apiService.get<PulpListResponse<RepositoryVersion>>(versionsEndpoint);
+      setRepositoryVersions(response?.results || []);
+    } catch (error) {
+      console.error('Failed to load repository versions:', error);
+      setRepositoryVersions([]);
+    } finally {
+      setVersionsLoading(false);
+    }
+  };
+
   const handleCreateClick = () => {
+    setRepositoryVersions([]);
     setFormData({
       repository_version: '',
       repository: '',
@@ -121,6 +148,18 @@ const RpmPublication: React.FC = () => {
 
   const handleFormChange = (field: keyof PublicationFormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleRepositoryChange = (repositoryHref: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      repository: repositoryHref,
+      repository_version: '',
+    }));
+    setRepositoryVersions([]);
+    if (repositoryHref) {
+      void loadRepositoryVersions(repositoryHref);
+    }
   };
 
   const handleSubmit = async () => {
@@ -239,6 +278,17 @@ const RpmPublication: React.FC = () => {
                   <TableCell>{pub.pulp_created ? new Date(pub.pulp_created).toLocaleString() : 'N/A'}</TableCell>
                   <TableCell align="right">
                     <IconButton
+                      color="primary"
+                      size="small"
+                      onClick={() =>
+                        navigate(`/rpm/publication/view?href=${encodeURIComponent(pub.pulp_href)}`)
+                      }
+                      aria-label="view"
+                      title="View"
+                    >
+                      <VisibilityIcon />
+                    </IconButton>
+                    <IconButton
                       color="error"
                       size="small"
                       onClick={() => handleDeleteClick(pub)}
@@ -267,7 +317,7 @@ const RpmPublication: React.FC = () => {
               <InputLabel>Repository *</InputLabel>
               <Select
                 value={formData.repository}
-                onChange={(e) => handleFormChange('repository', e.target.value)}
+                onChange={(e) => handleRepositoryChange(e.target.value)}
                 label="Repository *"
               >
                 {repositories.map((repo) => (
@@ -278,12 +328,26 @@ const RpmPublication: React.FC = () => {
               </Select>
             </FormControl>
 
-            <TextField
-              fullWidth
-              label="Repository Version (optional)"
-              value={formData.repository_version}
-              onChange={(e) => handleFormChange('repository_version', e.target.value)}
-              helperText="If not provided, the latest version will be used"
+            <Autocomplete
+              options={repositoryVersions.filter(
+                (v) => !formData.repository || !v.repository || v.repository === formData.repository
+              )}
+              getOptionLabel={(option) => {
+                const repoName = option.repository ? repositoryMap.get(option.repository) : undefined;
+                const versionNumber = option.number ?? 'N/A';
+                return `${repoName || 'Repository'} - Version ${versionNumber}`;
+              }}
+              value={repositoryVersions.find((v) => v.pulp_href === formData.repository_version) || null}
+              onChange={(_, newValue) => handleFormChange('repository_version', newValue?.pulp_href || '')}
+              loading={versionsLoading}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  fullWidth
+                  label="Repository Version (optional)"
+                  helperText="If not provided, the latest version will be used"
+                />
+              )}
             />
 
             <FormControlLabel

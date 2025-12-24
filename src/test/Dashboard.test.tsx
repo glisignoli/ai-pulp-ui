@@ -23,7 +23,7 @@ describe('Dashboard Component', () => {
     
     expect(screen.getByText('RPM')).toBeInTheDocument();
     expect(screen.getByText('File')).toBeInTheDocument();
-    expect(screen.getByText('Deb')).toBeInTheDocument();
+    expect(screen.getByText('Debian')).toBeInTheDocument();
   });
 
   it('renders welcome message', () => {

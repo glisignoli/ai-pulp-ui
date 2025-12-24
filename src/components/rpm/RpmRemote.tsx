@@ -26,7 +26,8 @@ import {
   FormHelperText,
   Checkbox,
 } from '@mui/material';
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import { apiService } from '../../services/api';
 import { Remote, PulpListResponse } from '../../types/pulp';
 
@@ -56,6 +57,7 @@ interface RemoteFormData {
 }
 
 export const RpmRemote: React.FC = () => {
+  const navigate = useNavigate();
   const [remotes, setRemotes] = useState<Remote[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -332,6 +334,15 @@ export const RpmRemote: React.FC = () => {
                   <TableCell>{remote.policy || 'immediate'}</TableCell>
                   <TableCell>{remote.tls_validation ? 'Yes' : 'No'}</TableCell>
                   <TableCell align="right">
+                    <IconButton
+                      color="primary"
+                      onClick={() =>
+                        navigate(`/rpm/remote/view?href=${encodeURIComponent(remote.pulp_href)}`)
+                      }
+                      title="View"
+                    >
+                      <VisibilityIcon />
+                    </IconButton>
                     <IconButton
                       color="primary"
                       onClick={() => handleOpenDialog(remote)}

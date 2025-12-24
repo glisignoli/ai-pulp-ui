@@ -7,9 +7,13 @@ import { Layout } from './components/Layout';
 import { Login } from './components/Login';
 import { Dashboard } from './components/Dashboard';
 import { RpmDistribution } from './components/rpm/RpmDistribution';
+import { RpmDistributionDetail } from './components/rpm/RpmDistributionDetail';
 import { RpmRepository } from './components/rpm/RpmRepository';
+import { RpmRepositoryDetail } from './components/rpm/RpmRepositoryDetail';
 import { RpmRemote } from './components/rpm/RpmRemote';
+import { RpmRemoteDetail } from './components/rpm/RpmRemoteDetail';
 import RpmPublication from './components/rpm/RpmPublication';
+import { RpmPublicationDetail } from './components/rpm/RpmPublicationDetail';
 import { GenericList } from './components/common/GenericList';
 
 const theme = createTheme({
@@ -52,11 +56,31 @@ function App() {
               }
             />
             <Route
+              path="/rpm/distribution/view"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <RpmDistributionDetail />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/rpm/publication"
               element={
                 <ProtectedRoute>
                   <Layout>
                     <RpmPublication />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/rpm/publication/view"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <RpmPublicationDetail />
                   </Layout>
                 </ProtectedRoute>
               }
@@ -72,11 +96,31 @@ function App() {
               }
             />
             <Route
+              path="/rpm/remote/view"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <RpmRemoteDetail />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/rpm/repository"
               element={
                 <ProtectedRoute>
                   <Layout>
                     <RpmRepository />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/rpm/repository/view"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <RpmRepositoryDetail />
                   </Layout>
                 </ProtectedRoute>
               }

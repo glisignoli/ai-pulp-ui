@@ -167,11 +167,26 @@ test.describe('RPM CRUD (Real API)', () => {
 
       await dialog.getByRole('textbox', { name: /^Name$/i }).fill(distName);
       await dialog.getByRole('textbox', { name: /^Base Path$/i }).fill(`dist/${distName}`);
-      await dialog.getByRole('textbox', { name: /^Repository HREF$/i }).fill(repoHref);
+
+      const repoSelect = dialog.getByRole('combobox', { name: /^Repository$/i });
+      await repoSelect.click();
+      await repoSelect.fill(repoName);
+      await page.getByRole('option', { name: repoName, exact: true }).click();
 
       const createButton = dialog.getByRole('button', { name: /^create$/i });
       await expect(createButton).toBeEnabled();
-      await createButton.click();
+      const [createResponse] = await Promise.all([
+        page.waitForResponse((resp) => {
+          const url = resp.url();
+          return resp.request().method() === 'POST' && url.includes('/pulp/api/v3/distributions/rpm/rpm/');
+        }),
+        createButton.click(),
+      ]);
+
+      if (!createResponse.ok()) {
+        const responseText = await createResponse.text();
+        throw new Error(`Create distribution failed: HTTP ${createResponse.status()}\n${responseText}`);
+      }
 
       await expect
         .poll(

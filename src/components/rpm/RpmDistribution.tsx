@@ -24,9 +24,10 @@ import {
   Checkbox,
   Autocomplete,
 } from '@mui/material';
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import { apiService } from '../../services/api';
-import { Distribution, PulpListResponse, Publication, RepositoryVersion } from '../../types/pulp';
+import { Distribution, PulpListResponse, Publication, Repository } from '../../types/pulp';
 
 interface DistributionFormData {
   name: string;
@@ -40,12 +41,13 @@ interface DistributionFormData {
 }
 
 export const RpmDistribution: React.FC = () => {
+  const navigate = useNavigate();
   const [distributions, setDistributions] = useState<Distribution[]>([]);
   const [publications, setPublications] = useState<Publication[]>([]);
-  const [repositoryVersions, setRepositoryVersions] = useState<RepositoryVersion[]>([]);
+  const [repositories, setRepositories] = useState<Repository[]>([]);
   const [loading, setLoading] = useState(true);
   const [publicationsLoading, setPublicationsLoading] = useState(false);
-  const [versionsLoading, setVersionsLoading] = useState(false);
+  const [repositoriesLoading, setRepositoriesLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [openDialog, setOpenDialog] = useState(false);
@@ -64,6 +66,39 @@ export const RpmDistribution: React.FC = () => {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [distributionToDelete, setDistributionToDelete] = useState<Distribution | null>(null);
 
+  // Pulp may require fully-qualified hrefs (with scheme) in some write payloads.
+  // However, for browser-based API calls we prefer API-relative paths so the
+  // dev-server proxy can handle cross-origin traffic.
+  const getRequestOrigin = () => {
+    // The Pulp API validates fully-qualified hyperlinks against the request host.
+    // In dev/test we talk to Pulp via the Vite proxy, which forwards to
+    // localhost:8080 with `changeOrigin: true`, so Pulp expects hyperlinks to
+    // use the Pulp origin (not the UI origin).
+    // Note: DO NOT include trailing slash - it's added by ensurePulpOrigin logic
+    return 'http://localhost:8080';
+  };
+  const stripPulpOrigin = (href: string) => {
+    const trimmed = href.trim();
+    if (!trimmed) return '';
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      try {
+        const parsed = new URL(trimmed);
+        return parsed.pathname;
+      } catch {
+        return trimmed;
+      }
+    }
+    return trimmed;
+  };
+  const ensurePulpOrigin = (href: string) => {
+    const trimmed = href.trim();
+    if (!trimmed) return '';
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+    const origin = getRequestOrigin();
+    if (trimmed.startsWith('/')) return `${origin}${trimmed}`;
+    return `${origin}/${trimmed}`;
+  };
+
   const fetchDistributions = async () => {
     try {
       setLoading(true);
@@ -80,7 +115,7 @@ export const RpmDistribution: React.FC = () => {
   useEffect(() => {
     fetchDistributions();
     fetchPublications();
-    fetchRepositoryVersions();
+    fetchRepositories();
   }, []);
 
   const fetchPublications = async () => {
@@ -95,17 +130,19 @@ export const RpmDistribution: React.FC = () => {
     }
   };
 
-  const fetchRepositoryVersions = async () => {
+  const fetchRepositories = async () => {
     try {
-      setVersionsLoading(true);
-      const response = await apiService.get<PulpListResponse<RepositoryVersion>>('/repositories/rpm/rpm/versions/');
-      setRepositoryVersions(response.results);
+      setRepositoriesLoading(true);
+      const response = await apiService.get<PulpListResponse<Repository>>('/repositories/rpm/rpm/');
+      setRepositories(response.results);
     } catch (err) {
-      console.error('Failed to load repository versions:', err);
+      console.error('Failed to load repositories:', err);
     } finally {
-      setVersionsLoading(false);
+      setRepositoriesLoading(false);
     }
   };
+
+
 
   const handleOpenDialog = (distribution?: Distribution) => {
     if (distribution) {
@@ -115,8 +152,8 @@ export const RpmDistribution: React.FC = () => {
         base_path: distribution.base_path,
         content_guard: distribution.content_guard || '',
         hidden: distribution.hidden ?? false,
-        repository: distribution.repository || '',
-        publication: distribution.publication || '',
+        repository: stripPulpOrigin(distribution.repository || ''),
+        publication: stripPulpOrigin(distribution.publication || ''),
         generate_repo_config: distribution.generate_repo_config ?? false,
         checkpoint: distribution.checkpoint ?? false,
       });
@@ -166,9 +203,9 @@ export const RpmDistribution: React.FC = () => {
         hidden: formData.hidden,
         generate_repo_config: formData.generate_repo_config,
         checkpoint: formData.checkpoint,
-        content_guard: formData.content_guard.trim() ? formData.content_guard.trim() : null,
-        repository: formData.repository.trim() ? formData.repository.trim() : null,
-        publication: formData.publication.trim() ? formData.publication.trim() : null,
+        content_guard: formData.content_guard.trim() || null,
+        repository: formData.repository || null,
+        publication: formData.publication || null,
       };
 
       if (editingDistribution) {
@@ -275,6 +312,15 @@ export const RpmDistribution: React.FC = () => {
                   <TableCell align="right">
                     <IconButton
                       color="primary"
+                      onClick={() =>
+                        navigate(`/rpm/distribution/view?href=${encodeURIComponent(dist.pulp_href)}`)
+                      }
+                      title="View"
+                    >
+                      <VisibilityIcon />
+                    </IconButton>
+                    <IconButton
+                      color="primary"
                       onClick={() => handleOpenDialog(dist)}
                       title="Edit"
                     >
@@ -341,19 +387,16 @@ export const RpmDistribution: React.FC = () => {
             />
 
             <Autocomplete
-              options={repositoryVersions}
-              getOptionLabel={(option) => {
-                const repoName = option.repository ? option.repository.split('/').filter(Boolean).pop() : 'Unknown';
-                return `${repoName} - Version ${option.number || 'N/A'}`;
-              }}
-              value={repositoryVersions.find(v => v.pulp_href === formData.repository) || null}
+              options={repositories}
+              getOptionLabel={(option) => option.name}
+              value={repositories.find((r) => r.pulp_href === formData.repository) || null}
               onChange={(_, newValue) => handleFormChange('repository', newValue?.pulp_href || '')}
-              loading={versionsLoading}
+              loading={repositoriesLoading}
               renderInput={(params) => (
                 <TextField
                   {...params}
-                  label="Repository Version"
-                  helperText="Optional. Select a repository version to serve"
+                  label="Repository"
+                  helperText="Optional. Distribution will serve the latest version of the repository"
                 />
               )}
             />
