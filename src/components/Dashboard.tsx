@@ -62,10 +62,10 @@ export const Dashboard: React.FC = () => {
           >
             <Cloud sx={{ fontSize: 60, mb: 2, color: 'primary.main' }} />
             <Typography variant="h6" component="div">
-              Debian
+              DEB
             </Typography>
             <Typography variant="body2" color="text.secondary" align="center">
-              Manage Deb repositories, distributions, and publications
+              Manage DEB repositories, distributions, and publications
             </Typography>
           </Paper>
         </Grid>

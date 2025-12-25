@@ -1,4 +1,3 @@
-import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
 import { AuthProvider } from './contexts/AuthContext';
@@ -14,7 +13,19 @@ import { RpmRemote } from './components/rpm/RpmRemote';
 import { RpmRemoteDetail } from './components/rpm/RpmRemoteDetail';
 import RpmPublication from './components/rpm/RpmPublication';
 import { RpmPublicationDetail } from './components/rpm/RpmPublicationDetail';
+import { RpmPackages } from './components/rpm/RpmPackages';
+import { RpmPackageDetail } from './components/rpm/RpmPackageDetail';
 import { GenericList } from './components/common/GenericList';
+import { DebDistribution } from './components/deb/DebDistribution';
+import { DebDistributionDetail } from './components/deb/DebDistributionDetail';
+import { DebRemote } from './components/deb/DebRemote';
+import { DebRemoteDetail } from './components/deb/DebRemoteDetail';
+import { DebRepository } from './components/deb/DebRepository';
+import { DebRepositoryDetail } from './components/deb/DebRepositoryDetail';
+import DebPublication from './components/deb/DebPublication';
+import { DebPublicationDetail } from './components/deb/DebPublicationDetail';
+import { DebPackages } from './components/deb/DebPackages';
+import { DebPackageDetail } from './components/deb/DebPackageDetail';
 
 const theme = createTheme({
   palette: {
@@ -126,6 +137,26 @@ function App() {
               }
             />
             <Route
+              path="/rpm/content/packages"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <RpmPackages />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/rpm/content/packages/view"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <RpmPackageDetail />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/file/distribution"
               element={
                 <ProtectedRoute>
@@ -166,41 +197,101 @@ function App() {
               }
             />
             <Route
-              path="/debian/distribution"
+              path="/deb/distribution"
               element={
                 <ProtectedRoute>
                   <Layout>
-                    <GenericList title="Deb Distributions" type="Distributions" />
+                    <DebDistribution />
                   </Layout>
                 </ProtectedRoute>
               }
             />
             <Route
-              path="/debian/publication"
+              path="/deb/distribution/view"
               element={
                 <ProtectedRoute>
                   <Layout>
-                    <GenericList title="Deb Publications" type="Publications" />
+                    <DebDistributionDetail />
                   </Layout>
                 </ProtectedRoute>
               }
             />
             <Route
-              path="/debian/remote"
+              path="/deb/publication"
               element={
                 <ProtectedRoute>
                   <Layout>
-                    <GenericList title="Deb Remotes" type="Remotes" />
+                    <DebPublication />
                   </Layout>
                 </ProtectedRoute>
               }
             />
             <Route
-              path="/debian/repository"
+              path="/deb/publication/view"
               element={
                 <ProtectedRoute>
                   <Layout>
-                    <GenericList title="Deb Repositories" type="Repositories" />
+                    <DebPublicationDetail />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/deb/remote"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <DebRemote />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/deb/remote/view"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <DebRemoteDetail />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/deb/repository"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <DebRepository />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/deb/repository/view"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <DebRepositoryDetail />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/deb/content/packages"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <DebPackages />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/deb/content/packages/view"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <DebPackageDetail />
                   </Layout>
                 </ProtectedRoute>
               }

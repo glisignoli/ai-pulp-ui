@@ -75,6 +75,48 @@ export interface RepositoryVersion {
   content_summary?: any;
 }
 
+export interface RpmPackage {
+  pulp_href: string;
+  prn?: string;
+  pulp_created?: string;
+  pulp_last_updated?: string;
+
+  name: string;
+  epoch?: string;
+  version: string;
+  release: string;
+  arch: string;
+
+  pkgId?: string;
+  checksum_type?: string;
+  sha256?: string;
+
+  summary?: string;
+  description?: string;
+  url?: string;
+
+  location_base?: string;
+  location_href?: string;
+
+  artifact?: string;
+  is_modular?: boolean;
+}
+
+export interface DebPackage {
+  pulp_href: string;
+  prn?: string;
+  pulp_created?: string;
+  pulp_last_updated?: string;
+
+  package: string;
+  version: string;
+  architecture: string;
+
+  section?: string;
+  maintainer?: string;
+  description?: string;
+}
+
 export interface Remote {
   pulp_href: string;
   prn?: string;

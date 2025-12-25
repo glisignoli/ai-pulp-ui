@@ -3,7 +3,7 @@ import axios from 'axios';
 
 const API_BASE_URL = 'http://localhost:8080/pulp/api/v3';
 
-describe.skip('Integration Tests', () => {
+describe('Integration Tests', () => {
   beforeAll(async () => {
     // Wait for backend to be ready
     let retries = 10;

@@ -16,7 +16,7 @@ A complete React + TypeScript UI for the Pulp project with authentication, navig
 - **Collapsible Navigation Drawer** with three main sections:
   - RPM (Distribution, Publication, Remote, Repository)
   - File (Distribution, Publication, Remote, Repository)  
-  - Debian (Distribution, Publication, Remote, Repository)
+  - DEB (Distribution, Publication, Remote, Repository)
 - **Dashboard** with overview cards for each content type
 - **Header** with logout functionality
 - **Responsive Layout** using Material-UI components
@@ -105,7 +105,7 @@ npm run build
 4. Implement detail views for individual resources
 5. Add form validation and user feedback
 6. Implement Publication and Remote components
-7. Add File and Debian content type implementations
+7. Add File and DEB content type implementations
 8. Enhance error handling and user notifications
 9. Add user profile management
 10. Implement role-based access control

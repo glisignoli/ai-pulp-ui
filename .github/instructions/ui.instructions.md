@@ -37,7 +37,7 @@ applyTo: '**'
     - Publication
     - Remote
     - Repository
-  - Debian
+  - DEB
     - Distribution
     - Publication
     - Remote

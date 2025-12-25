@@ -20,7 +20,7 @@ test.describe('Navigation Tests', () => {
     await expect(drawer.getByRole('button', { name: 'Home', exact: true })).toBeVisible();
     await expect(drawer.getByRole('button', { name: 'RPM', exact: true })).toBeVisible();
     await expect(drawer.getByRole('button', { name: 'File', exact: true })).toBeVisible();
-    await expect(drawer.getByRole('button', { name: 'Debian', exact: true })).toBeVisible();
+    await expect(drawer.getByRole('button', { name: 'DEB', exact: true })).toBeVisible();
   });
 
   test('can navigate from dashboard to RPM sections', async ({ page }) => {
@@ -37,6 +37,7 @@ test.describe('Navigation Tests', () => {
     await expect(drawer.getByRole('button', { name: 'Publication', exact: true })).toBeVisible();
     await expect(drawer.getByRole('button', { name: 'Remote', exact: true })).toBeVisible();
     await expect(drawer.getByRole('button', { name: 'Repository', exact: true })).toBeVisible();
+    await expect(drawer.getByRole('button', { name: 'Packages', exact: true })).toBeVisible();
   });
 
   test('can navigate from dashboard to File sections', async ({ page }) => {
@@ -53,17 +54,17 @@ test.describe('Navigation Tests', () => {
     await expect(drawer.getByRole('button', { name: 'Distribution', exact: true })).toBeVisible();
   });
 
-  test('can navigate from dashboard to Debian sections', async ({ page }) => {
+  test('can navigate from dashboard to DEB sections', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
     const drawer = page.locator('.MuiDrawer-paper');
 
-    // Click on Debian to expand
-    await drawer.getByRole('button', { name: 'Debian', exact: true }).click();
+    // Click on DEB to expand
+    await drawer.getByRole('button', { name: 'DEB', exact: true }).click();
     await page.waitForTimeout(500); // Wait for expansion animation
     
-    // Check for Debian subsections
+    // Check for DEB subsections
     await expect(drawer.getByRole('button', { name: 'Distribution', exact: true })).toBeVisible();
   });
 
@@ -229,6 +230,7 @@ test.describe('Navigation Tests', () => {
       '/rpm/publication/view?href=%2Fpulp%2Fapi%2Fv3%2Fpublications%2Frpm%2Frpm%2Ftest%2F',
       '/rpm/remote/view?href=%2Fpulp%2Fapi%2Fv3%2Fremotes%2Frpm%2Frpm%2Ftest%2F',
       '/rpm/repository/view?href=%2Fpulp%2Fapi%2Fv3%2Frepositories%2Frpm%2Frpm%2Ftest%2F',
+      '/rpm/content/packages/view?href=%2Fpulp%2Fapi%2Fv3%2Fcontent%2Frpm%2Fpackages%2Ftest%2F',
     ];
 
     for (const route of detailRoutes) {

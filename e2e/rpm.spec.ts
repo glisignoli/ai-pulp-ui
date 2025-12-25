@@ -77,6 +77,22 @@ test.describe('RPM Section Tests', () => {
     expect(errors, `RPM Repository page should render without errors. Found: ${errors.join(', ')}`).toHaveLength(0);
   });
 
+  test('RPM Packages page renders without errors', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') errors.push(msg.text());
+    });
+
+    await page.goto('/rpm/content/packages');
+    await page.waitForLoadState('networkidle');
+
+    await expect(page.locator('h4, h5, h6').first()).toBeVisible();
+    await expect(page.locator('table')).toBeVisible();
+
+    expect(errors, `RPM Packages page should render without errors. Found: ${errors.join(', ')}`).toHaveLength(0);
+  });
+
   test('RPM Distribution detail view renders without errors', async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', (error) => errors.push(error.message));

@@ -1,6 +1,6 @@
 # Pulp UI
 
-A React-based user interface for the Pulp project, providing a modern web interface to manage repositories, distributions, publications, and remotes for RPM, File, and Debian content types.
+A React-based user interface for the Pulp project, providing a modern web interface to manage repositories, distributions, publications, and remotes for RPM, File, and DEB content types.
 
 ## Features
 
@@ -9,7 +9,7 @@ A React-based user interface for the Pulp project, providing a modern web interf
 - **Content Type Management**: 
   - RPM (Distributions, Publications, Remotes, Repositories)
   - File (Distributions, Publications, Remotes, Repositories)
-  - Debian (Distributions, Publications, Remotes, Repositories)
+  - DEB (Distributions, Publications, Remotes, Repositories)
 - **Dashboard**: Overview of all content types and quick access links
 - **Responsive Design**: Built with Material-UI for a modern, responsive interface
 
@@ -98,7 +98,7 @@ The Playwright tests verify:
 - UI elements are visible and functional
 - Navigation works correctly
 - Authentication flow
-- All RPM, File, and Debian sections
+- All RPM, File, and DEB sections
 
 See [e2e/README.md](e2e/README.md) for more details about E2E testing.
 
@@ -130,14 +130,14 @@ src/
 ├── types/              # TypeScript types
 │   └── pulp.ts         # Pulp-specific types
 ├── test/               # Test files
-│   └── *.test.tsx      # Component tests
+├── deb.spec.ts         # DEB section tests
 ├── App.tsx             # Main application component
 └── main.tsx            # Application entry point
 e2e/                    # End-to-end tests (Playwright)
 ├── helpers/            # Test helpers and utilities
 │   └── api-mocker.ts   # API mocking utilities
 ├── auth.spec.ts        # Authentication tests
-├── debian.spec.ts      # Debian section tests
+├── deb.spec.ts         # DEB section tests
 ├── file.spec.ts        # File section tests
 ├── mocked-api.spec.ts  # Tests with mocked API
 ├── navigation.spec.ts  # Navigation tests
