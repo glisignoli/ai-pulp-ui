@@ -1,8 +1,7 @@
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
-// Set test timeout to 10 seconds
-vi.setConfig({ testTimeout: 10000 });
+// Timeouts are configured in Vitest config / CLI
 
 // Mock localStorage
 const localStorageMock = {
