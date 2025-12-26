@@ -130,6 +130,7 @@ test.describe('Page Rendering Tests', () => {
 
     // Check for navigation links
     await expect(drawer.getByRole('button', { name: 'Home', exact: true })).toBeVisible();
+    await expect(drawer.getByRole('button', { name: 'Tasks', exact: true })).toBeVisible();
     await expect(drawer.getByRole('button', { name: 'RPM', exact: true })).toBeVisible();
   });
 });

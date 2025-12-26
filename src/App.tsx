@@ -26,6 +26,8 @@ import DebPublication from './components/deb/DebPublication';
 import { DebPublicationDetail } from './components/deb/DebPublicationDetail';
 import { DebPackages } from './components/deb/DebPackages';
 import { DebPackageDetail } from './components/deb/DebPackageDetail';
+import { Tasks } from './components/tasks/Tasks';
+import { TaskDetail } from './components/tasks/TaskDetail';
 
 const theme = createTheme({
   palette: {
@@ -292,6 +294,26 @@ function App() {
                 <ProtectedRoute>
                   <Layout>
                     <DebPackageDetail />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/tasks"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Tasks />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/tasks/view"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <TaskDetail />
                   </Layout>
                 </ProtectedRoute>
               }

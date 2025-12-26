@@ -18,6 +18,7 @@ test.describe('Navigation Tests', () => {
 
     // Check for main navigation items
     await expect(drawer.getByRole('button', { name: 'Home', exact: true })).toBeVisible();
+    await expect(drawer.getByRole('button', { name: 'Tasks', exact: true })).toBeVisible();
     await expect(drawer.getByRole('button', { name: 'RPM', exact: true })).toBeVisible();
     await expect(drawer.getByRole('button', { name: 'File', exact: true })).toBeVisible();
     await expect(drawer.getByRole('button', { name: 'DEB', exact: true })).toBeVisible();

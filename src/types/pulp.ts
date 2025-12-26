@@ -148,3 +148,20 @@ export interface PulpListResponse<T> {
   previous: string | null;
   results: T[];
 }
+
+export interface Task {
+  pulp_href: string;
+  prn?: string;
+  pulp_created?: string;
+
+  state?: string;
+  name?: string;
+  started_at?: string | null;
+  finished_at?: string | null;
+
+  worker?: string | null;
+  error?: any;
+
+  // Tasks can include task-specific fields; keep the model flexible.
+  [key: string]: any;
+}

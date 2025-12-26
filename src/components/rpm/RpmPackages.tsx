@@ -9,6 +9,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  TextField,
   Paper,
   Snackbar,
   Table,
@@ -25,6 +26,8 @@ import { useNavigate } from 'react-router-dom';
 import { apiService } from '../../services/api';
 import { PulpListResponse, RpmPackage } from '../../types/pulp';
 
+type TaskResponse = { task: string };
+
 export const RpmPackages: React.FC = () => {
   const navigate = useNavigate();
   const [packages, setPackages] = useState<RpmPackage[]>([]);
@@ -34,6 +37,13 @@ export const RpmPackages: React.FC = () => {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  const [repositoryHref, setRepositoryHref] = useState('');
+  const [relativePath, setRelativePath] = useState('');
+  const [artifactHref, setArtifactHref] = useState('');
+  const [uploadHref, setUploadHref] = useState('');
+  const [fileUrl, setFileUrl] = useState('');
+  const [pulpLabelsJson, setPulpLabelsJson] = useState('');
 
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
@@ -58,6 +68,12 @@ export const RpmPackages: React.FC = () => {
 
   const openUpload = () => {
     setSelectedFile(null);
+    setRepositoryHref('');
+    setRelativePath('');
+    setArtifactHref('');
+    setUploadHref('');
+    setFileUrl('');
+    setPulpLabelsJson('');
     setUploadOpen(true);
   };
 
@@ -67,25 +83,99 @@ export const RpmPackages: React.FC = () => {
   };
 
   const handleUpload = async () => {
-    if (!selectedFile) {
-      setSnackbarMessage('Please select an RPM file to upload');
+    const trimmedRepositoryHref = repositoryHref.trim();
+    const trimmedRelativePath = relativePath.trim();
+    const trimmedArtifactHref = artifactHref.trim();
+    const trimmedUploadHref = uploadHref.trim();
+    const trimmedFileUrl = fileUrl.trim();
+    const trimmedPulpLabelsJson = pulpLabelsJson.trim();
+
+    const sources = [
+      trimmedArtifactHref ? 'artifact' : null,
+      trimmedUploadHref ? 'upload' : null,
+      trimmedFileUrl ? 'file_url' : null,
+      selectedFile ? 'file' : null,
+    ].filter(Boolean) as Array<'artifact' | 'upload' | 'file_url' | 'file'>;
+
+    if (sources.length === 0) {
+      setSnackbarMessage('Provide a file (or artifact/upload/file_url)');
       setSnackbarSeverity('error');
       setSnackbarOpen(true);
       return;
     }
 
+    if (sources.length > 1) {
+      setSnackbarMessage('Provide only one source: file, artifact, upload, or file_url');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+      return;
+    }
+
+    let pulpLabels: Record<string, string> | undefined;
+    if (trimmedPulpLabelsJson) {
+      try {
+        const parsed = JSON.parse(trimmedPulpLabelsJson) as unknown;
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+          throw new Error('pulp_labels must be a JSON object');
+        }
+
+        const record: Record<string, string> = {};
+        for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+          if (typeof value !== 'string') {
+            throw new Error('pulp_labels values must be strings');
+          }
+          record[key] = value;
+        }
+        pulpLabels = record;
+      } catch {
+        setSnackbarMessage('Invalid pulp_labels JSON (must be an object of string values)');
+        setSnackbarSeverity('error');
+        setSnackbarOpen(true);
+        return;
+      }
+    }
+
     try {
       setUploading(true);
       const formData = new FormData();
-      formData.append('file', selectedFile);
 
-      await apiService.post<RpmPackage>('/content/rpm/packages/upload/', formData);
+      const useCreateEndpoint = !!trimmedRepositoryHref || !!trimmedRelativePath;
+      const endpoint = useCreateEndpoint ? '/content/rpm/packages/' : '/content/rpm/packages/upload/';
 
-      setSnackbarMessage('Package uploaded successfully');
-      setSnackbarSeverity('success');
-      setSnackbarOpen(true);
-      setUploadOpen(false);
-      await fetchPackages();
+      if (pulpLabels && Object.keys(pulpLabels).length > 0) {
+        formData.append('pulp_labels', JSON.stringify(pulpLabels));
+      }
+
+      if (sources[0] === 'file') {
+        // selectedFile is guaranteed non-null when source is 'file'
+        formData.append('file', selectedFile as File);
+      } else if (sources[0] === 'artifact') {
+        formData.append('artifact', trimmedArtifactHref);
+      } else if (sources[0] === 'upload') {
+        formData.append('upload', trimmedUploadHref);
+      } else if (sources[0] === 'file_url') {
+        formData.append('file_url', trimmedFileUrl);
+      }
+
+      if (useCreateEndpoint) {
+        if (trimmedRepositoryHref) formData.append('repository', trimmedRepositoryHref);
+        if (trimmedRelativePath) formData.append('relative_path', trimmedRelativePath);
+
+        const resp = await apiService.post<TaskResponse>(endpoint, formData);
+        setSnackbarMessage(
+          resp?.task ? 'Package creation task started' : 'Package creation request submitted'
+        );
+        setSnackbarSeverity('success');
+        setSnackbarOpen(true);
+        setUploadOpen(false);
+      } else {
+        await apiService.post<RpmPackage>(endpoint, formData);
+        setSnackbarMessage('Package uploaded successfully');
+        setSnackbarSeverity('success');
+        setSnackbarOpen(true);
+        setUploadOpen(false);
+        await fetchPackages();
+      }
     } catch (err) {
       setSnackbarMessage('Failed to upload package');
       setSnackbarSeverity('error');
@@ -172,7 +262,7 @@ export const RpmPackages: React.FC = () => {
       <Dialog open={uploadOpen} onClose={closeUpload} maxWidth="sm" fullWidth>
         <DialogTitle>Upload RPM Package</DialogTitle>
         <DialogContent>
-          <Box sx={{ mt: 1 }}>
+          <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
             <Button variant="outlined" component="label" disabled={uploading}>
               Choose RPM File
               <input
@@ -188,6 +278,58 @@ export const RpmPackages: React.FC = () => {
             <Typography variant="body2" sx={{ mt: 1 }}>
               {selectedFile ? selectedFile.name : 'No file selected'}
             </Typography>
+
+            <TextField
+              label="Repository"
+              fullWidth
+              value={repositoryHref}
+              onChange={(e) => setRepositoryHref(e.target.value)}
+              disabled={uploading}
+              helperText="Optional. If set, uses POST /content/rpm/packages/ (async create)."
+            />
+            <TextField
+              label="Relative Path"
+              fullWidth
+              value={relativePath}
+              onChange={(e) => setRelativePath(e.target.value)}
+              disabled={uploading}
+              helperText="Optional. Path relative to distribution base_path."
+            />
+
+            <TextField
+              label="Artifact"
+              fullWidth
+              value={artifactHref}
+              onChange={(e) => setArtifactHref(e.target.value)}
+              disabled={uploading}
+              helperText="Optional. Provide exactly one source: file, artifact, upload, or file_url."
+            />
+            <TextField
+              label="Upload"
+              fullWidth
+              value={uploadHref}
+              onChange={(e) => setUploadHref(e.target.value)}
+              disabled={uploading}
+              helperText="Optional. Uncommitted upload href."
+            />
+            <TextField
+              label="File URL"
+              fullWidth
+              value={fileUrl}
+              onChange={(e) => setFileUrl(e.target.value)}
+              disabled={uploading}
+              helperText="Optional. URL that Pulp can download."
+            />
+            <TextField
+              label="Pulp Labels (JSON)"
+              fullWidth
+              multiline
+              minRows={3}
+              value={pulpLabelsJson}
+              onChange={(e) => setPulpLabelsJson(e.target.value)}
+              disabled={uploading}
+              helperText='Optional. JSON object, e.g. {"env":"dev"}.'
+            />
           </Box>
         </DialogContent>
         <DialogActions>

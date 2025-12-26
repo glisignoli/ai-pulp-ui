@@ -14,6 +14,7 @@ import {
 } from '@mui/material';
 import {
   Home,
+  Assignment,
   Storage,
   Article,
   Cloud,
@@ -41,6 +42,11 @@ const navigationItems: NavigationItem[] = [
     title: 'Home',
     path: '/',
     icon: <Home />,
+  },
+  {
+    title: 'Tasks',
+    path: '/tasks',
+    icon: <Assignment />,
   },
   {
     title: 'RPM',
