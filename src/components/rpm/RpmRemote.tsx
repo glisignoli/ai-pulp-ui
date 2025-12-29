@@ -28,8 +28,9 @@ import {
 } from '@mui/material';
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { apiService } from '../../services/api';
+import { apiService, formatPulpApiError } from '../../services/api';
 import { Remote, PulpListResponse } from '../../types/pulp';
+import { ForegroundSnackbar } from '../ForegroundSnackbar';
 
 interface RemoteFormData {
   name: string;
@@ -247,7 +248,7 @@ export const RpmRemote: React.FC = () => {
       handleCloseDialog();
       fetchRemotes();
     } catch (err) {
-      setError(`Failed to ${editingRemote ? 'update' : 'create'} remote`);
+      setError(formatPulpApiError(err, `Failed to ${editingRemote ? 'update' : 'create'} remote`));
     }
   };
 
@@ -266,7 +267,7 @@ export const RpmRemote: React.FC = () => {
       setRemoteToDelete(null);
       fetchRemotes();
     } catch (err) {
-      setError('Failed to delete remote');
+      setError(formatPulpApiError(err, 'Failed to delete remote'));
       setDeleteConfirmOpen(false);
     }
   };
@@ -302,11 +303,12 @@ export const RpmRemote: React.FC = () => {
         </Button>
       </Box>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
+      <ForegroundSnackbar
+        open={!!error}
+        message={error ?? ''}
+        severity="error"
+        onClose={() => setError(null)}
+      />
 
       <TableContainer component={Paper}>
         <Table>

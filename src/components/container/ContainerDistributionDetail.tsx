@@ -22,6 +22,7 @@ import { Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { Distribution, Repository } from '../../types/pulp';
 import { containerService } from '../../services/container';
+import { formatPulpApiError } from '../../services/api';
 
 interface DistributionFormData {
   name: string;
@@ -156,8 +157,8 @@ export const ContainerDistributionDetail: React.FC = () => {
       setSuccessMessage('Distribution updated successfully');
       setEditOpen(false);
       await fetchDistribution();
-    } catch {
-      setError('Failed to update distribution');
+    } catch (error) {
+      setError(formatPulpApiError(error, 'Failed to update distribution'));
     }
   };
 
@@ -167,8 +168,8 @@ export const ContainerDistributionDetail: React.FC = () => {
     try {
       await containerService.distributions.delete(distribution.pulp_href);
       navigate('/container/distribution');
-    } catch {
-      setError('Failed to delete distribution');
+    } catch (error) {
+      setError(formatPulpApiError(error, 'Failed to delete distribution'));
       setDeleteConfirmOpen(false);
     }
   };

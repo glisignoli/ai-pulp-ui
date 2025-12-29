@@ -26,8 +26,9 @@ import {
 } from '@mui/material';
 import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { apiService } from '../../services/api';
+import { apiService, formatPulpApiError } from '../../services/api';
 import { Distribution, Publication, PulpListResponse, Repository } from '../../types/pulp';
+import { ForegroundSnackbar } from '../ForegroundSnackbar';
 
 interface DistributionFormData {
   name: string;
@@ -185,8 +186,8 @@ export const FileDistribution: React.FC = () => {
 
       handleCloseDialog();
       await fetchDistributions();
-    } catch {
-      setError(`Failed to ${editingDistribution ? 'update' : 'create'} distribution`);
+    } catch (error) {
+      setError(formatPulpApiError(error, `Failed to ${editingDistribution ? 'update' : 'create'} distribution`));
     }
   };
 
@@ -203,8 +204,8 @@ export const FileDistribution: React.FC = () => {
       setDeleteConfirmOpen(false);
       setDistributionToDelete(null);
       await fetchDistributions();
-    } catch {
-      setError('Failed to delete distribution');
+    } catch (error) {
+      setError(formatPulpApiError(error, 'Failed to delete distribution'));
       setDeleteConfirmOpen(false);
     }
   };
@@ -232,12 +233,12 @@ export const FileDistribution: React.FC = () => {
           Create Distribution
         </Button>
       </Box>
-
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
+      <ForegroundSnackbar
+        open={!!error}
+        message={error ?? ''}
+        severity="error"
+        onClose={() => setError(null)}
+      />
 
       <TableContainer component={Paper}>
         <Table>

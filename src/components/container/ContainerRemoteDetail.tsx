@@ -22,6 +22,7 @@ import { Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { Remote } from '../../types/pulp';
 import { containerService } from '../../services/container';
+import { formatPulpApiError } from '../../services/api';
 
 interface RemoteFormData {
   name: string;
@@ -137,8 +138,8 @@ export const ContainerRemoteDetail: React.FC = () => {
       setSuccessMessage('Remote updated successfully');
       setEditOpen(false);
       await fetchRemote();
-    } catch {
-      setError('Failed to update remote');
+    } catch (error) {
+      setError(formatPulpApiError(error, 'Failed to update remote'));
     }
   };
 
@@ -148,8 +149,8 @@ export const ContainerRemoteDetail: React.FC = () => {
     try {
       await containerService.remotes.delete(remote.pulp_href);
       navigate('/container/remote');
-    } catch {
-      setError('Failed to delete remote');
+    } catch (error) {
+      setError(formatPulpApiError(error, 'Failed to delete remote'));
       setDeleteConfirmOpen(false);
     }
   };

@@ -15,7 +15,7 @@ import {
 } from '@mui/material';
 import { Delete as DeleteIcon } from '@mui/icons-material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { apiService } from '../../services/api';
+import { apiService, formatPulpApiError } from '../../services/api';
 import { Publication } from '../../types/pulp';
 
 export const RpmPublicationDetail: React.FC = () => {
@@ -72,8 +72,8 @@ export const RpmPublicationDetail: React.FC = () => {
       setTimeout(() => {
         navigate('/rpm/publication');
       }, 1500);
-    } catch {
-      setError('Failed to delete publication');
+    } catch (error) {
+      setError(formatPulpApiError(error, 'Failed to delete publication'));
       setDeleteConfirmOpen(false);
     }
   };

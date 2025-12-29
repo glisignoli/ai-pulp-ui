@@ -29,8 +29,9 @@ import {
 } from '@mui/material';
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { apiService } from '../../services/api';
+import { apiService, formatPulpApiError } from '../../services/api';
 import { Repository, Remote, PulpListResponse } from '../../types/pulp';
+import { ForegroundSnackbar } from '../ForegroundSnackbar';
 
 interface RepositoryFormData {
   name: string;
@@ -203,7 +204,7 @@ export const RpmRepository: React.FC = () => {
       handleCloseDialog();
       fetchRepositories();
     } catch (err) {
-      setError(`Failed to ${editingRepo ? 'update' : 'create'} repository`);
+      setError(formatPulpApiError(err, `Failed to ${editingRepo ? 'update' : 'create'} repository`));
     }
   };
 
@@ -222,7 +223,7 @@ export const RpmRepository: React.FC = () => {
       setRepoToDelete(null);
       fetchRepositories();
     } catch (err) {
-      setError('Failed to delete repository');
+      setError(formatPulpApiError(err, 'Failed to delete repository'));
       setDeleteConfirmOpen(false);
     }
   };
@@ -258,11 +259,12 @@ export const RpmRepository: React.FC = () => {
         </Button>
       </Box>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
+      <ForegroundSnackbar
+        open={!!error}
+        message={error ?? ''}
+        severity="error"
+        onClose={() => setError(null)}
+      />
 
       <TableContainer component={Paper}>
         <Table>

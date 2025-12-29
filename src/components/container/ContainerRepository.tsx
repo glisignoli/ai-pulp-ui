@@ -31,6 +31,8 @@ import {
 import { useNavigate } from 'react-router-dom';
 import type { Remote, Repository } from '../../types/pulp';
 import { containerService } from '../../services/container';
+import { formatPulpApiError } from '../../services/api';
+import { ForegroundSnackbar } from '../ForegroundSnackbar';
 
 interface RepositoryFormData {
   name: string;
@@ -148,8 +150,8 @@ export const ContainerRepository: React.FC = () => {
 
       handleCloseDialog();
       await fetchRepositories();
-    } catch {
-      setError(`Failed to ${editingRepo ? 'update' : 'create'} repository`);
+    } catch (error) {
+      setError(formatPulpApiError(error, `Failed to ${editingRepo ? 'update' : 'create'} repository`));
     }
   };
 
@@ -167,8 +169,8 @@ export const ContainerRepository: React.FC = () => {
       setDeleteConfirmOpen(false);
       setRepoToDelete(null);
       await fetchRepositories();
-    } catch {
-      setError('Failed to delete repository');
+    } catch (error) {
+      setError(formatPulpApiError(error, 'Failed to delete repository'));
       setDeleteConfirmOpen(false);
     }
   };
@@ -196,12 +198,12 @@ export const ContainerRepository: React.FC = () => {
           Create Repository
         </Button>
       </Box>
-
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
+      <ForegroundSnackbar
+        open={!!error}
+        message={error ?? ''}
+        severity="error"
+        onClose={() => setError(null)}
+      />
 
       <Paper>
         <TableContainer>

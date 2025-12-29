@@ -33,6 +33,8 @@ import {
 import { useNavigate } from 'react-router-dom';
 import type { Distribution, Repository } from '../../types/pulp';
 import { containerService } from '../../services/container';
+import { formatPulpApiError } from '../../services/api';
+import { ForegroundSnackbar } from '../ForegroundSnackbar';
 
 interface DistributionFormData {
   name: string;
@@ -187,8 +189,10 @@ export const ContainerDistribution: React.FC = () => {
 
       handleCloseDialog();
       await fetchDistributions();
-    } catch {
-      setError(`Failed to ${editingDistribution ? 'update' : 'create'} distribution`);
+    } catch (error) {
+      setError(
+        formatPulpApiError(error, `Failed to ${editingDistribution ? 'update' : 'create'} distribution`)
+      );
     }
   };
 
@@ -206,8 +210,8 @@ export const ContainerDistribution: React.FC = () => {
       setDeleteConfirmOpen(false);
       setDistributionToDelete(null);
       await fetchDistributions();
-    } catch {
-      setError('Failed to delete distribution');
+    } catch (error) {
+      setError(formatPulpApiError(error, 'Failed to delete distribution'));
       setDeleteConfirmOpen(false);
     }
   };
@@ -235,12 +239,12 @@ export const ContainerDistribution: React.FC = () => {
           Create Distribution
         </Button>
       </Box>
-
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
+      <ForegroundSnackbar
+        open={!!error}
+        message={error ?? ''}
+        severity="error"
+        onClose={() => setError(null)}
+      />
 
       <Paper>
         <TableContainer>

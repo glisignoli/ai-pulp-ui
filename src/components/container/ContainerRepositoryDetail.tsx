@@ -26,6 +26,7 @@ import { Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { Remote, Repository, RepositoryVersion } from '../../types/pulp';
 import { containerService } from '../../services/container';
+import { formatPulpApiError } from '../../services/api';
 
 interface RepositoryFormData {
   name: string;
@@ -163,8 +164,8 @@ export const ContainerRepositoryDetail: React.FC = () => {
       setSuccessMessage('Repository updated successfully');
       setEditOpen(false);
       await fetchRepository();
-    } catch {
-      setError('Failed to update repository');
+    } catch (error) {
+      setError(formatPulpApiError(error, 'Failed to update repository'));
     }
   };
 
@@ -175,8 +176,8 @@ export const ContainerRepositoryDetail: React.FC = () => {
       setSyncing(true);
       await containerService.repositories.sync(repository.pulp_href, { remote: repository.remote, mirror: false, signed_only: false });
       setSuccessMessage('Sync started');
-    } catch {
-      setError('Failed to start sync');
+    } catch (error) {
+      setError(formatPulpApiError(error, 'Failed to start sync'));
     } finally {
       setSyncing(false);
     }
@@ -188,8 +189,8 @@ export const ContainerRepositoryDetail: React.FC = () => {
     try {
       await containerService.repositories.delete(repository.pulp_href);
       navigate('/container/repository');
-    } catch {
-      setError('Failed to delete repository');
+    } catch (error) {
+      setError(formatPulpApiError(error, 'Failed to delete repository'));
       setDeleteConfirmOpen(false);
     }
   };

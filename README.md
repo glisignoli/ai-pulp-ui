@@ -1,6 +1,8 @@
 # AI Pulp UI
 
 > Note: Everything in this repository was generated using VS Code and the models GPT-5.2 and Sonnet 4.5.
+>
+> If you find any 
 
 React + TypeScript frontend for managing Pulp resources (RPM, File, DEB) via the Pulp REST API.
 

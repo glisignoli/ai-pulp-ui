@@ -23,8 +23,9 @@ import {
 } from '@mui/material';
 import { Add as AddIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { apiService } from '../../services/api';
+import { apiService, formatPulpApiError } from '../../services/api';
 import { PulpListResponse, RpmPackage } from '../../types/pulp';
+import { ForegroundSnackbar } from '../ForegroundSnackbar';
 
 type TaskResponse = { task: string };
 
@@ -177,7 +178,7 @@ export const RpmPackages: React.FC = () => {
         await fetchPackages();
       }
     } catch (err) {
-      setSnackbarMessage('Failed to upload package');
+      setSnackbarMessage(formatPulpApiError(err, 'Failed to upload package'));
       setSnackbarSeverity('error');
       setSnackbarOpen(true);
     } finally {
@@ -203,12 +204,12 @@ export const RpmPackages: React.FC = () => {
           Upload Package
         </Button>
       </Box>
-
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
+      <ForegroundSnackbar
+        open={!!error}
+        message={error ?? ''}
+        severity="error"
+        onClose={() => setError(null)}
+      />
 
       <TableContainer component={Paper}>
         <Table>

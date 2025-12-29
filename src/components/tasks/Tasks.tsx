@@ -27,7 +27,7 @@ import {
 } from '@mui/material';
 import { Cancel as CancelIcon, Delete as DeleteIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { apiService } from '../../services/api';
+import { apiService, formatPulpApiError } from '../../services/api';
 import { PulpListResponse, Task } from '../../types/pulp';
 
 export const Tasks: React.FC = () => {
@@ -78,8 +78,8 @@ export const Tasks: React.FC = () => {
       await apiService.post(`${task.pulp_href}cancel/`, {});
       setError(null);
       await fetchTasks();
-    } catch {
-      setError('Failed to cancel task');
+    } catch (error) {
+      setError(formatPulpApiError(error, 'Failed to cancel task'));
     } finally {
       setBusyByHref((prev) => ({ ...prev, [task.pulp_href]: false }));
     }
@@ -104,8 +104,8 @@ export const Tasks: React.FC = () => {
       setError(null);
       closeDeleteConfirm();
       await fetchTasks();
-    } catch {
-      setError('Failed to delete task');
+    } catch (error) {
+      setError(formatPulpApiError(error, 'Failed to delete task'));
       closeDeleteConfirm();
     } finally {
       setBusyByHref((prev) => ({ ...prev, [taskToDelete.pulp_href]: false }));

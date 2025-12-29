@@ -26,7 +26,7 @@ import {
 } from '@mui/material';
 import { Add as AddIcon, Delete as DeleteIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { apiService } from '../../services/api';
+import { apiService, formatPulpApiError } from '../../services/api';
 import { Publication, PulpListResponse, Repository, RepositoryVersion } from '../../types/pulp';
 
 interface PublicationFormData {
@@ -168,8 +168,8 @@ const DebPublication: React.FC = () => {
       setSnackbarOpen(true);
       setOpenCreateDialog(false);
       await loadPublications();
-    } catch {
-      setSnackbarMessage('Failed to create publication');
+    } catch (error) {
+      setSnackbarMessage(formatPulpApiError(error, 'Failed to create publication'));
       setSnackbarSeverity('error');
       setSnackbarOpen(true);
     }
@@ -185,8 +185,8 @@ const DebPublication: React.FC = () => {
       setSnackbarOpen(true);
       setOpenDeleteDialog(false);
       await loadPublications();
-    } catch {
-      setSnackbarMessage('Failed to delete publication');
+    } catch (error) {
+      setSnackbarMessage(formatPulpApiError(error, 'Failed to delete publication'));
       setSnackbarSeverity('error');
       setSnackbarOpen(true);
     }

@@ -19,7 +19,7 @@ import {
 } from '@mui/material';
 import { Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { apiService } from '../../services/api';
+import { apiService, formatPulpApiError } from '../../services/api';
 import { Remote } from '../../types/pulp';
 
 interface RemoteFormData {
@@ -178,7 +178,7 @@ export const RpmRemoteDetail: React.FC = () => {
       setEditOpen(false);
       await fetchRemote();
     } catch (err) {
-      setError('Failed to update remote');
+      setError(formatPulpApiError(err, 'Failed to update remote'));
     }
   };
 
@@ -201,7 +201,7 @@ export const RpmRemoteDetail: React.FC = () => {
         navigate('/rpm/remote');
       }, 1500);
     } catch (err) {
-      setError('Failed to delete remote');
+      setError(formatPulpApiError(err, 'Failed to delete remote'));
       setDeleteConfirmOpen(false);
     }
   };

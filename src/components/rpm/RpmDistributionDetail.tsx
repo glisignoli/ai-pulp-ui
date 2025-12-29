@@ -19,7 +19,7 @@ import {
 } from '@mui/material';
 import { Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { apiService } from '../../services/api';
+import { apiService, formatPulpApiError } from '../../services/api';
 import { PulpListResponse, Publication, Repository, Distribution } from '../../types/pulp';
 
 interface DistributionFormData {
@@ -174,7 +174,7 @@ export const RpmDistributionDetail: React.FC = () => {
       setEditOpen(false);
       await fetchDistribution();
     } catch (err) {
-      setError('Failed to update distribution');
+      setError(formatPulpApiError(err, 'Failed to update distribution'));
     }
   };
 
@@ -197,7 +197,7 @@ export const RpmDistributionDetail: React.FC = () => {
         navigate('/rpm/distribution');
       }, 1500);
     } catch (err) {
-      setError('Failed to delete distribution');
+      setError(formatPulpApiError(err, 'Failed to delete distribution'));
       setDeleteConfirmOpen(false);
     }
   };

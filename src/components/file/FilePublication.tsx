@@ -24,7 +24,7 @@ import {
 } from '@mui/material';
 import { Add as AddIcon, Delete as DeleteIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { apiService } from '../../services/api';
+import { apiService, formatPulpApiError } from '../../services/api';
 import { PulpListResponse, Publication, Repository } from '../../types/pulp';
 
 interface PublicationFormData {
@@ -81,8 +81,8 @@ export const FilePublication: React.FC = () => {
       setSuccessMessage('Publication creation task started');
       handleCloseDialog();
       await fetchData();
-    } catch {
-      setError('Failed to create publication');
+    } catch (error) {
+      setError(formatPulpApiError(error, 'Failed to create publication'));
     }
   };
 
@@ -100,8 +100,8 @@ export const FilePublication: React.FC = () => {
       setDeleteConfirmOpen(false);
       setPublicationToDelete(null);
       await fetchData();
-    } catch {
-      setError('Failed to delete publication');
+    } catch (error) {
+      setError(formatPulpApiError(error, 'Failed to delete publication'));
       setDeleteConfirmOpen(false);
     }
   };

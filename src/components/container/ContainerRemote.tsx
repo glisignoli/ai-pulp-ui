@@ -33,6 +33,8 @@ import {
 import { useNavigate } from 'react-router-dom';
 import type { Remote } from '../../types/pulp';
 import { containerService } from '../../services/container';
+import { formatPulpApiError } from '../../services/api';
+import { ForegroundSnackbar } from '../ForegroundSnackbar';
 
 interface RemoteFormData {
   name: string;
@@ -169,8 +171,8 @@ export const ContainerRemote: React.FC = () => {
 
       handleCloseDialog();
       await fetchRemotes();
-    } catch {
-      setError(`Failed to ${editingRemote ? 'update' : 'create'} remote`);
+    } catch (error) {
+      setError(formatPulpApiError(error, `Failed to ${editingRemote ? 'update' : 'create'} remote`));
     }
   };
 
@@ -188,8 +190,8 @@ export const ContainerRemote: React.FC = () => {
       setDeleteConfirmOpen(false);
       setRemoteToDelete(null);
       await fetchRemotes();
-    } catch {
-      setError('Failed to delete remote');
+    } catch (error) {
+      setError(formatPulpApiError(error, 'Failed to delete remote'));
       setDeleteConfirmOpen(false);
     }
   };
@@ -217,12 +219,12 @@ export const ContainerRemote: React.FC = () => {
           Create Remote
         </Button>
       </Box>
-
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
+      <ForegroundSnackbar
+        open={!!error}
+        message={error ?? ''}
+        severity="error"
+        onClose={() => setError(null)}
+      />
 
       <Paper>
         <TableContainer>

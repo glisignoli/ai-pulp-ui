@@ -2,6 +2,52 @@ import axios from 'axios';
 
 const API_PATH = '/pulp/api/v3';
 
+export const getPulpApiErrorPayload = (error: unknown): unknown | undefined => {
+  if (!axios.isAxiosError(error)) return undefined;
+  return error.response?.data;
+};
+
+const stringifyUnknown = (value: unknown): string => {
+  if (typeof value === 'string') return value;
+  if (value instanceof Error) return value.message;
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+};
+
+export const formatPulpApiError = (error: unknown, fallbackMessage: string): string => {
+  const payload = getPulpApiErrorPayload(error);
+
+  // Prefer the raw API response body if present.
+  if (payload !== undefined && payload !== null && stringifyUnknown(payload).trim() !== '') {
+    return stringifyUnknown(payload);
+  }
+
+  if (axios.isAxiosError(error)) {
+    // Network / CORS / no-response situations
+    const message = (error.message || '').trim();
+    if (message) return message;
+  }
+
+  if (error instanceof Error && error.message.trim()) return error.message;
+  return fallbackMessage;
+};
+
+const enhanceAxiosErrorMessage = (error: unknown) => {
+  if (!axios.isAxiosError(error)) return;
+  const payload = error.response?.data;
+  if (payload === undefined) return;
+
+  const payloadString = stringifyUnknown(payload).trim();
+  if (!payloadString) return;
+
+  // Mutate the axios error so callers that use `error.message` automatically
+  // surface the Pulp API error body.
+  error.message = payloadString;
+};
+
 const normalizeBackendOrigin = (backend: string) => backend.replace(/\/+$/, '');
 
 const getConfiguredBackendOrigin = (): string | null => {
@@ -146,6 +192,8 @@ class ApiService {
         this.clearAuthToken();
         window.location.href = '/login';
       }
+
+      enhanceAxiosErrorMessage(error);
       throw error;
     }
   }
@@ -159,6 +207,8 @@ class ApiService {
         this.clearAuthToken();
         window.location.href = '/login';
       }
+
+      enhanceAxiosErrorMessage(error);
       throw error;
     }
   }
@@ -172,6 +222,8 @@ class ApiService {
         this.clearAuthToken();
         window.location.href = '/login';
       }
+
+      enhanceAxiosErrorMessage(error);
       throw error;
     }
   }
@@ -185,6 +237,8 @@ class ApiService {
         this.clearAuthToken();
         window.location.href = '/login';
       }
+
+      enhanceAxiosErrorMessage(error);
       throw error;
     }
   }

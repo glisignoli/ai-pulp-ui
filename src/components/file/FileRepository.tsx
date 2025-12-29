@@ -29,8 +29,9 @@ import {
   Visibility as VisibilityIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { apiService } from '../../services/api';
+import { apiService, formatPulpApiError } from '../../services/api';
 import { PulpListResponse, Remote, Repository } from '../../types/pulp';
+import { ForegroundSnackbar } from '../ForegroundSnackbar';
 
 interface RepositoryFormData {
   name: string;
@@ -244,8 +245,8 @@ export const FileRepository: React.FC = () => {
       setError(null);
       setUploadOpen(false);
       await fetchData();
-    } catch {
-      setError('Failed to upload file');
+    } catch (error) {
+      setError(formatPulpApiError(error, 'Failed to upload file'));
     } finally {
       setUploading(false);
     }
@@ -265,8 +266,8 @@ export const FileRepository: React.FC = () => {
       setDeleteConfirmOpen(false);
       setRepositoryToDelete(null);
       await fetchData();
-    } catch {
-      setError('Failed to delete repository');
+    } catch (error) {
+      setError(formatPulpApiError(error, 'Failed to delete repository'));
       setDeleteConfirmOpen(false);
     }
   };
@@ -300,11 +301,12 @@ export const FileRepository: React.FC = () => {
         </Box>
       </Box>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
+      <ForegroundSnackbar
+        open={!!error}
+        message={error ?? ''}
+        severity="error"
+        onClose={() => setError(null)}
+      />
 
       <TableContainer component={Paper}>
         <Table>
