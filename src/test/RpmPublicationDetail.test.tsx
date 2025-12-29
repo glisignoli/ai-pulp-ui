@@ -48,9 +48,9 @@ describe('RpmPublicationDetail', () => {
       expect(screen.getByText('Publication Details')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('Publication Information')).toBeInTheDocument();
-    expect(screen.getAllByText('sha256').length).toBeGreaterThan(0);
-    expect(screen.getByText('zstd')).toBeInTheDocument();
+    expect(screen.getByText('GET Result')).toBeInTheDocument();
+    expect(screen.getByText(/"checksum_type"\s*:\s*"sha256"/i)).toBeInTheDocument();
+    expect(screen.getByText(/"compression_type"\s*:\s*"zstd"/i)).toBeInTheDocument();
   });
 
   it('shows error when publication not found', async () => {
@@ -108,16 +108,18 @@ describe('RpmPublicationDetail', () => {
       expect(screen.getByText('Publication Details')).toBeInTheDocument();
     });
 
-    // Check that all fields are displayed
-    expect(screen.getByText('Pulp Href')).toBeInTheDocument();
-    expect(screen.getByText('Pulp Created')).toBeInTheDocument();
-    expect(screen.getByText('Repository Version')).toBeInTheDocument();
-    expect(screen.getByText('Checksum Type')).toBeInTheDocument();
-    expect(screen.getByText('Compression Type')).toBeInTheDocument();
-    expect(screen.getByText('Metadata Checksum Type')).toBeInTheDocument();
-    expect(screen.getByText('Package Checksum Type')).toBeInTheDocument();
-    expect(screen.getByText('Repo GPG Check')).toBeInTheDocument();
-    expect(screen.getByText('SQLite Metadata')).toBeInTheDocument();
+    expect(screen.getByText('GET Result')).toBeInTheDocument();
+
+    // Check that key fields are present in the JSON output
+    expect(screen.getByText(/"pulp_href"\s*:\s*"\/pulp\/api\/v3\/publications\/rpm\/rpm\/1\/"/)).toBeInTheDocument();
+    expect(screen.getByText(/"pulp_created"\s*:\s*"2025-01-01T12:00:00Z"/)).toBeInTheDocument();
+    expect(screen.getByText(/"repository_version"\s*:\s*"\/pulp\/api\/v3\/repositories\/rpm\/rpm\/1\/versions\/1\/"/)).toBeInTheDocument();
+    expect(screen.getByText(/"checksum_type"\s*:\s*"sha256"/)).toBeInTheDocument();
+    expect(screen.getByText(/"compression_type"\s*:\s*"zstd"/)).toBeInTheDocument();
+    expect(screen.getByText(/"metadata_checksum_type"\s*:\s*"sha256"/)).toBeInTheDocument();
+    expect(screen.getByText(/"package_checksum_type"\s*:\s*"sha256"/)).toBeInTheDocument();
+    expect(screen.getByText(/"repo_gpgcheck"\s*:\s*true/)).toBeInTheDocument();
+    expect(screen.getByText(/"sqlite_metadata"\s*:\s*true/)).toBeInTheDocument();
   });
 
   it('formats date correctly', async () => {
@@ -132,9 +134,8 @@ describe('RpmPublicationDetail', () => {
       expect(screen.getByText('Publication Details')).toBeInTheDocument();
     });
 
-    // The date should be formatted as locale string
-    const dateString = new Date('2025-01-01T12:00:00Z').toLocaleString();
-    expect(screen.getByText(dateString)).toBeInTheDocument();
+    // Date should appear in JSON output as the ISO timestamp
+    expect(screen.getByText(/"pulp_created"\s*:\s*"2025-01-01T12:00:00Z"/)).toBeInTheDocument();
   });
 
   it('displays boolean fields as Yes/No', async () => {
@@ -155,8 +156,8 @@ describe('RpmPublicationDetail', () => {
       expect(screen.getByText('Publication Details')).toBeInTheDocument();
     });
 
-    // Should have "No" for both boolean fields
-    const noCells = screen.getAllByText('No');
-    expect(noCells.length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText('GET Result')).toBeInTheDocument();
+    expect(screen.getByText(/"repo_gpgcheck"\s*:\s*false/)).toBeInTheDocument();
+    expect(screen.getByText(/"sqlite_metadata"\s*:\s*false/)).toBeInTheDocument();
   });
 });

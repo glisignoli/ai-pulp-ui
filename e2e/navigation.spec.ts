@@ -22,6 +22,22 @@ test.describe('Navigation Tests', () => {
     await expect(drawer.getByRole('button', { name: 'RPM', exact: true })).toBeVisible();
     await expect(drawer.getByRole('button', { name: 'File', exact: true })).toBeVisible();
     await expect(drawer.getByRole('button', { name: 'DEB', exact: true })).toBeVisible();
+    await expect(drawer.getByRole('button', { name: 'Container', exact: true })).toBeVisible();
+  });
+
+  test('can navigate from dashboard to Container sections', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+
+    const drawer = page.locator('.MuiDrawer-paper');
+
+    // Click on Container to expand
+    await drawer.getByRole('button', { name: 'Container', exact: true }).click();
+
+    // Check for Container subsections
+    await expect(drawer.getByRole('button', { name: 'Distributions', exact: true })).toBeVisible();
+    await expect(drawer.getByRole('button', { name: 'Remotes', exact: true })).toBeVisible();
+    await expect(drawer.getByRole('button', { name: 'Repositories', exact: true })).toBeVisible();
   });
 
   test('can navigate from dashboard to RPM sections', async ({ page }) => {

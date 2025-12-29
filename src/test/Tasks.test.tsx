@@ -57,6 +57,67 @@ describe('Tasks', () => {
     expect(apiService.get).toHaveBeenCalledWith('/tasks/');
   });
 
+  it('shows Cancel for running tasks and calls cancel endpoint', async () => {
+    (apiService.get as any).mockResolvedValue({
+      count: 1,
+      next: null,
+      previous: null,
+      results: [
+        {
+          pulp_href: '/pulp/api/v3/tasks/1/',
+          name: 'demo-task',
+          state: 'running',
+        },
+      ],
+    });
+    (apiService.post as any).mockResolvedValue({});
+
+    renderWithRoutes('/tasks');
+
+    await waitFor(() => {
+      expect(screen.getByText('demo-task')).toBeInTheDocument();
+    });
+
+    const user = userEvent.setup();
+  await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    await waitFor(() => {
+      expect(apiService.post).toHaveBeenCalledWith('/pulp/api/v3/tasks/1/cancel/', {});
+    });
+  });
+
+  it('shows Delete for completed tasks and deletes after confirmation', async () => {
+    (apiService.get as any).mockResolvedValue({
+      count: 1,
+      next: null,
+      previous: null,
+      results: [
+        {
+          pulp_href: '/pulp/api/v3/tasks/1/',
+          name: 'completed-task',
+          state: 'completed',
+        },
+      ],
+    });
+    (apiService.delete as any).mockResolvedValue({});
+
+    renderWithRoutes('/tasks');
+
+    await waitFor(() => {
+      expect(screen.getByText('completed-task')).toBeInTheDocument();
+    });
+
+    const user = userEvent.setup();
+  await user.click(screen.getByRole('button', { name: 'Delete' }));
+
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Delete' }));
+
+    await waitFor(() => {
+      expect(apiService.delete).toHaveBeenCalledWith('/pulp/api/v3/tasks/1/');
+    });
+  });
+
   it('filters tasks by state', async () => {
     (apiService.get as any)
       .mockResolvedValueOnce({

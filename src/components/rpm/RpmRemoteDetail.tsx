@@ -11,11 +11,6 @@ import {
   DialogTitle,
   Paper,
   Snackbar,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableRow,
   TextField,
   Typography,
   FormControlLabel,
@@ -271,85 +266,21 @@ export const RpmRemoteDetail: React.FC = () => {
       )}
 
       <Paper sx={{ p: 3, mb: 3 }}>
-        <Typography variant="h6" gutterBottom>
-          Remote Information
+        <Typography variant="h6" sx={{ mb: 2 }}>
+          GET Result
         </Typography>
-        <TableContainer>
-          <Table>
-            <TableBody>
-              <TableRow>
-                <TableCell component="th" sx={{ fontWeight: 'bold', width: '30%' }}>
-                  Name
-                </TableCell>
-                <TableCell>{remote.name}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell component="th" sx={{ fontWeight: 'bold' }}>
-                  URL
-                </TableCell>
-                <TableCell>{remote.url}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell component="th" sx={{ fontWeight: 'bold' }}>
-                  Pulp Href
-                </TableCell>
-                <TableCell>
-                  <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.875rem' }}>
-                    {remote.pulp_href}
-                  </Typography>
-                </TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell component="th" sx={{ fontWeight: 'bold' }}>
-                  Policy
-                </TableCell>
-                <TableCell>{remote.policy || 'N/A'}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell component="th" sx={{ fontWeight: 'bold' }}>
-                  TLS Validation
-                </TableCell>
-                <TableCell>{remote.tls_validation !== undefined ? (remote.tls_validation ? 'Yes' : 'No') : 'N/A'}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell component="th" sx={{ fontWeight: 'bold' }}>
-                  Proxy URL
-                </TableCell>
-                <TableCell>{remote.proxy_url || 'None'}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell component="th" sx={{ fontWeight: 'bold' }}>
-                  Download Concurrency
-                </TableCell>
-                <TableCell>{remote.download_concurrency || 'Default'}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell component="th" sx={{ fontWeight: 'bold' }}>
-                  Max Retries
-                </TableCell>
-                <TableCell>{remote.max_retries !== undefined ? remote.max_retries : 'Default'}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell component="th" sx={{ fontWeight: 'bold' }}>
-                  Total Timeout
-                </TableCell>
-                <TableCell>{remote.total_timeout ? `${remote.total_timeout}s` : 'None'}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell component="th" sx={{ fontWeight: 'bold' }}>
-                  Connect Timeout
-                </TableCell>
-                <TableCell>{remote.connect_timeout ? `${remote.connect_timeout}s` : 'None'}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell component="th" sx={{ fontWeight: 'bold' }}>
-                  Rate Limit
-                </TableCell>
-                <TableCell>{remote.rate_limit ? `${remote.rate_limit} requests/second` : 'None'}</TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </TableContainer>
+        <Box
+          component="pre"
+          sx={{
+            m: 0,
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word',
+            fontFamily: 'monospace',
+            fontSize: 13,
+          }}
+        >
+          {JSON.stringify(remote, null, 2)}
+        </Box>
       </Paper>
 
       {/* Edit Dialog */}

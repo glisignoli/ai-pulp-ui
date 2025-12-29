@@ -10,38 +10,38 @@ import {
 } from '@mui/material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { apiService } from '../../services/api';
-import { RpmPackage } from '../../types/pulp';
+import { Distribution } from '../../types/pulp';
 
-export const RpmPackageDetail: React.FC = () => {
+export const FileDistributionDetail: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const href = searchParams.get('href') || '';
 
-  const [pkg, setPkg] = useState<RpmPackage | null>(null);
+  const [distribution, setDistribution] = useState<Distribution | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchPackage = async () => {
+    const fetchDistribution = async () => {
       if (!href) {
-        setError('Missing package href');
+        setError('Missing distribution href');
         setLoading(false);
         return;
       }
 
       try {
         setLoading(true);
-        const result = await apiService.get<RpmPackage>(href);
-        setPkg(result);
+        const result = await apiService.get<Distribution>(href);
+        setDistribution(result);
         setError(null);
       } catch {
-        setError('Failed to load package');
+        setError('Failed to load distribution');
       } finally {
         setLoading(false);
       }
     };
 
-    void fetchPackage();
+    void fetchDistribution();
   }, [href]);
 
   if (loading) {
@@ -54,12 +54,12 @@ export const RpmPackageDetail: React.FC = () => {
     );
   }
 
-  if (!pkg) {
+  if (!distribution) {
     return (
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-        <Alert severity="error">{error || 'Package not found'}</Alert>
-        <Button sx={{ mt: 2 }} variant="contained" onClick={() => navigate('/rpm/content/packages')}>
-          Back to Packages
+        <Alert severity="error">{error || 'Distribution not found'}</Alert>
+        <Button sx={{ mt: 2 }} variant="contained" onClick={() => navigate('/file/distribution')}>
+          Back to Distributions
         </Button>
       </Container>
     );
@@ -68,8 +68,8 @@ export const RpmPackageDetail: React.FC = () => {
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">Package Details</Typography>
-        <Button variant="outlined" onClick={() => navigate('/rpm/content/packages')}>
+        <Typography variant="h4">File Distribution</Typography>
+        <Button variant="outlined" onClick={() => navigate('/file/distribution')}>
           Back
         </Button>
       </Box>
@@ -85,7 +85,7 @@ export const RpmPackageDetail: React.FC = () => {
           GET Result
         </Typography>
         <Box component="pre" sx={{ m: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-          {JSON.stringify(pkg, null, 2)}
+          {JSON.stringify(distribution, null, 2)}
         </Box>
       </Paper>
     </Container>

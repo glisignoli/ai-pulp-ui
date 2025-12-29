@@ -49,7 +49,7 @@ npm run test:e2e:debug
 ## Test Configuration
 
 Configuration is in `playwright.config.ts`:
-- Tests run against `http://localhost:5173` (Vite dev server)
+- Tests run against `http://localhost:3000` (Vite dev server)
 - Automatic dev server startup
 - Tests run in 3 browsers: Chromium, Firefox, and WebKit
 - Screenshots saved to `e2e/screenshots/`

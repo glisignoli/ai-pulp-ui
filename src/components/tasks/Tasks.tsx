@@ -2,8 +2,14 @@ import React, { useEffect, useState } from 'react';
 import {
   Alert,
   Box,
+  Button,
   CircularProgress,
   Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   FormControl,
   IconButton,
   InputLabel,
@@ -19,7 +25,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import { Visibility as VisibilityIcon } from '@mui/icons-material';
+import { Cancel as CancelIcon, Delete as DeleteIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { apiService } from '../../services/api';
 import { PulpListResponse, Task } from '../../types/pulp';
@@ -32,6 +38,9 @@ export const Tasks: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [stateFilter, setStateFilter] = useState<string>('');
+  const [busyByHref, setBusyByHref] = useState<Record<string, boolean>>({});
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
 
   const fetchTasks = async () => {
     try {
@@ -54,6 +63,53 @@ export const Tasks: React.FC = () => {
 
   const viewTask = (href: string) => {
     navigate(`/tasks/view?href=${encodeURIComponent(href)}`);
+  };
+
+  const isCancelableTask = (task: Task): boolean => task.state === 'running' || task.state === 'waiting';
+
+  const isDeletableTask = (task: Task): boolean =>
+    task.state === 'completed' || task.state === 'failed' || task.state === 'canceled' || task.state === 'skipped';
+
+  const cancelTask = async (task: Task) => {
+    if (!task.pulp_href) return;
+
+    try {
+      setBusyByHref((prev) => ({ ...prev, [task.pulp_href]: true }));
+      await apiService.post(`${task.pulp_href}cancel/`, {});
+      setError(null);
+      await fetchTasks();
+    } catch {
+      setError('Failed to cancel task');
+    } finally {
+      setBusyByHref((prev) => ({ ...prev, [task.pulp_href]: false }));
+    }
+  };
+
+  const openDeleteConfirm = (task: Task) => {
+    setTaskToDelete(task);
+    setDeleteConfirmOpen(true);
+  };
+
+  const closeDeleteConfirm = () => {
+    setDeleteConfirmOpen(false);
+    setTaskToDelete(null);
+  };
+
+  const confirmDeleteTask = async () => {
+    if (!taskToDelete?.pulp_href) return;
+
+    try {
+      setBusyByHref((prev) => ({ ...prev, [taskToDelete.pulp_href]: true }));
+      await apiService.delete(taskToDelete.pulp_href);
+      setError(null);
+      closeDeleteConfirm();
+      await fetchTasks();
+    } catch {
+      setError('Failed to delete task');
+      closeDeleteConfirm();
+    } finally {
+      setBusyByHref((prev) => ({ ...prev, [taskToDelete.pulp_href]: false }));
+    }
   };
 
   if (loading) {
@@ -123,6 +179,37 @@ export const Tasks: React.FC = () => {
                   <TableCell>{task.pulp_created || ''}</TableCell>
                   <TableCell>{task.started_at || ''}</TableCell>
                   <TableCell align="right">
+                    {isCancelableTask(task) && (
+                      <Tooltip title="Cancel">
+                        <span>
+                          <IconButton
+                            aria-label="Cancel"
+                            onClick={() => cancelTask(task)}
+                            size="small"
+                            disabled={Boolean(task.pulp_href && busyByHref[task.pulp_href])}
+                          >
+                            <CancelIcon />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                    )}
+
+                    {isDeletableTask(task) && (
+                      <Tooltip title="Delete">
+                        <span>
+                          <IconButton
+                            aria-label="Delete"
+                            onClick={() => openDeleteConfirm(task)}
+                            size="small"
+                            color="error"
+                            disabled={Boolean(task.pulp_href && busyByHref[task.pulp_href])}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                    )}
+
                     <Tooltip title="View">
                       <IconButton
                         aria-label="View"
@@ -139,6 +226,21 @@ export const Tasks: React.FC = () => {
           </Table>
         </TableContainer>
       </Paper>
+
+      <Dialog open={deleteConfirmOpen} onClose={closeDeleteConfirm} maxWidth="xs" fullWidth>
+        <DialogTitle>Delete Task</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Delete this task? This cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeDeleteConfirm}>Cancel</Button>
+          <Button color="error" onClick={confirmDeleteTask} variant="contained">
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };

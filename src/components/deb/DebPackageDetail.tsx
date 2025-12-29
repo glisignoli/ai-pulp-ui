@@ -6,11 +6,6 @@ import {
   CircularProgress,
   Container,
   Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableRow,
   Typography,
 } from '@mui/material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -87,66 +82,11 @@ export const DebPackageDetail: React.FC = () => {
 
       <Paper sx={{ p: 2, mb: 3 }}>
         <Typography variant="h6" sx={{ mb: 2 }}>
-          Package Information
+          GET Result
         </Typography>
-        <TableContainer>
-          <Table>
-            <TableBody>
-              <TableRow>
-                <TableCell component="th" sx={{ fontWeight: 'bold', width: '30%' }}>
-                  Package
-                </TableCell>
-                <TableCell>{pkg.package}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell component="th" sx={{ fontWeight: 'bold' }}>
-                  Version
-                </TableCell>
-                <TableCell>{pkg.version}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell component="th" sx={{ fontWeight: 'bold' }}>
-                  Architecture
-                </TableCell>
-                <TableCell>{pkg.architecture}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell component="th" sx={{ fontWeight: 'bold' }}>
-                  Pulp Href
-                </TableCell>
-                <TableCell>
-                  <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.875rem' }}>
-                    {pkg.pulp_href}
-                  </Typography>
-                </TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell component="th" sx={{ fontWeight: 'bold' }}>
-                  Created
-                </TableCell>
-                <TableCell>{pkg.pulp_created ? new Date(pkg.pulp_created).toLocaleString() : 'N/A'}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell component="th" sx={{ fontWeight: 'bold' }}>
-                  Maintainer
-                </TableCell>
-                <TableCell>{pkg.maintainer || 'N/A'}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell component="th" sx={{ fontWeight: 'bold' }}>
-                  Section
-                </TableCell>
-                <TableCell>{pkg.section || 'N/A'}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell component="th" sx={{ fontWeight: 'bold' }}>
-                  Description
-                </TableCell>
-                <TableCell>{pkg.description || 'N/A'}</TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </TableContainer>
+        <Box component="pre" sx={{ m: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+          {JSON.stringify(pkg, null, 2)}
+        </Box>
       </Paper>
     </Container>
   );

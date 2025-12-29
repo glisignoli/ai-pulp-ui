@@ -49,10 +49,10 @@ describe('RpmDistributionDetail', () => {
       expect(screen.getByText('Distribution: test-dist')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('Distribution Information')).toBeInTheDocument();
-    expect(screen.getByText('test-dist')).toBeInTheDocument();
-    expect(screen.getByText('test/path')).toBeInTheDocument();
-    expect(screen.getByText('Yes')).toBeInTheDocument(); // Generate Repo Config
+    expect(screen.getByText('GET Result')).toBeInTheDocument();
+    expect(screen.getByText(/"name"\s*:\s*"test-dist"/)).toBeInTheDocument();
+    expect(screen.getByText(/"base_path"\s*:\s*"test\/path"/)).toBeInTheDocument();
+    expect(screen.getByText(/"generate_repo_config"\s*:\s*true/)).toBeInTheDocument();
   });
 
   it('shows error when distribution not found', async () => {
@@ -161,13 +161,12 @@ describe('RpmDistributionDetail', () => {
       expect(screen.getByText('Distribution: test-dist')).toBeInTheDocument();
     });
 
-    // Check that all fields are displayed
-    expect(screen.getByText('Base Path')).toBeInTheDocument();
-    expect(screen.getByText('Base URL')).toBeInTheDocument();
-    expect(screen.getByText('Content Guard')).toBeInTheDocument();
-    expect(screen.getByText('Hidden')).toBeInTheDocument();
-    expect(screen.getByText('Repository')).toBeInTheDocument();
-    expect(screen.getByText('Publication')).toBeInTheDocument();
-    expect(screen.getByText('Generate Repo Config')).toBeInTheDocument();
+    expect(screen.getByText('GET Result')).toBeInTheDocument();
+    expect(screen.getByText(/"base_url"\s*:\s*"http:\/\/localhost:8080\/pulp\/content\/test\/path"/)).toBeInTheDocument();
+    expect(screen.getByText(/"content_guard"\s*:\s*"\/pulp\/api\/v3\/contentguards\/1\/"/)).toBeInTheDocument();
+    expect(screen.getByText(/"hidden"\s*:\s*true/)).toBeInTheDocument();
+    expect(screen.getByText(/"repository"\s*:\s*"\/pulp\/api\/v3\/repositories\/rpm\/rpm\/1\/"/)).toBeInTheDocument();
+    expect(screen.getByText(/"publication"\s*:\s*"\/pulp\/api\/v3\/publications\/rpm\/rpm\/1\/"/)).toBeInTheDocument();
+    expect(screen.getByText(/"generate_repo_config"\s*:\s*true/)).toBeInTheDocument();
   });
 });

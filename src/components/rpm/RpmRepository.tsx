@@ -164,7 +164,7 @@ export const RpmRepository: React.FC = () => {
     });
   };
 
-  const handleFormChange = (field: keyof RepositoryFormData, value: string | number | null) => {
+  const handleFormChange = (field: keyof RepositoryFormData, value: RepositoryFormData[keyof RepositoryFormData]) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,

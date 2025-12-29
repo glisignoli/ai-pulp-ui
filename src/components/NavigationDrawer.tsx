@@ -83,6 +83,16 @@ const navigationItems: NavigationItem[] = [
       { title: 'Packages', path: '/deb/content/packages', icon: <Inventory2 /> },
     ],
   },
+  {
+    title: 'Container',
+    path: '/container',
+    icon: <Storage />,
+    children: [
+      { title: 'Distributions', path: '/container/distribution', icon: <Cloud /> },
+      { title: 'Remotes', path: '/container/remote', icon: <Cloud /> },
+      { title: 'Repositories', path: '/container/repository', icon: <Folder /> },
+    ],
+  },
 ];
 
 interface NavigationDrawerProps {

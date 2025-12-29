@@ -11,11 +11,6 @@ import {
   DialogTitle,
   Paper,
   Snackbar,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableRow,
   TextField,
   Typography,
   Autocomplete,
@@ -267,89 +262,21 @@ export const RpmDistributionDetail: React.FC = () => {
       )}
 
       <Paper sx={{ p: 3, mb: 3 }}>
-        <Typography variant="h6" gutterBottom>
-          Distribution Information
+        <Typography variant="h6" sx={{ mb: 2 }}>
+          GET Result
         </Typography>
-        <TableContainer>
-          <Table>
-            <TableBody>
-              <TableRow>
-                <TableCell component="th" sx={{ fontWeight: 'bold', width: '30%' }}>
-                  Name
-                </TableCell>
-                <TableCell>{distribution.name}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell component="th" sx={{ fontWeight: 'bold' }}>
-                  Base Path
-                </TableCell>
-                <TableCell>{distribution.base_path}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell component="th" sx={{ fontWeight: 'bold' }}>
-                  Pulp Href
-                </TableCell>
-                <TableCell>
-                  <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.875rem' }}>
-                    {distribution.pulp_href}
-                  </Typography>
-                </TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell component="th" sx={{ fontWeight: 'bold' }}>
-                  Base URL
-                </TableCell>
-                <TableCell>{distribution.base_url || 'N/A'}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell component="th" sx={{ fontWeight: 'bold' }}>
-                  Content Guard
-                </TableCell>
-                <TableCell>{distribution.content_guard || 'None'}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell component="th" sx={{ fontWeight: 'bold' }}>
-                  Hidden
-                </TableCell>
-                <TableCell>{distribution.hidden ? 'Yes' : 'No'}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell component="th" sx={{ fontWeight: 'bold' }}>
-                  Repository
-                </TableCell>
-                <TableCell>
-                  {distribution.repository ? (
-                    <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.875rem' }}>
-                      {distribution.repository}
-                    </Typography>
-                  ) : (
-                    'None'
-                  )}
-                </TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell component="th" sx={{ fontWeight: 'bold' }}>
-                  Publication
-                </TableCell>
-                <TableCell>
-                  {distribution.publication ? (
-                    <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.875rem' }}>
-                      {distribution.publication}
-                    </Typography>
-                  ) : (
-                    'None'
-                  )}
-                </TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell component="th" sx={{ fontWeight: 'bold' }}>
-                  Generate Repo Config
-                </TableCell>
-                <TableCell>{distribution.generate_repo_config ? 'Yes' : 'No'}</TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </TableContainer>
+        <Box
+          component="pre"
+          sx={{
+            m: 0,
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word',
+            fontFamily: 'monospace',
+            fontSize: 13,
+          }}
+        >
+          {JSON.stringify(distribution, null, 2)}
+        </Box>
       </Paper>
 
       {/* Edit Dialog */}

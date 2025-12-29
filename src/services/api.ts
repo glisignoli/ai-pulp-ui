@@ -1,22 +1,56 @@
 import axios from 'axios';
 
-const API_BASE_URL = '/pulp/api/v3';
+const API_PATH = '/pulp/api/v3';
+
+const normalizeBackendOrigin = (backend: string) => backend.replace(/\/+$/, '');
+
+const getConfiguredBackendOrigin = (): string | null => {
+  const backend = (import.meta.env.PULP_BACKEND as string | undefined)?.trim();
+  if (!backend) return null;
+
+  // Allow either an origin (http://host:port) or a full API root.
+  // If a full API root was provided, strip the API path back down to the origin.
+  const withoutTrailingSlash = normalizeBackendOrigin(backend);
+  const apiPathNoSlash = API_PATH.replace(/\/+$/, '');
+
+  if (
+    withoutTrailingSlash.endsWith(apiPathNoSlash) ||
+    withoutTrailingSlash.endsWith(`${apiPathNoSlash}/`)
+  ) {
+    return withoutTrailingSlash.slice(0, withoutTrailingSlash.length - apiPathNoSlash.length);
+  }
+
+  return withoutTrailingSlash;
+};
+
+const getApiRoot = (): string => {
+  const origin = getConfiguredBackendOrigin();
+  if (!origin) return API_PATH;
+  return `${origin}${API_PATH}`;
+};
 
 const buildApiUrl = (endpoint: string) => {
+  const apiRoot = getApiRoot();
+
   // Accept full URLs, full API paths, or API-relative endpoints.
   if (endpoint.startsWith('http://') || endpoint.startsWith('https://')) {
     return endpoint;
   }
 
-  if (endpoint.startsWith(API_BASE_URL)) {
-    return endpoint;
+  // If the caller gives a full API path, return it (relative mode) or
+  // prefix it with the configured backend origin (absolute mode).
+  if (endpoint.startsWith(API_PATH)) {
+    if (apiRoot === API_PATH) return endpoint;
+    const origin = getConfiguredBackendOrigin();
+    if (!origin) return endpoint;
+    return `${origin}${endpoint}`;
   }
 
   if (endpoint.startsWith('/')) {
-    return `${API_BASE_URL}${endpoint}`;
+    return `${apiRoot}${endpoint}`;
   }
 
-  return `${API_BASE_URL}/${endpoint}`;
+  return `${apiRoot}/${endpoint}`;
 };
 
 export interface LoginCredentials {
@@ -53,10 +87,10 @@ class ApiService {
     try {
       const token = btoa(`${credentials.username}:${credentials.password}`);
       
-      console.log('Attempting login to:', `${API_BASE_URL}/groups/`);
+      console.log('Attempting login to:', buildApiUrl('/groups/'));
       
       // Test authentication by calling groups endpoint
-      const response = await axios.get(`${API_BASE_URL}/groups/`, {
+      const response = await axios.get(buildApiUrl('/groups/'), {
         headers: {
           'Authorization': `Basic ${token}`
         }

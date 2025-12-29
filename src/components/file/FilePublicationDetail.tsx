@@ -10,38 +10,38 @@ import {
 } from '@mui/material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { apiService } from '../../services/api';
-import { RpmPackage } from '../../types/pulp';
+import { Publication } from '../../types/pulp';
 
-export const RpmPackageDetail: React.FC = () => {
+export const FilePublicationDetail: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const href = searchParams.get('href') || '';
 
-  const [pkg, setPkg] = useState<RpmPackage | null>(null);
+  const [publication, setPublication] = useState<Publication | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchPackage = async () => {
+    const fetchPublication = async () => {
       if (!href) {
-        setError('Missing package href');
+        setError('Missing publication href');
         setLoading(false);
         return;
       }
 
       try {
         setLoading(true);
-        const result = await apiService.get<RpmPackage>(href);
-        setPkg(result);
+        const result = await apiService.get<Publication>(href);
+        setPublication(result);
         setError(null);
       } catch {
-        setError('Failed to load package');
+        setError('Failed to load publication');
       } finally {
         setLoading(false);
       }
     };
 
-    void fetchPackage();
+    void fetchPublication();
   }, [href]);
 
   if (loading) {
@@ -54,12 +54,12 @@ export const RpmPackageDetail: React.FC = () => {
     );
   }
 
-  if (!pkg) {
+  if (!publication) {
     return (
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-        <Alert severity="error">{error || 'Package not found'}</Alert>
-        <Button sx={{ mt: 2 }} variant="contained" onClick={() => navigate('/rpm/content/packages')}>
-          Back to Packages
+        <Alert severity="error">{error || 'Publication not found'}</Alert>
+        <Button sx={{ mt: 2 }} variant="contained" onClick={() => navigate('/file/publication')}>
+          Back to Publications
         </Button>
       </Container>
     );
@@ -68,8 +68,8 @@ export const RpmPackageDetail: React.FC = () => {
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">Package Details</Typography>
-        <Button variant="outlined" onClick={() => navigate('/rpm/content/packages')}>
+        <Typography variant="h4">File Publication</Typography>
+        <Button variant="outlined" onClick={() => navigate('/file/publication')}>
           Back
         </Button>
       </Box>
@@ -85,7 +85,7 @@ export const RpmPackageDetail: React.FC = () => {
           GET Result
         </Typography>
         <Box component="pre" sx={{ m: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-          {JSON.stringify(pkg, null, 2)}
+          {JSON.stringify(publication, null, 2)}
         </Box>
       </Paper>
     </Container>

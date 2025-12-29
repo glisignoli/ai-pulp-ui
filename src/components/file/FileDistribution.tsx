@@ -1,33 +1,33 @@
 import React, { useEffect, useState } from 'react';
 import {
+  Alert,
+  Autocomplete,
+  Box,
+  Button,
+  Checkbox,
+  CircularProgress,
   Container,
-  Typography,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControlLabel,
+  IconButton,
   Paper,
+  Snackbar,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  CircularProgress,
-  Alert,
-  Box,
-  Button,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   TextField,
-  Snackbar,
-  FormControlLabel,
-  Checkbox,
-  Autocomplete,
+  Typography,
 } from '@mui/material';
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
+import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { apiService } from '../../services/api';
-import { Distribution, PulpListResponse, Publication, Repository } from '../../types/pulp';
+import { Distribution, Publication, PulpListResponse, Repository } from '../../types/pulp';
 
 interface DistributionFormData {
   name: string;
@@ -36,15 +36,29 @@ interface DistributionFormData {
   hidden: boolean;
   repository: string;
   publication: string;
-  generate_repo_config: boolean;
-  checkpoint: boolean;
 }
 
-export const RpmDistribution: React.FC = () => {
+const stripPulpOrigin = (href: string) => {
+  const trimmed = href.trim();
+  if (!trimmed) return '';
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    try {
+      const parsed = new URL(trimmed);
+      return parsed.pathname;
+    } catch {
+      return trimmed;
+    }
+  }
+  return trimmed;
+};
+
+export const FileDistribution: React.FC = () => {
   const navigate = useNavigate();
+
   const [distributions, setDistributions] = useState<Distribution[]>([]);
   const [publications, setPublications] = useState<Publication[]>([]);
   const [repositories, setRepositories] = useState<Repository[]>([]);
+
   const [loading, setLoading] = useState(true);
   const [publicationsLoading, setPublicationsLoading] = useState(false);
   const [repositoriesLoading, setRepositoriesLoading] = useState(false);
@@ -59,54 +73,32 @@ export const RpmDistribution: React.FC = () => {
     hidden: false,
     repository: '',
     publication: '',
-    generate_repo_config: false,
-    checkpoint: false,
   });
+
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [distributionToDelete, setDistributionToDelete] = useState<Distribution | null>(null);
 
-  // Pulp may require fully-qualified hrefs (with scheme) in some write payloads.
-  const stripPulpOrigin = (href: string) => {
-    const trimmed = href.trim();
-    if (!trimmed) return '';
-    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-      try {
-        const parsed = new URL(trimmed);
-        return parsed.pathname;
-      } catch {
-        return trimmed;
-      }
-    }
-    return trimmed;
-  };
-
   const fetchDistributions = async () => {
     try {
       setLoading(true);
-      const response = await apiService.get<PulpListResponse<Distribution>>('/distributions/rpm/rpm/');
+      const response = await apiService.get<PulpListResponse<Distribution>>('/distributions/file/file/');
       setDistributions(response.results);
       setError(null);
-    } catch (err) {
+    } catch {
       setError('Failed to load distributions');
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchDistributions();
-    fetchPublications();
-    fetchRepositories();
-  }, []);
-
   const fetchPublications = async () => {
     try {
       setPublicationsLoading(true);
-      const response = await apiService.get<PulpListResponse<Publication>>('/publications/rpm/rpm/');
+      const response = await apiService.get<PulpListResponse<Publication>>('/publications/file/file/');
       setPublications(response.results);
-    } catch (err) {
-      console.error('Failed to load publications:', err);
+    } catch {
+      // optional
     } finally {
       setPublicationsLoading(false);
     }
@@ -115,16 +107,20 @@ export const RpmDistribution: React.FC = () => {
   const fetchRepositories = async () => {
     try {
       setRepositoriesLoading(true);
-      const response = await apiService.get<PulpListResponse<Repository>>('/repositories/rpm/rpm/');
+      const response = await apiService.get<PulpListResponse<Repository>>('/repositories/file/file/');
       setRepositories(response.results);
-    } catch (err) {
-      console.error('Failed to load repositories:', err);
+    } catch {
+      // optional
     } finally {
       setRepositoriesLoading(false);
     }
   };
 
-
+  useEffect(() => {
+    void fetchDistributions();
+    void fetchPublications();
+    void fetchRepositories();
+  }, []);
 
   const handleOpenDialog = (distribution?: Distribution) => {
     if (distribution) {
@@ -136,8 +132,6 @@ export const RpmDistribution: React.FC = () => {
         hidden: distribution.hidden ?? false,
         repository: stripPulpOrigin(distribution.repository || ''),
         publication: stripPulpOrigin(distribution.publication || ''),
-        generate_repo_config: distribution.generate_repo_config ?? false,
-        checkpoint: distribution.checkpoint ?? false,
       });
     } else {
       setEditingDistribution(null);
@@ -148,8 +142,6 @@ export const RpmDistribution: React.FC = () => {
         hidden: false,
         repository: '',
         publication: '',
-        generate_repo_config: false,
-        checkpoint: false,
       });
     }
     setOpenDialog(true);
@@ -165,16 +157,11 @@ export const RpmDistribution: React.FC = () => {
       hidden: false,
       repository: '',
       publication: '',
-      generate_repo_config: false,
-      checkpoint: false,
     });
   };
 
   const handleFormChange = (field: keyof DistributionFormData, value: any) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = async () => {
@@ -182,25 +169,23 @@ export const RpmDistribution: React.FC = () => {
       const payload: any = {
         name: formData.name,
         base_path: formData.base_path,
-        hidden: formData.hidden,
-        generate_repo_config: formData.generate_repo_config,
-        checkpoint: formData.checkpoint,
         content_guard: formData.content_guard.trim() || null,
+        hidden: formData.hidden,
         repository: formData.repository || null,
         publication: formData.publication || null,
       };
 
       if (editingDistribution) {
-        await apiService.put(`${editingDistribution.pulp_href}`, payload);
+        await apiService.put(editingDistribution.pulp_href, payload);
         setSuccessMessage('Distribution updated successfully');
       } else {
-        await apiService.post('/distributions/rpm/rpm/', payload);
-        setSuccessMessage('Distribution created successfully');
+        await apiService.post('/distributions/file/file/', payload);
+        setSuccessMessage('Distribution create task started');
       }
 
       handleCloseDialog();
-      fetchDistributions();
-    } catch (err) {
+      await fetchDistributions();
+    } catch {
       setError(`Failed to ${editingDistribution ? 'update' : 'create'} distribution`);
     }
   };
@@ -212,14 +197,13 @@ export const RpmDistribution: React.FC = () => {
 
   const handleDeleteConfirm = async () => {
     if (!distributionToDelete) return;
-
     try {
       await apiService.delete(distributionToDelete.pulp_href);
-      setSuccessMessage('Distribution deleted successfully');
+      setSuccessMessage('Distribution delete task started');
       setDeleteConfirmOpen(false);
       setDistributionToDelete(null);
-      fetchDistributions();
-    } catch (err) {
+      await fetchDistributions();
+    } catch {
       setError('Failed to delete distribution');
       setDeleteConfirmOpen(false);
     }
@@ -243,15 +227,8 @@ export const RpmDistribution: React.FC = () => {
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">
-          RPM Distributions
-        </Typography>
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<AddIcon />}
-          onClick={() => handleOpenDialog()}
-        >
+        <Typography variant="h4">File Distributions</Typography>
+        <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => handleOpenDialog()}>
           Create Distribution
         </Button>
       </Box>
@@ -269,48 +246,48 @@ export const RpmDistribution: React.FC = () => {
               <TableCell>Name</TableCell>
               <TableCell>Base Path</TableCell>
               <TableCell>Hidden</TableCell>
-              <TableCell>Repository</TableCell>
-              <TableCell>Publication</TableCell>
-              <TableCell>Content Guard</TableCell>
               <TableCell align="right">Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {distributions.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} align="center">
+                <TableCell colSpan={4} align="center">
                   No distributions found
                 </TableCell>
               </TableRow>
             ) : (
-              distributions.map((dist) => (
-                <TableRow key={dist.pulp_href}>
-                  <TableCell>{dist.name}</TableCell>
-                  <TableCell>{dist.base_path}</TableCell>
-                  <TableCell>{dist.hidden ? 'Yes' : 'No'}</TableCell>
-                  <TableCell>{dist.repository || 'None'}</TableCell>
-                  <TableCell>{dist.publication || 'None'}</TableCell>
-                  <TableCell>{dist.content_guard || 'None'}</TableCell>
+              distributions.map((distribution) => (
+                <TableRow key={distribution.pulp_href}>
+                  <TableCell>{distribution.name}</TableCell>
+                  <TableCell>{distribution.base_path}</TableCell>
+                  <TableCell>{distribution.hidden ? 'Yes' : 'No'}</TableCell>
                   <TableCell align="right">
                     <IconButton
                       color="primary"
+                      size="small"
                       onClick={() =>
-                        navigate(`/rpm/distribution/view?href=${encodeURIComponent(dist.pulp_href)}`)
+                        navigate(`/file/distribution/view?href=${encodeURIComponent(distribution.pulp_href)}`)
                       }
+                      aria-label="view"
                       title="View"
                     >
                       <VisibilityIcon />
                     </IconButton>
                     <IconButton
                       color="primary"
-                      onClick={() => handleOpenDialog(dist)}
+                      size="small"
+                      onClick={() => handleOpenDialog(distribution)}
+                      aria-label="edit"
                       title="Edit"
                     >
                       <EditIcon />
                     </IconButton>
                     <IconButton
                       color="error"
-                      onClick={() => handleDeleteClick(dist)}
+                      size="small"
+                      onClick={() => handleDeleteClick(distribution)}
+                      aria-label="delete"
                       title="Delete"
                     >
                       <DeleteIcon />
@@ -323,72 +300,30 @@ export const RpmDistribution: React.FC = () => {
         </Table>
       </TableContainer>
 
-      {/* Create/Edit Dialog */}
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
-        <DialogTitle>
-          {editingDistribution ? 'Edit Distribution' : 'Create Distribution'}
-        </DialogTitle>
+        <DialogTitle>{editingDistribution ? 'Edit Distribution' : 'Create Distribution'}</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
             <TextField
               label="Name"
               fullWidth
-              required
               value={formData.name}
               onChange={(e) => handleFormChange('name', e.target.value)}
-              disabled={!!editingDistribution}
-              helperText="A unique name"
+              required
             />
-
             <TextField
               label="Base Path"
               fullWidth
-              required
               value={formData.base_path}
               onChange={(e) => handleFormChange('base_path', e.target.value)}
-              helperText="Base (relative) path component of the published URL"
+              required
             />
-
-            <Autocomplete
-              options={publications}
-              getOptionLabel={(option) => {
-                const repoName = option.repository ? option.repository.split('/').filter(Boolean).pop() : 'Unknown';
-                const created = option.pulp_created ? new Date(option.pulp_created).toLocaleDateString() : '';
-                return `${repoName} (${created})`;
-              }}
-              value={publications.find(p => p.pulp_href === formData.publication) || null}
-              onChange={(_, newValue) => handleFormChange('publication', newValue?.pulp_href || '')}
-              loading={publicationsLoading}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Publication"
-                  helperText="Optional. Select a publication to serve"
-                />
-              )}
-            />
-
-            <Autocomplete
-              options={repositories}
-              getOptionLabel={(option) => option.name}
-              value={repositories.find((r) => r.pulp_href === formData.repository) || null}
-              onChange={(_, newValue) => handleFormChange('repository', newValue?.pulp_href || '')}
-              loading={repositoriesLoading}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Repository"
-                  helperText="Optional. Distribution will serve the latest version of the repository"
-                />
-              )}
-            />
-
             <TextField
-              label="Content Guard HREF"
+              label="Content Guard"
               fullWidth
               value={formData.content_guard}
               onChange={(e) => handleFormChange('content_guard', e.target.value)}
-              helperText="Optional. Content guard HREF"
+              helperText="Optional. Content guard href."
             />
 
             <FormControlLabel
@@ -401,64 +336,68 @@ export const RpmDistribution: React.FC = () => {
               label="Hidden"
             />
 
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={formData.generate_repo_config}
-                  onChange={(e) => handleFormChange('generate_repo_config', e.target.checked)}
+            <Autocomplete
+              options={repositories}
+              getOptionLabel={(option) => option.name}
+              loading={repositoriesLoading}
+              value={repositories.find((r) => stripPulpOrigin(r.pulp_href) === formData.repository) || null}
+              onChange={(_, value) => handleFormChange('repository', value ? stripPulpOrigin(value.pulp_href) : '')}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Repository"
+                  helperText="Optional. Link this distribution to a repository." 
                 />
-              }
-              label="Generate Repo Config"
+              )}
             />
 
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={formData.checkpoint}
-                  onChange={(e) => handleFormChange('checkpoint', e.target.checked)}
+            <Autocomplete
+              options={publications}
+              getOptionLabel={(option) => option.pulp_href}
+              loading={publicationsLoading}
+              value={publications.find((p) => stripPulpOrigin(p.pulp_href) === formData.publication) || null}
+              onChange={(_, value) => handleFormChange('publication', value ? stripPulpOrigin(value.pulp_href) : '')}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Publication"
+                  helperText="Optional. Link this distribution to a publication." 
                 />
-              }
-              label="Checkpoint"
+              )}
             />
           </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog}>Cancel</Button>
-          <Button
-            onClick={handleSubmit}
-            variant="contained"
-            color="primary"
-            disabled={!formData.name.trim() || !formData.base_path.trim()}
-          >
+          <Button onClick={handleSubmit} variant="contained">
             {editingDistribution ? 'Update' : 'Create'}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
       <Dialog open={deleteConfirmOpen} onClose={handleDeleteCancel}>
-        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogTitle>Delete Distribution</DialogTitle>
         <DialogContent>
-          <Typography>
-            Are you sure you want to delete the distribution "{distributionToDelete?.name}"?
-            This action cannot be undone.
-          </Typography>
+          Are you sure you want to delete distribution "{distributionToDelete?.name}"?
         </DialogContent>
         <DialogActions>
           <Button onClick={handleDeleteCancel}>Cancel</Button>
-          <Button onClick={handleDeleteConfirm} variant="contained" color="error">
+          <Button onClick={handleDeleteConfirm} color="error" variant="contained">
             Delete
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Success Snackbar */}
       <Snackbar
         open={!!successMessage}
-        autoHideDuration={6000}
+        autoHideDuration={4000}
         onClose={() => setSuccessMessage(null)}
-        message={successMessage}
-      />
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setSuccessMessage(null)} severity="success" sx={{ width: '100%' }}>
+          {successMessage}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 };

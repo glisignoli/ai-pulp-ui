@@ -1,7 +1,20 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8080/pulp/api/v3';
+const API_PATH = '/pulp/api/v3';
+
+const normalizeNoTrailingSlash = (value: string) => value.replace(/\/+$/, '');
+
+const getApiRoot = () => {
+  const configured = process.env.PULP_BACKEND?.trim();
+  const backend = configured ? normalizeNoTrailingSlash(configured) : 'http://localhost:8080';
+
+  // Accept either an origin (http://host:port) or a full API root.
+  if (backend.endsWith(API_PATH)) return backend;
+  return `${backend}${API_PATH}`;
+};
+
+const API_BASE_URL = getApiRoot();
 
 const waitForBackend = async () => {
   let retries = 10;

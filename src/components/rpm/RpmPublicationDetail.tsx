@@ -11,11 +11,6 @@ import {
   DialogTitle,
   Paper,
   Snackbar,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableRow,
   Typography,
 } from '@mui/material';
 import { Delete as DeleteIcon } from '@mui/icons-material';
@@ -47,7 +42,7 @@ export const RpmPublicationDetail: React.FC = () => {
       const pub = await apiService.get<Publication>(href);
       setPublication(pub);
       setError(null);
-    } catch (err) {
+    } catch {
       setError('Failed to load publication');
     } finally {
       setLoading(false);
@@ -55,7 +50,7 @@ export const RpmPublicationDetail: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchPublication();
+    void fetchPublication();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [href]);
 
@@ -77,7 +72,7 @@ export const RpmPublicationDetail: React.FC = () => {
       setTimeout(() => {
         navigate('/rpm/publication');
       }, 1500);
-    } catch (err) {
+    } catch {
       setError('Failed to delete publication');
       setDeleteConfirmOpen(false);
     }
@@ -139,82 +134,13 @@ export const RpmPublicationDetail: React.FC = () => {
         </Alert>
       )}
 
-      <Paper sx={{ p: 3, mb: 3 }}>
-        <Typography variant="h6" gutterBottom>
-          Publication Information
+      <Paper sx={{ p: 2, mb: 3 }}>
+        <Typography variant="h6" sx={{ mb: 2 }}>
+          GET Result
         </Typography>
-        <TableContainer>
-          <Table>
-            <TableBody>
-              <TableRow>
-                <TableCell component="th" sx={{ fontWeight: 'bold', width: '30%' }}>
-                  Pulp Href
-                </TableCell>
-                <TableCell>
-                  <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.875rem' }}>
-                    {publication.pulp_href}
-                  </Typography>
-                </TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell component="th" sx={{ fontWeight: 'bold' }}>
-                  Pulp Created
-                </TableCell>
-                <TableCell>{publication.pulp_created ? new Date(publication.pulp_created).toLocaleString() : 'N/A'}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell component="th" sx={{ fontWeight: 'bold' }}>
-                  Repository Version
-                </TableCell>
-                <TableCell>
-                  {publication.repository_version ? (
-                    <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.875rem' }}>
-                      {publication.repository_version}
-                    </Typography>
-                  ) : (
-                    'N/A'
-                  )}
-                </TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell component="th" sx={{ fontWeight: 'bold' }}>
-                  Checksum Type
-                </TableCell>
-                <TableCell>{publication.checksum_type || 'N/A'}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell component="th" sx={{ fontWeight: 'bold' }}>
-                  Compression Type
-                </TableCell>
-                <TableCell>{publication.compression_type || 'N/A'}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell component="th" sx={{ fontWeight: 'bold' }}>
-                  Metadata Checksum Type
-                </TableCell>
-                <TableCell>{publication.metadata_checksum_type || 'N/A'}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell component="th" sx={{ fontWeight: 'bold' }}>
-                  Package Checksum Type
-                </TableCell>
-                <TableCell>{publication.package_checksum_type || 'N/A'}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell component="th" sx={{ fontWeight: 'bold' }}>
-                  Repo GPG Check
-                </TableCell>
-                <TableCell>{publication.repo_gpgcheck !== undefined ? (publication.repo_gpgcheck ? 'Yes' : 'No') : 'N/A'}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell component="th" sx={{ fontWeight: 'bold' }}>
-                  SQLite Metadata
-                </TableCell>
-                <TableCell>{publication.sqlite_metadata !== undefined ? (publication.sqlite_metadata ? 'Yes' : 'No') : 'N/A'}</TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </TableContainer>
+        <Box component="pre" sx={{ m: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+          {JSON.stringify(publication, null, 2)}
+        </Box>
       </Paper>
 
       {/* Delete Confirmation Dialog */}

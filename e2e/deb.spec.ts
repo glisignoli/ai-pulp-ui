@@ -87,4 +87,19 @@ test.describe('DEB Section Tests', () => {
       0
     );
   });
+
+  test('DEB Packages Upload dialog opens', async ({ page }) => {
+    await page.goto('/deb/content/packages');
+    await page.waitForLoadState('networkidle');
+
+    await expect(page.getByRole('heading', { name: 'DEB Packages' })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Upload Package' }).click();
+
+    await expect(page.getByRole('heading', { name: 'Upload DEB Package' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Choose DEB File' })).toBeVisible();
+    await expect(page.getByLabel('Distribution')).toBeVisible();
+    await expect(page.getByLabel('Component')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Upload' })).toBeVisible();
+  });
 });

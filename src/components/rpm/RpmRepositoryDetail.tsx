@@ -278,7 +278,16 @@ export const RpmRepositoryDetail: React.FC = () => {
         <Typography variant="h6" sx={{ mb: 2 }}>
           GET Result
         </Typography>
-        <Box component="pre" sx={{ m: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+        <Box
+          component="pre"
+          sx={{
+            m: 0,
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word',
+            fontFamily: 'monospace',
+            fontSize: 13,
+          }}
+        >
           {JSON.stringify(repository, null, 2)}
         </Box>
       </Paper>

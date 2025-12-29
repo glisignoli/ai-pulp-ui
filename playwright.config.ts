@@ -10,7 +10,7 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:3000',
     screenshot: 'on',
-    trace: 'on-first-retry',
+    trace: 'on',
   },
 
   projects: [

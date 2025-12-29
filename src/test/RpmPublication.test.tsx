@@ -7,6 +7,8 @@ import { apiService } from '../services/api';
 
 vi.mock('../services/api');
 
+const mockedApiService = vi.mocked(apiService, { deep: true });
+
 const renderWithRouter = (component: React.ReactElement) => {
   return render(<MemoryRouter>{component}</MemoryRouter>);
 };
@@ -53,7 +55,7 @@ describe('RpmPublication', () => {
       ],
     };
 
-    (apiService.get as any).mockImplementation((url: string) => {
+    mockedApiService.get.mockImplementation((url: string) => {
       if (url.includes('/versions/')) {
         return Promise.resolve({ count: 0, next: null, previous: null, results: [] });
       }
@@ -76,7 +78,7 @@ describe('RpmPublication', () => {
   });
 
   it('should open create dialog when Create button is clicked', async () => {
-    apiService.get.mockImplementation((url: string) => {
+    mockedApiService.get.mockImplementation((_url: string) => {
       return Promise.resolve({ count: 0, next: null, previous: null, results: [] });
     });
 
@@ -107,7 +109,7 @@ describe('RpmPublication', () => {
       ],
     };
 
-    apiService.get.mockImplementation((url: string) => {
+    mockedApiService.get.mockImplementation((url: string) => {
       if (url.includes('/versions/')) {
         return Promise.resolve({ count: 0, next: null, previous: null, results: [] });
       }
@@ -120,7 +122,7 @@ describe('RpmPublication', () => {
       return Promise.resolve({ count: 0, results: [] });
     });
 
-    apiService.post.mockResolvedValueOnce({});
+    mockedApiService.post.mockResolvedValueOnce({});
 
     renderWithRouter(<RpmPublication />);
 
@@ -177,7 +179,7 @@ describe('RpmPublication', () => {
       ],
     };
 
-    apiService.get.mockImplementation((url: string) => {
+    mockedApiService.get.mockImplementation((url: string) => {
       if (url.includes('/versions/')) {
         return Promise.resolve({ count: 0, next: null, previous: null, results: [] });
       }
@@ -190,7 +192,7 @@ describe('RpmPublication', () => {
       return Promise.resolve({ count: 0, results: [] });
     });
 
-    apiService.post.mockResolvedValueOnce({});
+    mockedApiService.post.mockResolvedValueOnce({});
 
     renderWithRouter(<RpmPublication />);
 
@@ -252,7 +254,7 @@ describe('RpmPublication', () => {
       ],
     };
 
-    apiService.get.mockImplementation((url: string) => {
+    mockedApiService.get.mockImplementation((url: string) => {
       if (url.includes('publications')) {
         return Promise.resolve(mockPublications);
       }
@@ -293,7 +295,7 @@ describe('RpmPublication', () => {
       ],
     };
 
-    apiService.get.mockImplementation((url: string) => {
+    mockedApiService.get.mockImplementation((url: string) => {
       if (url.includes('publications')) {
         return Promise.resolve(mockPublications);
       }
@@ -303,7 +305,7 @@ describe('RpmPublication', () => {
       return Promise.resolve({ count: 0, results: [] });
     });
 
-    apiService.delete.mockResolvedValueOnce({});
+    mockedApiService.delete.mockResolvedValueOnce({});
 
     renderWithRouter(<RpmPublication />);
 
@@ -340,7 +342,7 @@ describe('RpmPublication', () => {
       ],
     };
 
-    apiService.get.mockImplementation((url: string) => {
+    mockedApiService.get.mockImplementation((url: string) => {
       if (url.includes('/versions/')) {
         return Promise.resolve({ count: 0, next: null, previous: null, results: [] });
       }
@@ -353,7 +355,7 @@ describe('RpmPublication', () => {
       return Promise.resolve({ count: 0, results: [] });
     });
 
-    apiService.post.mockRejectedValueOnce(new Error('Creation failed'));
+    mockedApiService.post.mockRejectedValueOnce(new Error('Creation failed'));
 
     renderWithRouter(<RpmPublication />);
 
@@ -401,7 +403,7 @@ describe('RpmPublication', () => {
       ],
     };
 
-    apiService.get.mockImplementation((url: string) => {
+    mockedApiService.get.mockImplementation((url: string) => {
       if (url.includes('/versions/')) {
         return Promise.resolve({ count: 0, next: null, previous: null, results: [] });
       }
@@ -414,7 +416,7 @@ describe('RpmPublication', () => {
       return Promise.resolve({ count: 0, results: [] });
     });
 
-    apiService.post.mockResolvedValueOnce({});
+    mockedApiService.post.mockResolvedValueOnce({});
 
     renderWithRouter(<RpmPublication />);
 

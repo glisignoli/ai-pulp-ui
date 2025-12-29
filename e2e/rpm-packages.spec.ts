@@ -44,7 +44,8 @@ test.describe('RPM Packages (Real API)', () => {
     await row.getByRole('button', { name: 'view' }).click();
 
     await expect(page.getByRole('heading', { name: /package details/i })).toBeVisible();
-    await expect(page.getByRole('cell', { name: 'dog', exact: true })).toBeVisible();
+    await expect(page.getByText(/get result/i)).toBeVisible();
+    await expect(page.locator('pre')).toContainText('"name": "dog"');
     await expect(page.getByRole('button', { name: /back/i })).toBeVisible();
   });
 });

@@ -233,9 +233,22 @@ test.describe('RPM Section Tests', () => {
 
   test('RPM Repository detail view renders without errors', async ({ page }) => {
     const errors: string[] = [];
+    const notFoundUrls: string[] = [];
+    const failedRequests: string[] = [];
     page.on('pageerror', (error) => errors.push(error.message));
     page.on('console', (msg) => {
       if (msg.type() === 'error') errors.push(msg.text());
+    });
+    page.on('response', (response) => {
+      if (response.status() === 404) {
+        notFoundUrls.push(response.url());
+      }
+    });
+    page.on('requestfailed', (request) => {
+      const failure = request.failure();
+      if (failure) {
+        failedRequests.push(`${failure.errorText} ${request.url()}`);
+      }
     });
 
     // First navigate to repositories list
@@ -266,7 +279,19 @@ test.describe('RPM Section Tests', () => {
         await expect(page.getByRole('button', { name: /back/i })).toBeVisible();
       }
 
-      expect(errors, `RPM Repository detail page should render without errors. Found: ${errors.join(', ')}`).toHaveLength(0);
+      const relevantErrors = errors.filter(
+        (e) => !e.includes('Failed to load resource') && !e.includes('404')
+      );
+
+      const debugDetails = [
+        errors.length ? `Errors: ${errors.join(', ')}` : '',
+        notFoundUrls.length ? `404s: ${Array.from(new Set(notFoundUrls)).join(', ')}` : '',
+        failedRequests.length ? `Request failures: ${Array.from(new Set(failedRequests)).join(', ')}` : '',
+      ]
+        .filter(Boolean)
+        .join(' | ');
+
+      expect(relevantErrors, `RPM Repository detail page should render without errors. ${debugDetails}`).toHaveLength(0);
     } else {
       // If no repositories exist, just verify we can navigate to the view URL
       await page.goto('/rpm/repository/view?href=%2Fpulp%2Fapi%2Fv3%2Frepositories%2Frpm%2Frpm%2Ftest%2F');

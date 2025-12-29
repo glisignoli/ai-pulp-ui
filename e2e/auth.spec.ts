@@ -37,6 +37,9 @@ test.describe('Authentication Tests', () => {
       '/rpm/repository',
       '/file/distribution',
       '/deb/distribution',
+      '/container/distribution',
+      '/container/remote',
+      '/container/repository',
     ];
 
     for (const route of protectedRoutes) {

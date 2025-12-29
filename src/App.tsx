@@ -15,7 +15,6 @@ import RpmPublication from './components/rpm/RpmPublication';
 import { RpmPublicationDetail } from './components/rpm/RpmPublicationDetail';
 import { RpmPackages } from './components/rpm/RpmPackages';
 import { RpmPackageDetail } from './components/rpm/RpmPackageDetail';
-import { GenericList } from './components/common/GenericList';
 import { DebDistribution } from './components/deb/DebDistribution';
 import { DebDistributionDetail } from './components/deb/DebDistributionDetail';
 import { DebRemote } from './components/deb/DebRemote';
@@ -28,6 +27,25 @@ import { DebPackages } from './components/deb/DebPackages';
 import { DebPackageDetail } from './components/deb/DebPackageDetail';
 import { Tasks } from './components/tasks/Tasks';
 import { TaskDetail } from './components/tasks/TaskDetail';
+import {
+  FileDistribution,
+  FileDistributionDetail,
+  FilePublication,
+  FilePublicationDetail,
+  FileRemote,
+  FileRemoteDetail,
+  FileRepository,
+  FileRepositoryDetail,
+} from './components/file';
+
+import {
+  ContainerDistribution,
+  ContainerDistributionDetail,
+  ContainerRemote,
+  ContainerRemoteDetail,
+  ContainerRepository,
+  ContainerRepositoryDetail,
+} from './components/container';
 
 const theme = createTheme({
   palette: {
@@ -163,7 +181,17 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Layout>
-                    <GenericList title="File Distributions" type="Distributions" />
+                    <FileDistribution />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/file/distribution/view"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <FileDistributionDetail />
                   </Layout>
                 </ProtectedRoute>
               }
@@ -173,7 +201,17 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Layout>
-                    <GenericList title="File Publications" type="Publications" />
+                    <FilePublication />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/file/publication/view"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <FilePublicationDetail />
                   </Layout>
                 </ProtectedRoute>
               }
@@ -183,7 +221,17 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Layout>
-                    <GenericList title="File Remotes" type="Remotes" />
+                    <FileRemote />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/file/remote/view"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <FileRemoteDetail />
                   </Layout>
                 </ProtectedRoute>
               }
@@ -193,7 +241,17 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Layout>
-                    <GenericList title="File Repositories" type="Repositories" />
+                    <FileRepository />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/file/repository/view"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <FileRepositoryDetail />
                   </Layout>
                 </ProtectedRoute>
               }
@@ -304,6 +362,66 @@ function App() {
                 <ProtectedRoute>
                   <Layout>
                     <Tasks />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/container/distribution"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <ContainerDistribution />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/container/distribution/view"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <ContainerDistributionDetail />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/container/remote"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <ContainerRemote />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/container/remote/view"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <ContainerRemoteDetail />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/container/repository"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <ContainerRepository />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/container/repository/view"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <ContainerRepositoryDetail />
                   </Layout>
                 </ProtectedRoute>
               }

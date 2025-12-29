@@ -56,10 +56,10 @@ describe('RpmRemoteDetail', () => {
       expect(screen.getByText('Remote: test-remote')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('Remote Information')).toBeInTheDocument();
-    expect(screen.getByText('test-remote')).toBeInTheDocument();
-    expect(screen.getByText('https://example.com/repo/')).toBeInTheDocument();
-    expect(screen.getByText('immediate')).toBeInTheDocument();
+    expect(screen.getByText('GET Result')).toBeInTheDocument();
+    expect(screen.getByText(/"name"\s*:\s*"test-remote"/)).toBeInTheDocument();
+    expect(screen.getByText(/"url"\s*:\s*"https:\/\/example\.com\/repo\/"/)).toBeInTheDocument();
+    expect(screen.getByText(/"policy"\s*:\s*"immediate"/)).toBeInTheDocument();
   });
 
   it('shows error when remote not found', async () => {
@@ -169,17 +169,11 @@ describe('RpmRemoteDetail', () => {
       expect(screen.getByText('Remote: test-remote')).toBeInTheDocument();
     });
 
-    // Check that all fields are displayed
-    expect(screen.getByText('Name')).toBeInTheDocument();
-    expect(screen.getByText('URL')).toBeInTheDocument();
-    expect(screen.getByText('Policy')).toBeInTheDocument();
-    expect(screen.getByText('TLS Validation')).toBeInTheDocument();
-    expect(screen.getByText('Proxy URL')).toBeInTheDocument();
-    expect(screen.getByText('Download Concurrency')).toBeInTheDocument();
-    expect(screen.getByText('Max Retries')).toBeInTheDocument();
-    expect(screen.getByText('Total Timeout')).toBeInTheDocument();
-    expect(screen.getByText('Connect Timeout')).toBeInTheDocument();
-    expect(screen.getByText('Rate Limit')).toBeInTheDocument();
+    expect(screen.getByText('GET Result')).toBeInTheDocument();
+    expect(screen.getByText(/"proxy_url"\s*:\s*"http:\/\/proxy\.example\.com:8080"/)).toBeInTheDocument();
+    expect(screen.getByText(/"total_timeout"\s*:\s*300/)).toBeInTheDocument();
+    expect(screen.getByText(/"connect_timeout"\s*:\s*30/)).toBeInTheDocument();
+    expect(screen.getByText(/"rate_limit"\s*:\s*100/)).toBeInTheDocument();
   });
 
   it('displays TLS validation boolean correctly', async () => {
@@ -199,9 +193,8 @@ describe('RpmRemoteDetail', () => {
       expect(screen.getByText('Remote: test-remote')).toBeInTheDocument();
     });
 
-    // Should display "No" for TLS validation
-    const tlsRow = screen.getByText('TLS Validation').closest('tr');
-    expect(tlsRow).toHaveTextContent('No');
+    expect(screen.getByText('GET Result')).toBeInTheDocument();
+    expect(screen.getByText(/"tls_validation"\s*:\s*false/)).toBeInTheDocument();
   });
 
   it('displays timeout values with seconds suffix', async () => {
@@ -222,8 +215,9 @@ describe('RpmRemoteDetail', () => {
       expect(screen.getByText('Remote: test-remote')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('300s')).toBeInTheDocument();
-    expect(screen.getByText('30s')).toBeInTheDocument();
+    expect(screen.getByText('GET Result')).toBeInTheDocument();
+    expect(screen.getByText(/"total_timeout"\s*:\s*300/)).toBeInTheDocument();
+    expect(screen.getByText(/"connect_timeout"\s*:\s*30/)).toBeInTheDocument();
   });
 
   it('displays rate limit with proper label', async () => {
@@ -243,6 +237,7 @@ describe('RpmRemoteDetail', () => {
       expect(screen.getByText('Remote: test-remote')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('100 requests/second')).toBeInTheDocument();
+    expect(screen.getByText('GET Result')).toBeInTheDocument();
+    expect(screen.getByText(/"rate_limit"\s*:\s*100/)).toBeInTheDocument();
   });
 });

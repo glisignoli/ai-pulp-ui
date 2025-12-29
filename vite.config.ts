@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  envPrefix: ['VITE_', 'PULP_'],
   test: {
     globals: true,
     environment: 'jsdom',
@@ -19,7 +20,7 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/pulp': {
-        target: 'http://localhost:8080',
+        target: process.env.PULP_BACKEND || 'http://localhost:8080',
         changeOrigin: true,
       },
     },

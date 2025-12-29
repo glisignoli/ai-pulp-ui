@@ -1,24 +1,22 @@
-# Pulp UI
+# AI Pulp UI
 
-A React-based user interface for the Pulp project, providing a modern web interface to manage repositories, distributions, publications, and remotes for RPM, File, and DEB content types.
+> Note: Everything in this repository was generated using VS Code and the models GPT-5.2 and Sonnet 4.5.
 
-## Features
+React + TypeScript frontend for managing Pulp resources (RPM, File, DEB) via the Pulp REST API.
 
-- **User Authentication**: Secure login system that validates credentials against the Pulp API
-- **Collapsible Navigation Drawer**: Easy access to all sections with expandable categories
-- **Content Type Management**: 
-  - RPM (Distributions, Publications, Remotes, Repositories)
-  - File (Distributions, Publications, Remotes, Repositories)
-  - DEB (Distributions, Publications, Remotes, Repositories)
-- **Dashboard**: Overview of all content types and quick access links
-- **Responsive Design**: Built with Material-UI for a modern, responsive interface
+The UI talks to the backend at `http://localhost:8080/pulp/api/v3/` (by default) and runs locally on `http://localhost:3000`.
 
-## Prerequisites
+You can override the backend with the `PULP_BACKEND` environment variable (default: `http://localhost:8080`).
+
+## Requirements
 
 - Node.js 18+ and npm
-- Running Pulp backend at `http://localhost:8080/pulp/api/v3/`
+- Docker or Podman (only if you use `./tests/run_container.sh`)
+- A running Pulp backend on `http://localhost:8080`
+  - Option A (recommended for tests): use `./tests/run_container.sh ...` to start an ephemeral Pulp container for the duration of a command
+  - Option B: run your own Pulp instance locally and use `npm run dev`
 
-## Installation
+## Quickstart
 
 Install dependencies:
 
@@ -26,152 +24,88 @@ Install dependencies:
 npm install
 ```
 
-## Development
-
-Start the development server:
+Run the UI with an ephemeral Pulp backend (starts Pulp, then runs Vite):
 
 ```bash
 ./tests/run_container.sh npm run dev -- --host 0.0.0.0
 ```
 
-The application will be available at `http://localhost:3000`
+Use a custom backend:
 
-## Building for Production
+```bash
+PULP_BACKEND=http://my-pulp-host:8080 npm run dev
+```
 
-Build the application:
+Open:
+
+- UI: `http://localhost:3000`
+- Pulp API: `http://localhost:8080/pulp/api/v3/`
+
+## API & Proxy
+
+- By default, the frontend uses a relative API base of `/pulp/api/v3` (see [src/services/api.ts](src/services/api.ts)).
+- In dev, Vite proxies `/pulp/*` to `http://localhost:8080` by default, or to `PULP_BACKEND` if set (see [vite.config.ts](vite.config.ts)).
+
+## Authentication
+
+- The login form validates credentials against `GET /pulp/api/v3/groups/`.
+- Credentials are used as HTTP Basic auth and stored as a base64 token in `localStorage` under `authToken`.
+
+## Build
 
 ```bash
 npm run build
 ```
 
-Preview the production build:
+Preview the production build (static server only):
 
 ```bash
-./tests/run_container.sh npm run preview
+npm run preview
 ```
 
-## Testing
+If you want the preview build to talk to a live Pulp backend, serve it behind a reverse proxy that forwards `/pulp/*` to `http://localhost:8080` (the Vite dev proxy only applies to `npm run dev`).
 
-### Unit & Integration Tests
-
-Run tests:
+Alternatively, you can build with `PULP_BACKEND` set to make the UI call the backend by absolute URL (note: this may require CORS to be enabled on the backend):
 
 ```bash
-./tests/run_container.sh npm test
+PULP_BACKEND=http://my-pulp-host:8080 npm run build
 ```
 
-Run tests in UI mode:
+## Tests
+
+Unit/integration tests (Vitest):
 
 ```bash
-./tests/run_container.sh npm run test:ui
+npm test
 ```
 
-Run tests with coverage:
-
-```bash
-./tests/run_container.sh npm run test:coverage
-```
-
-### End-to-End Tests (Playwright)
-
-Run browser rendering tests:
+E2E tests (Playwright) against an ephemeral Pulp backend:
 
 ```bash
 ./tests/run_container.sh npm run test:e2e
 ```
 
-Run E2E tests with interactive UI:
+Open the Playwright HTML report:
 
 ```bash
-./tests/run_container.sh npm run test:e2e:ui
+npx playwright show-report
 ```
 
-Run E2E tests in debug mode:
+Notes:
 
-```bash
-./tests/run_container.sh npm run test:e2e:debug
-```
+- Playwright tracing is enabled for all E2E tests via [playwright.config.ts](playwright.config.ts).
+- For more E2E details, see [e2e/README.md](e2e/README.md).
 
-The Playwright tests verify:
-- Pages render without console errors
-- No JavaScript module import errors
-- UI elements are visible and functional
-- Navigation works correctly
-- Authentication flow
-- All RPM, File, and DEB sections
+## Repo Layout
 
-See [e2e/README.md](e2e/README.md) for more details about E2E testing.
+- `src/` React UI (components, services, contexts)
+- `e2e/` Playwright tests
+- `tests/run_container.sh` helper to start an ephemeral Pulp container and run a command with that backend available
 
-### Testing in Container
+## Pulp Docs
 
-To run tests in a containerized environment (matching the Pulp backend setup):
-
-```bash
-./tests/run_container.sh npm test
-```
-
-## Project Structure
-
-```
-src/
-├── components/           # React components
-│   ├── common/          # Reusable components
-│   ├── rpm/             # RPM-specific components
-│   ├── Dashboard.tsx    # Main dashboard
-│   ├── Header.tsx       # Application header
-│   ├── Layout.tsx       # Main layout wrapper
-│   ├── Login.tsx        # Login page
-│   ├── NavigationDrawer.tsx  # Side navigation
-│   └── ProtectedRoute.tsx    # Route protection
-├── contexts/            # React contexts
-│   └── AuthContext.tsx  # Authentication context
-├── services/            # API services
-│   └── api.ts          # API service layer
-├── types/              # TypeScript types
-│   └── pulp.ts         # Pulp-specific types
-├── test/               # Test files
-├── deb.spec.ts         # DEB section tests
-├── App.tsx             # Main application component
-└── main.tsx            # Application entry point
-e2e/                    # End-to-end tests (Playwright)
-├── helpers/            # Test helpers and utilities
-│   └── api-mocker.ts   # API mocking utilities
-├── auth.spec.ts        # Authentication tests
-├── deb.spec.ts         # DEB section tests
-├── file.spec.ts        # File section tests
-├── mocked-api.spec.ts  # Tests with mocked API
-├── navigation.spec.ts  # Navigation tests
-├── render.spec.ts      # Basic rendering tests
-├── rpm.spec.ts         # RPM section tests
-└── README.md           # E2E testing documentation
-tests/                  # Test infrastructure
-├── run_container.sh    # Container runner for unit tests
-└── run_playwright.sh   # Container runner for E2E tests
-```
-
-## API Configuration
-
-The application communicates with the Pulp backend at `http://localhost:8080/pulp/api/v3/`. To change this:
-
-1. Edit [src/services/api.ts](src/services/api.ts)
-2. Update the `API_BASE_URL` constant
-
-## Authentication
-
-The login system validates credentials against the `/groups/` endpoint of the Pulp API. Upon successful authentication, credentials are stored securely and used for subsequent API calls.
-
-## Technologies Used
-
-- **React 18**: UI framework
-- **TypeScript**: Type-safe development
-- **Material-UI**: Component library
-- **React Router**: Client-side routing
-- **Axios**: HTTP client
-- **Vite**: Build tool and dev server
-- **Vitest**: Unit testing framework
-- **Testing Library**: Component testing utilities
-- **Playwright**: End-to-end browser testing
-
-## License
-
-This project is part of the Pulp project ecosystem.
+- Pulp user docs: https://pulpproject.org/user/
+- REST APIs:
+  - RPM: https://pulpproject.org/pulp_rpm/restapi/
+  - File: https://pulpproject.org/pulp_file/restapi/
+  - DEB: https://pulpproject.org/pulp_deb/restapi/

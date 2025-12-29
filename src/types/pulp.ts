@@ -6,7 +6,10 @@ export interface Distribution {
   content_guard?: string | null;
   hidden?: boolean;
   repository?: string | null;
+  repository_version?: string | null;
   publication?: string | null;
+  private?: boolean;
+  description?: string | null;
   generate_repo_config?: boolean;
   checkpoint?: boolean;
   pulp_labels?: { [key: string]: string };
@@ -48,6 +51,7 @@ export interface Repository {
   description?: string;
   retain_repo_versions?: number;
   remote?: string;
+  manifest_signing_service?: string;
   autopublish?: boolean;
   metadata_signing_service?: string;
   package_signing_service?: string;
@@ -124,6 +128,7 @@ export interface Remote {
   pulp_last_updated?: string;
   name: string;
   url: string;
+  upstream_name?: string;
   ca_cert?: string;
   client_cert?: string;
   tls_validation?: boolean;
@@ -140,6 +145,9 @@ export interface Remote {
   rate_limit?: number;
   hidden_fields?: Array<{ name: string; is_set: boolean }>;
   sles_auth_token?: string;
+  include_tags?: string[];
+  exclude_tags?: string[];
+  sigstore?: string;
 }
 
 export interface PulpListResponse<T> {
