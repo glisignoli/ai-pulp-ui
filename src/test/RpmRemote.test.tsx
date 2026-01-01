@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { RpmRemote } from '../components/rpm/RpmRemote';
@@ -120,7 +120,9 @@ describe('RpmRemote', () => {
         url: 'https://example.com/new-repo',
         tls_validation: true,
         policy: 'immediate',
+        download_concurrency: 1,
         max_retries: 3,
+        rate_limit: 0,
       });
     });
   });
@@ -166,8 +168,132 @@ describe('RpmRemote', () => {
         policy: 'immediate',
         username: 'testuser',
         password: 'testpass',
+        download_concurrency: 1,
         max_retries: 3,
+        rate_limit: 0,
       });
+    });
+  });
+
+  it('creates a remote with pulp_labels when provided', async () => {
+    (apiService.get as any).mockResolvedValue({ count: 0, results: [] });
+    (apiService.post as any).mockResolvedValue({});
+
+    renderWithRouter(<RpmRemote />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No remotes found')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Create Remote/i }));
+
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.change(within(dialog).getByRole('textbox', { name: /^Name$/i }), { target: { value: 'labeled-remote' } });
+    fireEvent.change(within(dialog).getByRole('textbox', { name: /^URL$/i }), { target: { value: 'https://example.com/labeled' } });
+    fireEvent.change(within(dialog).getByRole('textbox', { name: /Pulp Labels \(JSON\)/i }), {
+      target: { value: '{"env":"dev"}' },
+    });
+
+    fireEvent.click(within(dialog).getByRole('button', { name: /^create$/i }));
+
+    await waitFor(() => {
+      expect(apiService.post).toHaveBeenCalledWith('/remotes/rpm/rpm/', {
+        name: 'labeled-remote',
+        url: 'https://example.com/labeled',
+        tls_validation: true,
+        policy: 'immediate',
+        download_concurrency: 1,
+        max_retries: 3,
+        rate_limit: 0,
+        pulp_labels: { env: 'dev' },
+      });
+    });
+  });
+
+  it('creates a remote with headers when provided', async () => {
+    (apiService.get as any).mockResolvedValue({ count: 0, results: [] });
+    (apiService.post as any).mockResolvedValue({});
+
+    renderWithRouter(<RpmRemote />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No remotes found')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Create Remote/i }));
+
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.change(within(dialog).getByRole('textbox', { name: /^Name$/i }), { target: { value: 'headered-remote' } });
+    fireEvent.change(within(dialog).getByRole('textbox', { name: /^URL$/i }), { target: { value: 'https://example.com/headers' } });
+    fireEvent.change(within(dialog).getByRole('textbox', { name: /Headers \(JSON\)/i }), {
+      target: { value: '{"X-Test":"1"}' },
+    });
+
+    fireEvent.click(within(dialog).getByRole('button', { name: /^create$/i }));
+
+    await waitFor(() => {
+      expect(apiService.post).toHaveBeenCalledWith('/remotes/rpm/rpm/', {
+        name: 'headered-remote',
+        url: 'https://example.com/headers',
+        tls_validation: true,
+        policy: 'immediate',
+        download_concurrency: 1,
+        max_retries: 3,
+        rate_limit: 0,
+        headers: { 'X-Test': '1' },
+      });
+    });
+  });
+
+  it('prevents submit when headers JSON is invalid', async () => {
+    (apiService.get as any).mockResolvedValue({ count: 0, results: [] });
+    (apiService.post as any).mockResolvedValue({});
+
+    renderWithRouter(<RpmRemote />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No remotes found')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Create Remote/i }));
+    const dialog = await screen.findByRole('dialog');
+
+    fireEvent.change(within(dialog).getByRole('textbox', { name: /^Name$/i }), { target: { value: 'bad-headers-remote' } });
+    fireEvent.change(within(dialog).getByRole('textbox', { name: /^URL$/i }), { target: { value: 'https://example.com/bad-headers' } });
+    fireEvent.change(within(dialog).getByRole('textbox', { name: /Headers \(JSON\)/i }), {
+      target: { value: '{not json' },
+    });
+
+    fireEvent.click(within(dialog).getByRole('button', { name: /^create$/i }));
+
+    await waitFor(() => {
+      expect(apiService.post).not.toHaveBeenCalled();
+      expect(screen.getAllByText(/Invalid headers JSON/i).length).toBeGreaterThan(0);
+    });
+  });
+
+  it('prevents submit when download_concurrency is less than 1', async () => {
+    (apiService.get as any).mockResolvedValue({ count: 0, results: [] });
+    (apiService.post as any).mockResolvedValue({});
+
+    renderWithRouter(<RpmRemote />);
+
+    await waitFor(() => {
+      expect(screen.getByText('No remotes found')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Create Remote/i }));
+    const dialog = await screen.findByRole('dialog');
+
+    fireEvent.change(within(dialog).getByRole('textbox', { name: /^Name$/i }), { target: { value: 'bad-remote' } });
+    fireEvent.change(within(dialog).getByRole('textbox', { name: /^URL$/i }), { target: { value: 'https://example.com/bad' } });
+    fireEvent.change(within(dialog).getByLabelText(/Download Concurrency/i), { target: { value: '0' } });
+
+    fireEvent.click(within(dialog).getByRole('button', { name: /^create$/i }));
+
+    await waitFor(() => {
+      expect(apiService.post).not.toHaveBeenCalled();
+      expect(screen.getByText(/Download Concurrency must be >= 1/i)).toBeInTheDocument();
     });
   });
 
@@ -245,7 +371,9 @@ describe('RpmRemote', () => {
         url: 'https://example.com/new-repo',
         tls_validation: true,
         policy: 'immediate',
+        download_concurrency: 1,
         max_retries: 3,
+        rate_limit: 0,
       });
     });
   });
@@ -292,7 +420,9 @@ describe('RpmRemote', () => {
         url: 'https://updated.example.com/repo',
         tls_validation: true,
         policy: 'immediate',
+        download_concurrency: 1,
         max_retries: 3,
+        rate_limit: 0,
       });
     });
   });

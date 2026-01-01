@@ -76,6 +76,23 @@ test.describe('File Section Tests', () => {
     expect(errors, `File Repository page should render without errors. Found: ${errors.join(', ')}`).toHaveLength(0);
   });
 
+  test('File Contents page renders without errors', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') errors.push(msg.text());
+    });
+
+    await page.goto('/file/content/files');
+    await page.waitForLoadState('networkidle');
+
+    await expect(page.getByRole('heading', { name: 'File Contents' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Upload File' })).toBeVisible();
+    await expect(page.getByRole('table')).toBeVisible();
+
+    expect(errors, `File Contents page should render without errors. Found: ${errors.join(', ')}`).toHaveLength(0);
+  });
+
   test('File Distribution create dialog opens', async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', (error) => errors.push(error.message));
@@ -106,8 +123,8 @@ test.describe('File Section Tests', () => {
 
     await page.getByRole('button', { name: 'Create Remote' }).click();
     await expect(page.getByRole('heading', { name: 'Create Remote' })).toBeVisible();
-    await expect(page.getByLabel('Name')).toBeVisible();
-    await expect(page.getByLabel('URL')).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Name', exact: true })).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'URL', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Create' })).toBeVisible();
 
     expect(errors, `File Remote create dialog should open without errors. Found: ${errors.join(', ')}`).toHaveLength(0);
@@ -131,5 +148,25 @@ test.describe('File Section Tests', () => {
     await expect(page.getByRole('button', { name: 'Upload' })).toBeVisible();
 
     expect(errors, `File upload dialog should open without errors. Found: ${errors.join(', ')}`).toHaveLength(0);
+  });
+
+  test('File Content Upload dialog opens', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') errors.push(msg.text());
+    });
+
+    await page.goto('/file/content/files');
+    await page.waitForLoadState('networkidle');
+
+    await page.getByRole('button', { name: 'Upload File' }).click();
+    await expect(page.getByRole('heading', { name: 'Upload File' })).toBeVisible();
+    await expect(page.getByLabel('Repository')).toBeVisible();
+    await expect(page.getByLabel('Relative Path')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Choose File' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Upload' })).toBeVisible();
+
+    expect(errors, `File content upload dialog should open without errors. Found: ${errors.join(', ')}`).toHaveLength(0);
   });
 });

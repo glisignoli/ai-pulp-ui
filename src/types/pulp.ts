@@ -23,6 +23,7 @@ export interface Publication {
   repository_version?: string;
   repository?: string;
   checkpoint?: boolean;
+  manifest?: string;
   checksum_type?: 'unknown' | 'md5' | 'sha1' | 'sha224' | 'sha256' | 'sha384' | 'sha512';
   metadata_checksum_type?: 'unknown' | 'md5' | 'sha1' | 'sha224' | 'sha256' | 'sha384' | 'sha512';
   package_checksum_type?: 'unknown' | 'md5' | 'sha1' | 'sha224' | 'sha256' | 'sha384' | 'sha512';
@@ -52,6 +53,7 @@ export interface Repository {
   retain_repo_versions?: number;
   remote?: string;
   manifest_signing_service?: string;
+  manifest?: string;
   autopublish?: boolean;
   metadata_signing_service?: string;
   package_signing_service?: string;
@@ -67,6 +69,7 @@ export interface Repository {
   compression_type?: 'zstd' | 'gz';
   layout?: 'nested_alphabetically' | 'flat';
   pulp_labels?: { [key: string]: string };
+  signing_service_release_overrides?: { [key: string]: string };
 }
 
 export interface RepositoryVersion {
@@ -77,6 +80,23 @@ export interface RepositoryVersion {
   repository?: string;
   base_version?: string;
   content_summary?: any;
+}
+
+export interface FileContent {
+  pulp_href: string;
+  prn?: string;
+  pulp_created?: string;
+  pulp_last_updated?: string;
+  pulp_labels?: { [key: string]: string };
+  vuln_report?: string;
+  artifact?: string;
+  relative_path: string;
+  md5?: string;
+  sha1?: string;
+  sha224?: string;
+  sha256?: string;
+  sha384?: string;
+  sha512?: string;
 }
 
 export interface RpmPackage {
@@ -131,8 +151,13 @@ export interface Remote {
   upstream_name?: string;
   ca_cert?: string;
   client_cert?: string;
+  client_key?: string;
   tls_validation?: boolean;
   proxy_url?: string;
+  proxy_username?: string;
+  proxy_password?: string;
+  username?: string;
+  password?: string;
   pulp_labels?: { [key: string]: string };
   download_concurrency?: number;
   max_retries?: number;
@@ -141,7 +166,7 @@ export interface Remote {
   connect_timeout?: number;
   sock_connect_timeout?: number;
   sock_read_timeout?: number;
-  headers?: Array<{ [key: string]: string }>;
+  headers?: { [key: string]: string };
   rate_limit?: number;
   hidden_fields?: Array<{ name: string; is_set: boolean }>;
   sles_auth_token?: string;

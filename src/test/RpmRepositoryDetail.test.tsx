@@ -138,14 +138,94 @@ describe('RpmRepositoryDetail', () => {
     const descInput = screen.getByRole('textbox', { name: /description/i });
     fireEvent.change(descInput, { target: { value: 'Updated description' } });
 
+    fireEvent.change(screen.getByRole('textbox', { name: /repo config \(json\)/i }), {
+      target: { value: '{"a":1,"b":"two"}' },
+    });
+
     fireEvent.click(screen.getByRole('button', { name: 'Update' }));
 
     await waitFor(() => {
       expect(apiService.put).toHaveBeenCalledWith(repoHref, expect.objectContaining({
         name: 'test-repo',
         description: 'Updated description',
+        repo_config: { a: 1, b: 'two' },
       }));
     });
+  });
+
+  it('prevents update when repo_config contains invalid JSON', async () => {
+    vi.mocked(apiService.get).mockImplementation((url: string) => {
+      if (url === repoHref) return Promise.resolve(baseRepo as any);
+      if (url === `${repoHref}versions/`) return Promise.resolve(versionsResponse as any);
+      if (url === '/remotes/rpm/rpm/') {
+        return Promise.resolve({ count: 0, next: null, previous: null, results: [] } as any);
+      }
+      return Promise.resolve({ count: 0, next: null, previous: null, results: [] } as any);
+    });
+    vi.mocked(apiService.put).mockResolvedValue({} as any);
+
+    renderAt(repoHref);
+
+    await waitFor(() => {
+      expect(screen.getByText('RPM Repository')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTitle('Edit'));
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByRole('textbox', { name: /repo config \(json\)/i }), {
+      target: { value: '{not valid json' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Update' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Invalid JSON in repo_config')).toBeInTheDocument();
+    });
+    expect(apiService.put).not.toHaveBeenCalled();
+  });
+
+  it('prevents update when retain versions are negative', async () => {
+    vi.mocked(apiService.get).mockImplementation((url: string) => {
+      if (url === repoHref) return Promise.resolve(baseRepo as any);
+      if (url === `${repoHref}versions/`) return Promise.resolve(versionsResponse as any);
+      if (url === '/remotes/rpm/rpm/') {
+        return Promise.resolve({
+          count: 1,
+          next: null,
+          previous: null,
+          results: [{ pulp_href: baseRepo.remote, name: 'test-remote', url: 'https://example.com' }],
+        } as any);
+      }
+      return Promise.resolve({ count: 0, next: null, previous: null, results: [] } as any);
+    });
+    vi.mocked(apiService.put).mockResolvedValue({} as any);
+
+    renderAt(repoHref);
+
+    await waitFor(() => {
+      expect(screen.getByText('RPM Repository')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTitle('Edit'));
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByRole('spinbutton', { name: /retain package versions/i }), {
+      target: { value: '-1' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Update' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Retain Package Versions must be >= 0')).toBeInTheDocument();
+    });
+    expect(apiService.put).not.toHaveBeenCalled();
   });
 
   it('deletes the repository and navigates back to list', async () => {

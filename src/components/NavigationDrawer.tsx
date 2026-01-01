@@ -39,51 +39,6 @@ interface NavigationItem {
 
 const navigationItems: NavigationItem[] = [
   {
-    title: 'Home',
-    path: '/',
-    icon: <Home />,
-  },
-  {
-    title: 'Tasks',
-    path: '/tasks',
-    icon: <Assignment />,
-  },
-  {
-    title: 'RPM',
-    path: '/rpm',
-    icon: <Storage />,
-    children: [
-      { title: 'Distribution', path: '/rpm/distribution', icon: <Cloud /> },
-      { title: 'Publication', path: '/rpm/publication', icon: <Article /> },
-      { title: 'Remote', path: '/rpm/remote', icon: <Cloud /> },
-      { title: 'Repository', path: '/rpm/repository', icon: <Folder /> },
-      { title: 'Packages', path: '/rpm/content/packages', icon: <Inventory2 /> },
-    ],
-  },
-  {
-    title: 'File',
-    path: '/file',
-    icon: <Article />,
-    children: [
-      { title: 'Distribution', path: '/file/distribution', icon: <Cloud /> },
-      { title: 'Publication', path: '/file/publication', icon: <Article /> },
-      { title: 'Remote', path: '/file/remote', icon: <Cloud /> },
-      { title: 'Repository', path: '/file/repository', icon: <Folder /> },
-    ],
-  },
-  {
-    title: 'DEB',
-    path: '/deb',
-    icon: <Storage />,
-    children: [
-      { title: 'Distribution', path: '/deb/distribution', icon: <Cloud /> },
-      { title: 'Publication', path: '/deb/publication', icon: <Article /> },
-      { title: 'Remote', path: '/deb/remote', icon: <Cloud /> },
-      { title: 'Repository', path: '/deb/repository', icon: <Folder /> },
-      { title: 'Packages', path: '/deb/content/packages', icon: <Inventory2 /> },
-    ],
-  },
-  {
     title: 'Container',
     path: '/container',
     icon: <Storage />,
@@ -92,6 +47,52 @@ const navigationItems: NavigationItem[] = [
       { title: 'Remotes', path: '/container/remote', icon: <Cloud /> },
       { title: 'Repositories', path: '/container/repository', icon: <Folder /> },
     ],
+  },
+  {
+    title: 'DEB',
+    path: '/deb',
+    icon: <Storage />,
+    children: [
+      { title: 'Distribution', path: '/deb/distribution', icon: <Cloud /> },
+      { title: 'Packages', path: '/deb/content/packages', icon: <Inventory2 /> },
+      { title: 'Publication', path: '/deb/publication', icon: <Article /> },
+      { title: 'Remote', path: '/deb/remote', icon: <Cloud /> },
+      { title: 'Repository', path: '/deb/repository', icon: <Folder /> },
+    ],
+  },
+  {
+    title: 'File',
+    path: '/file',
+    icon: <Article />,
+    children: [
+      { title: 'Distribution', path: '/file/distribution', icon: <Cloud /> },
+      { title: 'Files', path: '/file/content/files', icon: <Inventory2 /> },
+      { title: 'Publication', path: '/file/publication', icon: <Article /> },
+      { title: 'Remote', path: '/file/remote', icon: <Cloud /> },
+      { title: 'Repository', path: '/file/repository', icon: <Folder /> },
+    ],
+  },
+  {
+    title: 'Home',
+    path: '/',
+    icon: <Home />,
+  },
+  {
+    title: 'RPM',
+    path: '/rpm',
+    icon: <Storage />,
+    children: [
+      { title: 'Distribution', path: '/rpm/distribution', icon: <Cloud /> },
+      { title: 'Packages', path: '/rpm/content/packages', icon: <Inventory2 /> },
+      { title: 'Publication', path: '/rpm/publication', icon: <Article /> },
+      { title: 'Remote', path: '/rpm/remote', icon: <Cloud /> },
+      { title: 'Repository', path: '/rpm/repository', icon: <Folder /> },
+    ],
+  },
+  {
+    title: 'Tasks',
+    path: '/tasks',
+    icon: <Assignment />,
   },
 ];
 

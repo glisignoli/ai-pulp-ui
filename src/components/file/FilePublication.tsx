@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import {
   Alert,
+  Autocomplete,
   Box,
   Button,
+  Checkbox,
   CircularProgress,
   Container,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControlLabel,
   IconButton,
   MenuItem,
   Paper,
@@ -25,10 +28,13 @@ import {
 import { Add as AddIcon, Delete as DeleteIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { apiService, formatPulpApiError } from '../../services/api';
-import { PulpListResponse, Publication, Repository } from '../../types/pulp';
+import { PulpListResponse, Publication, Repository, RepositoryVersion } from '../../types/pulp';
 
 interface PublicationFormData {
   repository: string;
+  repository_version: string;
+  manifest: string;
+  checkpoint: boolean;
 }
 
 export const FilePublication: React.FC = () => {
@@ -36,11 +42,18 @@ export const FilePublication: React.FC = () => {
 
   const [publications, setPublications] = useState<Publication[]>([]);
   const [repositories, setRepositories] = useState<Repository[]>([]);
+  const [repositoryVersions, setRepositoryVersions] = useState<RepositoryVersion[]>([]);
+  const [versionsLoading, setVersionsLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [openDialog, setOpenDialog] = useState(false);
-  const [formData, setFormData] = useState<PublicationFormData>({ repository: '' });
+  const [formData, setFormData] = useState<PublicationFormData>({
+    repository: '',
+    repository_version: '',
+    manifest: 'PULP_MANIFEST',
+    checkpoint: false,
+  });
 
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -68,16 +81,69 @@ export const FilePublication: React.FC = () => {
     void fetchData();
   }, []);
 
+  const loadRepositoryVersions = async (repositoryHref: string) => {
+    if (!repositoryHref) {
+      setRepositoryVersions([]);
+      return;
+    }
+
+    try {
+      setVersionsLoading(true);
+      const versionsEndpoint = repositoryHref.endsWith('/')
+        ? `${repositoryHref}versions/`
+        : `${repositoryHref}/versions/`;
+      const response = await apiService.get<PulpListResponse<RepositoryVersion>>(versionsEndpoint);
+      setRepositoryVersions(response?.results || []);
+    } catch {
+      setRepositoryVersions([]);
+    } finally {
+      setVersionsLoading(false);
+    }
+  };
+
   const handleOpenDialog = () => {
-    setFormData({ repository: '' });
+    setRepositoryVersions([]);
+    setFormData({
+      repository: '',
+      repository_version: '',
+      manifest: 'PULP_MANIFEST',
+      checkpoint: false,
+    });
     setOpenDialog(true);
   };
 
   const handleCloseDialog = () => setOpenDialog(false);
 
+  const handleRepositoryChange = (repositoryHref: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      repository: repositoryHref,
+      repository_version: '',
+    }));
+    setRepositoryVersions([]);
+    if (repositoryHref) {
+      void loadRepositoryVersions(repositoryHref);
+    }
+  };
+
   const handleSubmit = async () => {
     try {
-      await apiService.post('/publications/file/file/', { repository: formData.repository });
+      const payload: any = {
+        checkpoint: formData.checkpoint,
+      };
+
+      if (formData.repository_version) {
+        payload.repository_version = formData.repository_version;
+      } else {
+        payload.repository = formData.repository;
+      }
+
+      const trimmedManifest = formData.manifest.trim();
+      if (trimmedManifest) {
+        payload.manifest = trimmedManifest;
+      }
+
+      await apiService.post('/publications/file/file/', payload);
       setSuccessMessage('Publication creation task started');
       handleCloseDialog();
       await fetchData();
@@ -187,7 +253,7 @@ export const FilePublication: React.FC = () => {
               label="Repository"
               fullWidth
               value={formData.repository}
-              onChange={(e) => setFormData({ repository: e.target.value })}
+              onChange={(e) => handleRepositoryChange(e.target.value)}
               required
               helperText="Select the repository to publish"
             >
@@ -197,6 +263,43 @@ export const FilePublication: React.FC = () => {
                 </MenuItem>
               ))}
             </TextField>
+
+            <Autocomplete
+              options={repositoryVersions}
+              getOptionLabel={(option) => `Version ${option.number ?? 'N/A'}`}
+              value={repositoryVersions.find((v) => v.pulp_href === formData.repository_version) || null}
+              onChange={(_, newValue) =>
+                setFormData((prev) => ({ ...prev, repository_version: newValue?.pulp_href || '' }))
+              }
+              loading={versionsLoading}
+              disabled={!formData.repository}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  fullWidth
+                  label="Repository Version (optional)"
+                  helperText="If not provided, the latest version will be used"
+                />
+              )}
+            />
+
+            <TextField
+              label="Manifest"
+              fullWidth
+              value={formData.manifest}
+              onChange={(e) => setFormData((prev) => ({ ...prev, manifest: e.target.value }))}
+              helperText="Manifest file name (default: PULP_MANIFEST)"
+            />
+
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={formData.checkpoint}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, checkpoint: e.target.checked }))}
+                />
+              }
+              label="Checkpoint"
+            />
           </Box>
         </DialogContent>
         <DialogActions>

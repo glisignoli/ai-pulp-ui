@@ -49,6 +49,9 @@ describe('RpmDistributionDetail', () => {
       expect(screen.getByText('Distribution: test-dist')).toBeInTheDocument();
     });
 
+    const openLink = screen.getByRole('link', { name: /open/i });
+    expect(openLink).toHaveAttribute('href', 'http://localhost:8080/pulp/content/test/path');
+
     expect(screen.getByText('GET Result')).toBeInTheDocument();
     expect(screen.getByText(/"name"\s*:\s*"test-dist"/)).toBeInTheDocument();
     expect(screen.getByText(/"base_path"\s*:\s*"test\/path"/)).toBeInTheDocument();
@@ -106,6 +109,46 @@ describe('RpmDistributionDetail', () => {
         expect.objectContaining({
           name: 'updated-dist',
           base_path: 'test/path',
+        })
+      );
+    });
+  });
+
+  it('includes pulp_labels when provided in edit dialog', async () => {
+    vi.mocked(apiService.get).mockImplementation((url: string) => {
+      if (url === distHref) return Promise.resolve(baseDistribution as any);
+      if (url.includes('/publications/')) {
+        return Promise.resolve({ count: 0, next: null, previous: null, results: [] } as any);
+      }
+      if (url.includes('/repositories/')) {
+        return Promise.resolve({ count: 0, next: null, previous: null, results: [] } as any);
+      }
+      return Promise.resolve({ count: 0, next: null, previous: null, results: [] } as any);
+    });
+    vi.mocked(apiService.put).mockResolvedValue({} as any);
+
+    renderAt(distHref);
+
+    await waitFor(() => {
+      expect(screen.getByText('Distribution: test-dist')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /edit/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+
+    const labels = screen.getByLabelText(/pulp labels/i);
+    fireEvent.change(labels, { target: { value: '{"tier":"prod"}' } });
+
+    fireEvent.click(screen.getByRole('button', { name: /save/i }));
+
+    await waitFor(() => {
+      expect(apiService.put).toHaveBeenCalledWith(
+        distHref,
+        expect.objectContaining({
+          pulp_labels: { tier: 'prod' },
         })
       );
     });

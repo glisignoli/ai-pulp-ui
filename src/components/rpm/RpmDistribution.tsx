@@ -41,6 +41,32 @@ interface DistributionFormData {
   checkpoint: boolean;
 }
 
+const parsePulpLabelsJson = (
+  input: string
+): { labels: Record<string, string> | null; error: string | null } => {
+  const trimmed = input.trim();
+  if (!trimmed) return { labels: null, error: null };
+
+  try {
+    const parsed = JSON.parse(trimmed) as unknown;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return { labels: null, error: 'Invalid pulp_labels JSON (must be an object of string values)' };
+    }
+
+    const record: Record<string, string> = {};
+    for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+      if (typeof value !== 'string') {
+        return { labels: null, error: 'Invalid pulp_labels JSON (must be an object of string values)' };
+      }
+      record[key] = value;
+    }
+
+    return { labels: record, error: null };
+  } catch {
+    return { labels: null, error: 'Invalid pulp_labels JSON (must be an object of string values)' };
+  }
+};
+
 export const RpmDistribution: React.FC = () => {
   const navigate = useNavigate();
   const [distributions, setDistributions] = useState<Distribution[]>([]);
@@ -63,6 +89,8 @@ export const RpmDistribution: React.FC = () => {
     generate_repo_config: false,
     checkpoint: false,
   });
+  const [pulpLabelsJson, setPulpLabelsJson] = useState('');
+  const [pulpLabelsJsonError, setPulpLabelsJsonError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [distributionToDelete, setDistributionToDelete] = useState<Distribution | null>(null);
@@ -140,6 +168,7 @@ export const RpmDistribution: React.FC = () => {
         generate_repo_config: distribution.generate_repo_config ?? false,
         checkpoint: distribution.checkpoint ?? false,
       });
+      setPulpLabelsJson(distribution.pulp_labels ? JSON.stringify(distribution.pulp_labels, null, 2) : '');
     } else {
       setEditingDistribution(null);
       setFormData({
@@ -152,7 +181,9 @@ export const RpmDistribution: React.FC = () => {
         generate_repo_config: false,
         checkpoint: false,
       });
+      setPulpLabelsJson('');
     }
+    setPulpLabelsJsonError(null);
     setOpenDialog(true);
   };
 
@@ -169,6 +200,8 @@ export const RpmDistribution: React.FC = () => {
       generate_repo_config: false,
       checkpoint: false,
     });
+    setPulpLabelsJson('');
+    setPulpLabelsJsonError(null);
   };
 
   const handleFormChange = (field: keyof DistributionFormData, value: any) => {
@@ -180,6 +213,10 @@ export const RpmDistribution: React.FC = () => {
 
   const handleSubmit = async () => {
     try {
+      const { labels: pulpLabels, error: labelsError } = parsePulpLabelsJson(pulpLabelsJson);
+      setPulpLabelsJsonError(labelsError);
+      if (labelsError) return;
+
       const payload: any = {
         name: formData.name,
         base_path: formData.base_path,
@@ -190,6 +227,10 @@ export const RpmDistribution: React.FC = () => {
         repository: formData.repository || null,
         publication: formData.publication || null,
       };
+
+      if (pulpLabels && Object.keys(pulpLabels).length > 0) {
+        payload.pulp_labels = pulpLabels;
+      }
 
       if (editingDistribution) {
         await apiService.put(`${editingDistribution.pulp_href}`, payload);
@@ -423,6 +464,20 @@ export const RpmDistribution: React.FC = () => {
                 />
               }
               label="Checkpoint"
+            />
+
+            <TextField
+              label="Pulp Labels (JSON)"
+              fullWidth
+              multiline
+              minRows={3}
+              value={pulpLabelsJson}
+              onChange={(e) => {
+                setPulpLabelsJson(e.target.value);
+                setPulpLabelsJsonError(null);
+              }}
+              error={!!pulpLabelsJsonError}
+              helperText={pulpLabelsJsonError ?? 'Optional. JSON object of string values'}
             />
           </Box>
         </DialogContent>

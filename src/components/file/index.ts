@@ -6,3 +6,5 @@ export { FileRemote } from './FileRemote';
 export { FileRemoteDetail } from './FileRemoteDetail';
 export { FileRepository } from './FileRepository';
 export { FileRepositoryDetail } from './FileRepositoryDetail';
+export { FileContentFiles } from './FileContentFiles';
+export { FileContentFileDetail } from './FileContentFileDetail';

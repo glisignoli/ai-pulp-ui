@@ -9,29 +9,30 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  TextField,
+  IconButton,
   Paper,
   Snackbar,
   Table,
-  TableContainer,
   TableBody,
   TableCell,
+  TableContainer,
   TableHead,
   TableRow,
+  TextField,
   Typography,
-  IconButton,
 } from '@mui/material';
 import { Add as AddIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { apiService, formatPulpApiError } from '../../services/api';
-import { PulpListResponse, RpmPackage } from '../../types/pulp';
+import { FileContent, PulpListResponse } from '../../types/pulp';
 import { ForegroundSnackbar } from '../ForegroundSnackbar';
 
-type TaskResponse = { task: string };
+type TaskResponse = { task?: string };
 
-export const RpmPackages: React.FC = () => {
+export const FileContentFiles: React.FC = () => {
   const navigate = useNavigate();
-  const [packages, setPackages] = useState<RpmPackage[]>([]);
+
+  const [contents, setContents] = useState<FileContent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,21 +51,21 @@ export const RpmPackages: React.FC = () => {
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
 
-  const fetchPackages = async () => {
+  const fetchContents = async () => {
     try {
       setLoading(true);
-      const response = await apiService.get<PulpListResponse<RpmPackage>>('/content/rpm/packages/?limit=100');
-      setPackages(response?.results || []);
+      const response = await apiService.get<PulpListResponse<FileContent>>('/content/file/files/?limit=100');
+      setContents(response?.results || []);
       setError(null);
-    } catch (err) {
-      setError('Failed to load packages');
+    } catch {
+      setError('Failed to load file contents');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchPackages();
+    fetchContents();
   }, []);
 
   const openUpload = () => {
@@ -91,12 +92,19 @@ export const RpmPackages: React.FC = () => {
     const trimmedFileUrl = fileUrl.trim();
     const trimmedPulpLabelsJson = pulpLabelsJson.trim();
 
+    if (!trimmedRelativePath) {
+      setSnackbarMessage('Relative path is required');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+      return;
+    }
+
     const sources = [
+      selectedFile ? 'file' : null,
       trimmedArtifactHref ? 'artifact' : null,
       trimmedUploadHref ? 'upload' : null,
       trimmedFileUrl ? 'file_url' : null,
-      selectedFile ? 'file' : null,
-    ].filter(Boolean) as Array<'artifact' | 'upload' | 'file_url' | 'file'>;
+    ].filter(Boolean) as Array<'file' | 'artifact' | 'upload' | 'file_url'>;
 
     if (sources.length === 0) {
       setSnackbarMessage('Provide a file (or artifact/upload/file_url)');
@@ -138,47 +146,36 @@ export const RpmPackages: React.FC = () => {
 
     try {
       setUploading(true);
-      const formData = new FormData();
-
-      const useCreateEndpoint = !!trimmedRepositoryHref || !!trimmedRelativePath;
-      const endpoint = useCreateEndpoint ? '/content/rpm/packages/' : '/content/rpm/packages/upload/';
+      const form = new FormData();
 
       if (pulpLabels && Object.keys(pulpLabels).length > 0) {
-        formData.append('pulp_labels', JSON.stringify(pulpLabels));
+        form.append('pulp_labels', JSON.stringify(pulpLabels));
       }
+
+      if (trimmedRepositoryHref) {
+        form.append('repository', trimmedRepositoryHref);
+      }
+
+      form.append('relative_path', trimmedRelativePath);
 
       if (sources[0] === 'file') {
-        // selectedFile is guaranteed non-null when source is 'file'
-        formData.append('file', selectedFile as File);
+        form.append('file', selectedFile as File);
       } else if (sources[0] === 'artifact') {
-        formData.append('artifact', trimmedArtifactHref);
+        form.append('artifact', trimmedArtifactHref);
       } else if (sources[0] === 'upload') {
-        formData.append('upload', trimmedUploadHref);
+        form.append('upload', trimmedUploadHref);
       } else if (sources[0] === 'file_url') {
-        formData.append('file_url', trimmedFileUrl);
+        form.append('file_url', trimmedFileUrl);
       }
 
-      if (useCreateEndpoint) {
-        if (trimmedRepositoryHref) formData.append('repository', trimmedRepositoryHref);
-        if (trimmedRelativePath) formData.append('relative_path', trimmedRelativePath);
-
-        const resp = await apiService.post<TaskResponse>(endpoint, formData);
-        setSnackbarMessage(
-          resp?.task ? 'Package creation task started' : 'Package creation request submitted'
-        );
-        setSnackbarSeverity('success');
-        setSnackbarOpen(true);
-        setUploadOpen(false);
-      } else {
-        await apiService.post<RpmPackage>(endpoint, formData);
-        setSnackbarMessage('Package uploaded successfully');
-        setSnackbarSeverity('success');
-        setSnackbarOpen(true);
-        setUploadOpen(false);
-        await fetchPackages();
-      }
+      const resp = await apiService.post<TaskResponse>('/content/file/files/', form);
+      setSnackbarMessage(resp?.task ? 'File upload task started' : 'File upload request submitted');
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
+      setUploadOpen(false);
+      await fetchContents();
     } catch (err) {
-      setSnackbarMessage(formatPulpApiError(err, 'Failed to upload package'));
+      setSnackbarMessage(formatPulpApiError(err, 'Failed to upload file'));
       setSnackbarSeverity('error');
       setSnackbarOpen(true);
     } finally {
@@ -199,11 +196,12 @@ export const RpmPackages: React.FC = () => {
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">RPM Packages</Typography>
+        <Typography variant="h4">File Contents</Typography>
         <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={openUpload}>
-          Upload Package
+          Upload File
         </Button>
       </Box>
+
       <ForegroundSnackbar
         open={!!error}
         message={error ?? ''}
@@ -215,37 +213,33 @@ export const RpmPackages: React.FC = () => {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Name</TableCell>
-              <TableCell>Version</TableCell>
-              <TableCell>Release</TableCell>
-              <TableCell>Arch</TableCell>
-              <TableCell>Summary</TableCell>
+              <TableCell>Relative Path</TableCell>
+              <TableCell>SHA256</TableCell>
               <TableCell>Created</TableCell>
               <TableCell align="right">Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {packages.length === 0 ? (
+            {contents.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} align="center">
-                  No packages found
+                <TableCell colSpan={4} align="center">
+                  No file contents found
                 </TableCell>
               </TableRow>
             ) : (
-              packages.map((pkg) => (
-                <TableRow key={pkg.pulp_href}>
-                  <TableCell>{pkg.name}</TableCell>
-                  <TableCell>{pkg.version}</TableCell>
-                  <TableCell>{pkg.release}</TableCell>
-                  <TableCell>{pkg.arch}</TableCell>
-                  <TableCell>{pkg.summary || 'N/A'}</TableCell>
-                  <TableCell>{pkg.pulp_created ? new Date(pkg.pulp_created).toLocaleString() : 'N/A'}</TableCell>
+              contents.map((content) => (
+                <TableRow key={content.pulp_href}>
+                  <TableCell>{content.relative_path}</TableCell>
+                  <TableCell>{content.sha256 || 'N/A'}</TableCell>
+                  <TableCell>
+                    {content.pulp_created ? new Date(content.pulp_created).toLocaleString() : 'N/A'}
+                  </TableCell>
                   <TableCell align="right">
                     <IconButton
                       color="primary"
                       size="small"
                       onClick={() =>
-                        navigate(`/rpm/content/packages/view?href=${encodeURIComponent(pkg.pulp_href)}`)
+                        navigate(`/file/content/files/view?href=${encodeURIComponent(content.pulp_href)}`)
                       }
                       aria-label="view"
                       title="View"
@@ -261,15 +255,14 @@ export const RpmPackages: React.FC = () => {
       </TableContainer>
 
       <Dialog open={uploadOpen} onClose={closeUpload} maxWidth="sm" fullWidth>
-        <DialogTitle>Upload RPM Package</DialogTitle>
+        <DialogTitle>Upload File</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
             <Button variant="outlined" component="label" disabled={uploading}>
-              Choose RPM File
+              Choose File
               <input
                 type="file"
                 hidden
-                accept=".rpm"
                 onChange={(e) => {
                   const file = e.target.files?.[0] || null;
                   setSelectedFile(file);
@@ -286,15 +279,17 @@ export const RpmPackages: React.FC = () => {
               value={repositoryHref}
               onChange={(e) => setRepositoryHref(e.target.value)}
               disabled={uploading}
-              helperText="Optional. If set, uses POST /content/rpm/packages/ (async create)."
+              helperText="Optional. A URI of a repository to associate the new content with."
             />
+
             <TextField
               label="Relative Path"
               fullWidth
               value={relativePath}
               onChange={(e) => setRelativePath(e.target.value)}
               disabled={uploading}
-              helperText="Optional. Path relative to distribution base_path."
+              required
+              helperText="Required. Path where the artifact is located relative to distributions base_path."
             />
 
             <TextField
@@ -319,7 +314,7 @@ export const RpmPackages: React.FC = () => {
               value={fileUrl}
               onChange={(e) => setFileUrl(e.target.value)}
               disabled={uploading}
-              helperText="Optional. URL that Pulp can download."
+              helperText="Optional. URL that Pulp can download and turn into the content unit."
             />
             <TextField
               label="Pulp Labels (JSON)"
@@ -338,7 +333,7 @@ export const RpmPackages: React.FC = () => {
             Cancel
           </Button>
           <Button onClick={handleUpload} variant="contained" disabled={uploading}>
-            {uploading ? 'Uploading…' : 'Upload'}
+            Upload
           </Button>
         </DialogActions>
       </Dialog>
@@ -349,11 +344,7 @@ export const RpmPackages: React.FC = () => {
         onClose={() => setSnackbarOpen(false)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert
-          onClose={() => setSnackbarOpen(false)}
-          severity={snackbarSeverity}
-          sx={{ width: '100%' }}
-        >
+        <Alert severity={snackbarSeverity} onClose={() => setSnackbarOpen(false)}>
           {snackbarMessage}
         </Alert>
       </Snackbar>

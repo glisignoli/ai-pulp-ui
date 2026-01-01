@@ -30,10 +30,36 @@ import { apiService, formatPulpApiError } from '../../services/api';
 import { PulpListResponse, Remote, Repository } from '../../types/pulp';
 import { ForegroundSnackbar } from '../ForegroundSnackbar';
 
+const parseStringRecordJson = (jsonText: string, fieldNameForErrors: string) => {
+  if (!jsonText.trim()) {
+    return { value: undefined as Record<string, string> | undefined, error: '' };
+  }
+
+  try {
+    const parsed = JSON.parse(jsonText);
+    if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return { value: undefined, error: `Invalid ${fieldNameForErrors} JSON` };
+    }
+
+    const record: Record<string, string> = {};
+    for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+      if (typeof value !== 'string') {
+        return { value: undefined, error: `Invalid ${fieldNameForErrors} JSON` };
+      }
+      record[key] = value;
+    }
+
+    return { value: record, error: '' };
+  } catch {
+    return { value: undefined, error: `Invalid ${fieldNameForErrors} JSON` };
+  }
+};
+
 interface RepositoryFormData {
   name: string;
   description: string;
   retain_repo_versions: number | null;
+  retain_package_versions: number | null;
   autopublish: boolean;
   publish_upstream_release_fields: boolean;
   signing_service: string;
@@ -55,11 +81,17 @@ export const DebRepository: React.FC = () => {
     name: '',
     description: '',
     retain_repo_versions: null,
+    retain_package_versions: null,
     autopublish: false,
     publish_upstream_release_fields: true,
     signing_service: '',
     remote: '',
   });
+
+  const [pulpLabelsJson, setPulpLabelsJson] = useState('');
+  const [pulpLabelsJsonError, setPulpLabelsJsonError] = useState('');
+  const [signingServiceReleaseOverridesJson, setSigningServiceReleaseOverridesJson] = useState('');
+  const [signingServiceReleaseOverridesJsonError, setSigningServiceReleaseOverridesJsonError] = useState('');
 
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -102,22 +134,38 @@ export const DebRepository: React.FC = () => {
         name: repo.name,
         description: repo.description || '',
         retain_repo_versions: repo.retain_repo_versions ?? null,
+        retain_package_versions: repo.retain_package_versions ?? null,
         autopublish: repo.autopublish ?? false,
         publish_upstream_release_fields: (repo as any).publish_upstream_release_fields ?? true,
         signing_service: (repo as any).signing_service || '',
         remote: repo.remote || '',
       });
+
+      setPulpLabelsJson(repo.pulp_labels ? JSON.stringify(repo.pulp_labels, null, 2) : '');
+      setPulpLabelsJsonError('');
+      setSigningServiceReleaseOverridesJson(
+        (repo as any).signing_service_release_overrides
+          ? JSON.stringify((repo as any).signing_service_release_overrides, null, 2)
+          : ''
+      );
+      setSigningServiceReleaseOverridesJsonError('');
     } else {
       setEditingRepo(null);
       setFormData({
         name: '',
         description: '',
         retain_repo_versions: null,
+        retain_package_versions: null,
         autopublish: false,
         publish_upstream_release_fields: true,
         signing_service: '',
         remote: '',
       });
+
+      setPulpLabelsJson('');
+      setPulpLabelsJsonError('');
+      setSigningServiceReleaseOverridesJson('');
+      setSigningServiceReleaseOverridesJsonError('');
     }
     setOpenDialog(true);
   };
@@ -125,6 +173,10 @@ export const DebRepository: React.FC = () => {
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setEditingRepo(null);
+    setPulpLabelsJson('');
+    setPulpLabelsJsonError('');
+    setSigningServiceReleaseOverridesJson('');
+    setSigningServiceReleaseOverridesJsonError('');
   };
 
   const handleFormChange = (field: keyof RepositoryFormData, value: any) => {
@@ -133,13 +185,43 @@ export const DebRepository: React.FC = () => {
 
   const handleSubmit = async () => {
     try {
+      if (formData.retain_package_versions !== null && formData.retain_package_versions <= 0) {
+        setError('Retain Package Versions must be null or > 0');
+        return;
+      }
+
+      const parsedPulpLabels = parseStringRecordJson(pulpLabelsJson, 'pulp_labels');
+      if (parsedPulpLabels.error) {
+        setPulpLabelsJsonError(parsedPulpLabels.error);
+        return;
+      }
+      setPulpLabelsJsonError('');
+
+      const parsedSigningServiceReleaseOverrides = parseStringRecordJson(
+        signingServiceReleaseOverridesJson,
+        'signing_service_release_overrides'
+      );
+      if (parsedSigningServiceReleaseOverrides.error) {
+        setSigningServiceReleaseOverridesJsonError(parsedSigningServiceReleaseOverrides.error);
+        return;
+      }
+      setSigningServiceReleaseOverridesJsonError('');
+
       const payload: any = {
         name: formData.name,
         description: formData.description || undefined,
-        retain_repo_versions: formData.retain_repo_versions || undefined,
+        retain_repo_versions: formData.retain_repo_versions ?? undefined,
+        retain_package_versions: formData.retain_package_versions ?? undefined,
         autopublish: formData.autopublish,
         publish_upstream_release_fields: formData.publish_upstream_release_fields,
       };
+
+      if (parsedPulpLabels.value && Object.keys(parsedPulpLabels.value).length > 0) {
+        payload.pulp_labels = parsedPulpLabels.value;
+      }
+      if (parsedSigningServiceReleaseOverrides.value && Object.keys(parsedSigningServiceReleaseOverrides.value).length > 0) {
+        payload.signing_service_release_overrides = parsedSigningServiceReleaseOverrides.value;
+      }
 
       if (formData.remote) payload.remote = formData.remote;
       if (formData.signing_service) payload.signing_service = formData.signing_service;
@@ -277,6 +359,15 @@ export const DebRepository: React.FC = () => {
               helperText="Leave blank to retain all"
             />
 
+            <TextField
+              label="Retain Package Versions"
+              type="number"
+              fullWidth
+              value={formData.retain_package_versions ?? ''}
+              onChange={(e) => handleFormChange('retain_package_versions', e.target.value ? Number(e.target.value) : null)}
+              helperText="Leave blank to retain all"
+            />
+
             <Autocomplete
               options={remotes}
               loading={remotesLoading}
@@ -311,6 +402,37 @@ export const DebRepository: React.FC = () => {
             <FormControlLabel
               control={<Checkbox checked={formData.autopublish} onChange={(e) => handleFormChange('autopublish', e.target.checked)} />}
               label="Autopublish"
+            />
+
+            <TextField
+              label="Pulp Labels (JSON)"
+              fullWidth
+              multiline
+              minRows={3}
+              value={pulpLabelsJson}
+              onChange={(e) => {
+                setPulpLabelsJson(e.target.value);
+                setPulpLabelsJsonError('');
+              }}
+              error={!!pulpLabelsJsonError}
+              helperText={pulpLabelsJsonError || 'Optional key/value labels for this repository'}
+            />
+
+            <TextField
+              label="Signing Service Release Overrides (JSON)"
+              fullWidth
+              multiline
+              minRows={3}
+              value={signingServiceReleaseOverridesJson}
+              onChange={(e) => {
+                setSigningServiceReleaseOverridesJson(e.target.value);
+                setSigningServiceReleaseOverridesJsonError('');
+              }}
+              error={!!signingServiceReleaseOverridesJsonError}
+              helperText={
+                signingServiceReleaseOverridesJsonError ||
+                'A dictionary of Release distributions and the Signing Service URLs they should use.Example: {"bionic": "/pulp/api/v3/signing-services/433a1f70-c589-4413-a803-c50b842ea9b5/"}'
+              }
             />
             <FormControlLabel
               control={

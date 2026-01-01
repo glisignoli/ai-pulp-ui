@@ -21,6 +21,10 @@ import {
   TableRow,
   TextField,
   Typography,
+  Checkbox,
+  FormControl,
+  FormControlLabel,
+  FormHelperText,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -37,7 +41,36 @@ interface RepositoryFormData {
   name: string;
   description: string;
   remote: string;
+  retain_repo_versions: number | null;
+  autopublish: boolean;
+  manifest: string;
 }
+
+const parsePulpLabelsJson = (
+  input: string
+): { labels: Record<string, string> | null; error: string | null } => {
+  const trimmed = input.trim();
+  if (!trimmed) return { labels: null, error: null };
+
+  try {
+    const parsed = JSON.parse(trimmed) as unknown;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return { labels: null, error: 'Invalid pulp_labels JSON (must be an object of string values)' };
+    }
+
+    const record: Record<string, string> = {};
+    for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+      if (typeof value !== 'string') {
+        return { labels: null, error: 'Invalid pulp_labels JSON (must be an object of string values)' };
+      }
+      record[key] = value;
+    }
+
+    return { labels: record, error: null };
+  } catch {
+    return { labels: null, error: 'Invalid pulp_labels JSON (must be an object of string values)' };
+  }
+};
 
 interface FileUploadFormState {
   repository: string;
@@ -59,7 +92,17 @@ export const FileRepository: React.FC = () => {
 
   const [openDialog, setOpenDialog] = useState(false);
   const [editingRepository, setEditingRepository] = useState<Repository | null>(null);
-  const [formData, setFormData] = useState<RepositoryFormData>({ name: '', description: '', remote: '' });
+  const [formData, setFormData] = useState<RepositoryFormData>({
+    name: '',
+    description: '',
+    remote: '',
+    retain_repo_versions: null,
+    autopublish: false,
+    manifest: 'PULP_MANIFEST',
+  });
+
+  const [pulpLabelsJson, setPulpLabelsJson] = useState('');
+  const [pulpLabelsJsonError, setPulpLabelsJsonError] = useState<string | null>(null);
 
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -105,26 +148,67 @@ export const FileRepository: React.FC = () => {
         name: repo.name,
         description: (repo as any).description || '',
         remote: (repo as any).remote || '',
+        retain_repo_versions: (repo as any).retain_repo_versions ?? null,
+        autopublish: (repo as any).autopublish ?? false,
+        manifest: (repo as any).manifest || 'PULP_MANIFEST',
       });
+      setPulpLabelsJson(repo.pulp_labels ? JSON.stringify(repo.pulp_labels, null, 2) : '');
     } else {
       setEditingRepository(null);
-      setFormData({ name: '', description: '', remote: '' });
+      setFormData({
+        name: '',
+        description: '',
+        remote: '',
+        retain_repo_versions: null,
+        autopublish: false,
+        manifest: 'PULP_MANIFEST',
+      });
+      setPulpLabelsJson('');
     }
+    setPulpLabelsJsonError(null);
     setOpenDialog(true);
   };
 
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setEditingRepository(null);
+    setFormData({
+      name: '',
+      description: '',
+      remote: '',
+      retain_repo_versions: null,
+      autopublish: false,
+      manifest: 'PULP_MANIFEST',
+    });
+    setPulpLabelsJson('');
+    setPulpLabelsJsonError(null);
   };
 
   const handleSubmit = async () => {
     try {
+      const { labels: pulpLabels, error: labelsError } = parsePulpLabelsJson(pulpLabelsJson);
+      setPulpLabelsJsonError(labelsError);
+      if (labelsError) return;
+
+      const retainFileVersionsInvalid =
+        formData.retain_repo_versions !== null && formData.retain_repo_versions <= 0;
+      if (retainFileVersionsInvalid) {
+        setError("Retain File Versions must be > 0");
+        return;
+      }
+
       const payload: any = {
         name: formData.name,
         description: formData.description || undefined,
         remote: formData.remote || null,
+        retain_repo_versions: formData.retain_repo_versions ?? undefined,
+        autopublish: formData.autopublish,
+        manifest: formData.manifest.trim() || undefined,
       };
+
+      if (pulpLabels && Object.keys(pulpLabels).length > 0) {
+        payload.pulp_labels = pulpLabels;
+      }
 
       if (editingRepository) {
         await apiService.put(editingRepository.pulp_href, payload);
@@ -373,6 +457,7 @@ export const FileRepository: React.FC = () => {
               value={formData.name}
               onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))}
               required
+              disabled={!!editingRepository}
             />
             <TextField
               label="Description"
@@ -395,6 +480,59 @@ export const FileRepository: React.FC = () => {
                 </MenuItem>
               ))}
             </TextField>
+
+            <TextField
+              label="Retain File Versions"
+              fullWidth
+              type="number"
+              value={formData.retain_repo_versions ?? ''}
+              onChange={(e) =>
+                setFormData((p) => ({
+                  ...p,
+                  retain_repo_versions: e.target.value ? parseInt(e.target.value) : null,
+                }))
+              }
+              error={formData.retain_repo_versions !== null && formData.retain_repo_versions <= 0}
+              helperText={
+                formData.retain_repo_versions !== null && formData.retain_repo_versions <= 0
+                  ? 'Must be > 0'
+                  : 'Number of file repository versions to retain (leave empty to retain all versions)'
+              }
+            />
+
+            <FormControl fullWidth>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={formData.autopublish}
+                    onChange={(e) => setFormData((p) => ({ ...p, autopublish: e.target.checked }))}
+                  />
+                }
+                label="Auto-publish"
+              />
+              <FormHelperText>
+                Whether to automatically create publications for new repository versions, and update any distributions pointing to this repository.
+              </FormHelperText>
+            </FormControl>
+
+            <TextField
+              label="Manifest"
+              fullWidth
+              value={formData.manifest}
+              onChange={(e) => setFormData((p) => ({ ...p, manifest: e.target.value }))}
+              helperText="Manifest file name (default: PULP_MANIFEST)"
+            />
+
+            <TextField
+              label="pulp_labels (JSON)"
+              fullWidth
+              multiline
+              minRows={3}
+              value={pulpLabelsJson}
+              onChange={(e) => setPulpLabelsJson(e.target.value)}
+              error={!!pulpLabelsJsonError}
+              helperText={pulpLabelsJsonError ?? 'Optional JSON object, e.g. {"env":"dev"}'}
+            />
           </Box>
         </DialogContent>
         <DialogActions>

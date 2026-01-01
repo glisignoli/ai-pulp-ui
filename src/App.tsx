@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -30,6 +30,8 @@ import { TaskDetail } from './components/tasks/TaskDetail';
 import {
   FileDistribution,
   FileDistributionDetail,
+  FileContentFileDetail,
+  FileContentFiles,
   FilePublication,
   FilePublicationDetail,
   FileRemote,
@@ -71,371 +73,58 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Layout>
-                    <Dashboard />
+                    <Outlet />
                   </Layout>
                 </ProtectedRoute>
               }
-            />
-            <Route
-              path="/rpm/distribution"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <RpmDistribution />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/rpm/distribution/view"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <RpmDistributionDetail />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/rpm/publication"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <RpmPublication />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/rpm/publication/view"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <RpmPublicationDetail />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/rpm/remote"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <RpmRemote />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/rpm/remote/view"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <RpmRemoteDetail />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/rpm/repository"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <RpmRepository />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/rpm/repository/view"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <RpmRepositoryDetail />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/rpm/content/packages"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <RpmPackages />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/rpm/content/packages/view"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <RpmPackageDetail />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/file/distribution"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <FileDistribution />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/file/distribution/view"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <FileDistributionDetail />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/file/publication"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <FilePublication />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/file/publication/view"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <FilePublicationDetail />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/file/remote"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <FileRemote />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/file/remote/view"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <FileRemoteDetail />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/file/repository"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <FileRepository />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/file/repository/view"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <FileRepositoryDetail />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/deb/distribution"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <DebDistribution />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/deb/distribution/view"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <DebDistributionDetail />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/deb/publication"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <DebPublication />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/deb/publication/view"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <DebPublicationDetail />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/deb/remote"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <DebRemote />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/deb/remote/view"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <DebRemoteDetail />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/deb/repository"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <DebRepository />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/deb/repository/view"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <DebRepositoryDetail />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/deb/content/packages"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <DebPackages />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/deb/content/packages/view"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <DebPackageDetail />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/tasks"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Tasks />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/container/distribution"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <ContainerDistribution />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/container/distribution/view"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <ContainerDistributionDetail />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/container/remote"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <ContainerRemote />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/container/remote/view"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <ContainerRemoteDetail />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/container/repository"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <ContainerRepository />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/container/repository/view"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <ContainerRepositoryDetail />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/tasks/view"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <TaskDetail />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
+            >
+              <Route index element={<Dashboard />} />
+              <Route path="rpm/distribution" element={<RpmDistribution />} />
+              <Route path="rpm/distribution/view" element={<RpmDistributionDetail />} />
+              <Route path="rpm/publication" element={<RpmPublication />} />
+              <Route path="rpm/publication/view" element={<RpmPublicationDetail />} />
+              <Route path="rpm/remote" element={<RpmRemote />} />
+              <Route path="rpm/remote/view" element={<RpmRemoteDetail />} />
+              <Route path="rpm/repository" element={<RpmRepository />} />
+              <Route path="rpm/repository/view" element={<RpmRepositoryDetail />} />
+              <Route path="rpm/content/packages" element={<RpmPackages />} />
+              <Route path="rpm/content/packages/view" element={<RpmPackageDetail />} />
+
+              <Route path="file/distribution" element={<FileDistribution />} />
+              <Route path="file/distribution/view" element={<FileDistributionDetail />} />
+              <Route path="file/content/files" element={<FileContentFiles />} />
+              <Route path="file/content/files/view" element={<FileContentFileDetail />} />
+              <Route path="file/publication" element={<FilePublication />} />
+              <Route path="file/publication/view" element={<FilePublicationDetail />} />
+              <Route path="file/remote" element={<FileRemote />} />
+              <Route path="file/remote/view" element={<FileRemoteDetail />} />
+              <Route path="file/repository" element={<FileRepository />} />
+              <Route path="file/repository/view" element={<FileRepositoryDetail />} />
+
+              <Route path="deb/distribution" element={<DebDistribution />} />
+              <Route path="deb/distribution/view" element={<DebDistributionDetail />} />
+              <Route path="deb/publication" element={<DebPublication />} />
+              <Route path="deb/publication/view" element={<DebPublicationDetail />} />
+              <Route path="deb/remote" element={<DebRemote />} />
+              <Route path="deb/remote/view" element={<DebRemoteDetail />} />
+              <Route path="deb/repository" element={<DebRepository />} />
+              <Route path="deb/repository/view" element={<DebRepositoryDetail />} />
+              <Route path="deb/content/packages" element={<DebPackages />} />
+              <Route path="deb/content/packages/view" element={<DebPackageDetail />} />
+
+              <Route path="tasks" element={<Tasks />} />
+              <Route path="tasks/view" element={<TaskDetail />} />
+
+              <Route path="container/distribution" element={<ContainerDistribution />} />
+              <Route
+                path="container/distribution/view"
+                element={<ContainerDistributionDetail />}
+              />
+              <Route path="container/remote" element={<ContainerRemote />} />
+              <Route path="container/remote/view" element={<ContainerRemoteDetail />} />
+              <Route path="container/repository" element={<ContainerRepository />} />
+              <Route path="container/repository/view" element={<ContainerRepositoryDetail />} />
+            </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>

@@ -190,6 +190,48 @@ describe('RpmRepository', () => {
     });
   });
 
+  it('prevents create when retain versions are negative', async () => {
+    vi.mocked(apiService.get).mockImplementation((url) => {
+      if (url.includes('repositories')) {
+        return Promise.resolve({ count: 0, next: null, previous: null, results: [] });
+      }
+      if (url.includes('remotes')) {
+        return Promise.resolve({ count: 0, next: null, previous: null, results: [] });
+      }
+      return Promise.resolve({ count: 0, results: [] });
+    });
+    vi.mocked(apiService.post).mockResolvedValue({});
+
+    render(
+      <MemoryRouter>
+        <RpmRepository />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Create Repository')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Create Repository'));
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByRole('textbox', { name: /name/i }), { target: { value: 'new-repo' } });
+
+    fireEvent.change(screen.getByRole('spinbutton', { name: /retain repository versions/i }), {
+      target: { value: '-1' },
+    });
+
+    fireEvent.click(screen.getByText('Create'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Retain Repository Versions must be >= 0')).toBeInTheDocument();
+    });
+    expect(apiService.post).not.toHaveBeenCalled();
+  });
+
   it('opens edit dialog when edit button is clicked', async () => {
     vi.mocked(apiService.get).mockImplementation((url) => {
       if (url.includes('repositories')) {
@@ -489,6 +531,144 @@ describe('RpmRepository', () => {
     // Verify remotes are loaded for the autocomplete
     await waitFor(() => {
       expect(apiService.get).toHaveBeenCalledWith('/remotes/rpm/rpm/');
+    });
+  });
+
+  it('creates a new repository with repo_config when valid JSON is provided', async () => {
+    vi.mocked(apiService.get).mockImplementation((url) => {
+      if (url.includes('repositories')) {
+        return Promise.resolve({ count: 0, next: null, previous: null, results: [] });
+      }
+      if (url.includes('remotes')) {
+        return Promise.resolve({ count: 0, next: null, previous: null, results: [] });
+      }
+      return Promise.resolve({ count: 0, results: [] });
+    });
+    vi.mocked(apiService.post).mockResolvedValue({});
+
+    render(
+      <MemoryRouter>
+        <RpmRepository />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Create Repository')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Create Repository'));
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByRole('textbox', { name: /name/i }), { target: { value: 'repo-with-config' } });
+    fireEvent.change(screen.getByRole('textbox', { name: /repo config \(json\)/i }), {
+      target: { value: '{"foo":"bar","enabled":true}' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+
+    await waitFor(() => {
+      expect(apiService.post).toHaveBeenCalledWith('/repositories/rpm/rpm/', {
+        name: 'repo-with-config',
+        description: undefined,
+        retain_repo_versions: undefined,
+        autopublish: false,
+        retain_package_versions: undefined,
+        repo_config: { foo: 'bar', enabled: true },
+      });
+    });
+  });
+
+  it('prevents create when repo_config contains invalid JSON', async () => {
+    vi.mocked(apiService.get).mockImplementation((url) => {
+      if (url.includes('repositories')) {
+        return Promise.resolve({ count: 0, next: null, previous: null, results: [] });
+      }
+      if (url.includes('remotes')) {
+        return Promise.resolve({ count: 0, next: null, previous: null, results: [] });
+      }
+      return Promise.resolve({ count: 0, results: [] });
+    });
+    vi.mocked(apiService.post).mockResolvedValue({});
+
+    render(
+      <MemoryRouter>
+        <RpmRepository />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Create Repository')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Create Repository'));
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByRole('textbox', { name: /name/i }), { target: { value: 'bad-config' } });
+    fireEvent.change(screen.getByRole('textbox', { name: /repo config \(json\)/i }), {
+      target: { value: '{not valid json' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Invalid JSON in repo_config')).toBeInTheDocument();
+    });
+    expect(apiService.post).not.toHaveBeenCalled();
+  });
+
+  it('updates an existing repository with repo_config when valid JSON is provided', async () => {
+    const repoWithConfig = {
+      ...mockRepositories[0],
+      repo_config: { a: 1 },
+    };
+
+    vi.mocked(apiService.get).mockImplementation((url) => {
+      if (url.includes('repositories')) {
+        return Promise.resolve({ count: 1, next: null, previous: null, results: [repoWithConfig] });
+      }
+      if (url.includes('remotes')) {
+        return Promise.resolve({ count: 0, next: null, previous: null, results: [] });
+      }
+      return Promise.resolve({ count: 0, results: [] });
+    });
+    vi.mocked(apiService.put).mockResolvedValue({});
+
+    render(
+      <MemoryRouter>
+        <RpmRepository />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('test-repo')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getAllByTitle('Edit')[0]);
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByRole('textbox', { name: /repo config \(json\)/i }), {
+      target: { value: '{"x": 123}' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Update' }));
+
+    await waitFor(() => {
+      expect(apiService.put).toHaveBeenCalledWith(
+        '/pulp/api/v3/repositories/rpm/rpm/1/',
+        expect.objectContaining({
+          name: 'test-repo',
+          repo_config: { x: 123 },
+        })
+      );
     });
   });
 });

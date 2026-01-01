@@ -22,6 +22,51 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { apiService, formatPulpApiError } from '../../services/api';
 import { Remote } from '../../types/pulp';
 
+function parsePulpLabelsJson(input: string): { labels: Record<string, string> | null; error: string | null } {
+  const trimmed = input.trim();
+  if (!trimmed) return { labels: null, error: null };
+
+  try {
+    const parsed: unknown = JSON.parse(trimmed);
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      return { labels: null, error: 'Invalid pulp_labels JSON (must be an object of string values)' };
+    }
+    for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+      if (typeof value !== 'string') {
+        return { labels: null, error: 'Invalid pulp_labels JSON (must be an object of string values)' };
+      }
+      if (typeof key !== 'string') {
+        return { labels: null, error: 'Invalid pulp_labels JSON (must be an object of string values)' };
+      }
+    }
+
+    return { labels: parsed as Record<string, string>, error: null };
+  } catch {
+    return { labels: null, error: 'Invalid pulp_labels JSON (must be an object of string values)' };
+  }
+}
+
+function parseHeadersJson(input: string): { headers: Record<string, string> | null; error: string | null } {
+  const trimmed = input.trim();
+  if (!trimmed) return { headers: null, error: null };
+
+  try {
+    const parsed: unknown = JSON.parse(trimmed);
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      return { headers: null, error: 'Invalid headers JSON (must be an object of string values)' };
+    }
+    for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+      if (typeof key !== 'string' || typeof value !== 'string') {
+        return { headers: null, error: 'Invalid headers JSON (must be an object of string values)' };
+      }
+    }
+
+    return { headers: parsed as Record<string, string>, error: null };
+  } catch {
+    return { headers: null, error: 'Invalid headers JSON (must be an object of string values)' };
+  }
+}
+
 interface RemoteFormData {
   name: string;
   url: string;
@@ -34,6 +79,7 @@ interface RemoteFormData {
   proxy_password: string;
   username: string;
   password: string;
+  pulp_labels: { [key: string]: string };
   download_concurrency: number | null;
   max_retries: number | null;
   policy: string;
@@ -70,16 +116,23 @@ export const RpmRemoteDetail: React.FC = () => {
     proxy_password: '',
     username: '',
     password: '',
-    download_concurrency: null,
+    pulp_labels: {},
+    download_concurrency: 1,
     max_retries: 3,
     policy: 'immediate',
     total_timeout: null,
     connect_timeout: null,
     sock_connect_timeout: null,
     sock_read_timeout: null,
-    rate_limit: null,
+    rate_limit: 0,
     sles_auth_token: '',
   });
+
+  const [pulpLabelsJson, setPulpLabelsJson] = useState('');
+  const [pulpLabelsJsonError, setPulpLabelsJsonError] = useState<string | null>(null);
+
+  const [headersJson, setHeadersJson] = useState('');
+  const [headersJsonError, setHeadersJsonError] = useState<string | null>(null);
 
   const fetchRemote = async () => {
     if (!href) {
@@ -108,6 +161,12 @@ export const RpmRemoteDetail: React.FC = () => {
   const openEdit = () => {
     if (!remote) return;
 
+    setPulpLabelsJson(remote.pulp_labels ? JSON.stringify(remote.pulp_labels, null, 2) : '');
+    setPulpLabelsJsonError(null);
+
+    setHeadersJson(remote.headers ? JSON.stringify(remote.headers, null, 2) : '');
+    setHeadersJsonError(null);
+
     setFormData({
       name: remote.name,
       url: remote.url,
@@ -120,14 +179,15 @@ export const RpmRemoteDetail: React.FC = () => {
       proxy_password: '',
       username: '',
       password: '',
-      download_concurrency: remote.download_concurrency || null,
+      pulp_labels: remote.pulp_labels || {},
+      download_concurrency: remote.download_concurrency ?? 1,
       max_retries: remote.max_retries !== undefined && remote.max_retries !== null ? remote.max_retries : 3,
       policy: remote.policy || 'immediate',
       total_timeout: remote.total_timeout || null,
       connect_timeout: remote.connect_timeout || null,
       sock_connect_timeout: remote.sock_connect_timeout || null,
       sock_read_timeout: remote.sock_read_timeout || null,
-      rate_limit: remote.rate_limit || null,
+      rate_limit: remote.rate_limit ?? 0,
       sles_auth_token: remote.sles_auth_token || '',
     });
     setEditOpen(true);
@@ -148,6 +208,32 @@ export const RpmRemoteDetail: React.FC = () => {
     if (!remote) return;
 
     try {
+      const downloadConcurrencyInvalid = formData.download_concurrency !== null && formData.download_concurrency < 1;
+      const rateLimitInvalid = formData.rate_limit !== null && formData.rate_limit < 0;
+
+      if (downloadConcurrencyInvalid) {
+        setError('Download Concurrency must be >= 1');
+        return;
+      }
+      if (rateLimitInvalid) {
+        setError('Rate Limit must be >= 0');
+        return;
+      }
+
+      const { labels: pulpLabels, error: pulpLabelsError } = parsePulpLabelsJson(pulpLabelsJson);
+      setPulpLabelsJsonError(pulpLabelsError);
+      if (pulpLabelsError) {
+        setError(pulpLabelsError);
+        return;
+      }
+
+      const { headers, error: headersError } = parseHeadersJson(headersJson);
+      setHeadersJsonError(headersError);
+      if (headersError) {
+        setError(headersError);
+        return;
+      }
+
       const payload: any = {
         name: formData.name,
         url: formData.url,
@@ -172,6 +258,8 @@ export const RpmRemoteDetail: React.FC = () => {
       if (formData.sock_read_timeout !== null) payload.sock_read_timeout = formData.sock_read_timeout;
       if (formData.rate_limit !== null) payload.rate_limit = formData.rate_limit;
       if (formData.sles_auth_token) payload.sles_auth_token = formData.sles_auth_token;
+      if (pulpLabels && Object.keys(pulpLabels).length > 0) payload.pulp_labels = pulpLabels;
+      if (headers && Object.keys(headers).length > 0) payload.headers = headers;
 
       await apiService.put(remote.pulp_href, payload);
       setSuccessMessage('Remote updated successfully');
@@ -374,8 +462,14 @@ export const RpmRemoteDetail: React.FC = () => {
               label="Download Concurrency"
               fullWidth
               type="number"
-              value={formData.download_concurrency || ''}
+              value={formData.download_concurrency ?? ''}
               onChange={(e) => handleFormChange('download_concurrency', e.target.value ? parseInt(e.target.value) : null)}
+              error={formData.download_concurrency !== null && formData.download_concurrency < 1}
+              helperText={
+                formData.download_concurrency !== null && formData.download_concurrency < 1
+                  ? 'Must be >= 1'
+                  : undefined
+              }
             />
             <TextField
               label="Max Retries"
@@ -388,9 +482,41 @@ export const RpmRemoteDetail: React.FC = () => {
               label="Rate Limit"
               fullWidth
               type="number"
-              value={formData.rate_limit || ''}
+              value={formData.rate_limit ?? ''}
               onChange={(e) => handleFormChange('rate_limit', e.target.value ? parseInt(e.target.value) : null)}
               helperText="Requests per second"
+              error={formData.rate_limit !== null && formData.rate_limit < 0}
+            />
+
+            <TextField
+              label="Pulp Labels (JSON)"
+              fullWidth
+              multiline
+              minRows={3}
+              value={pulpLabelsJson}
+              onChange={(e) => {
+                setPulpLabelsJson(e.target.value);
+                if (!e.target.value.trim()) setPulpLabelsJsonError(null);
+              }}
+              error={!!pulpLabelsJsonError}
+              helperText={pulpLabelsJsonError || 'Optional: JSON object of string-to-string labels'}
+            />
+
+            <TextField
+              label="Headers (JSON)"
+              fullWidth
+              multiline
+              minRows={3}
+              value={headersJson}
+              onChange={(e) => {
+                setHeadersJson(e.target.value);
+                if (!e.target.value.trim()) setHeadersJsonError(null);
+              }}
+              error={!!headersJsonError}
+              helperText={
+                headersJsonError ||
+                'Optional: JSON object of string-to-string HTTP headers (example: {"Authorization":"Bearer ..."})'
+              }
             />
           </Box>
         </DialogContent>

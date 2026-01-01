@@ -40,6 +40,32 @@ interface DistributionFormData {
   checkpoint: boolean;
 }
 
+const parsePulpLabelsJson = (
+  input: string
+): { labels: Record<string, string> | null; error: string | null } => {
+  const trimmed = input.trim();
+  if (!trimmed) return { labels: null, error: null };
+
+  try {
+    const parsed = JSON.parse(trimmed) as unknown;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return { labels: null, error: 'Invalid pulp_labels JSON (must be an object of string values)' };
+    }
+
+    const record: Record<string, string> = {};
+    for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+      if (typeof value !== 'string') {
+        return { labels: null, error: 'Invalid pulp_labels JSON (must be an object of string values)' };
+      }
+      record[key] = value;
+    }
+
+    return { labels: record, error: null };
+  } catch {
+    return { labels: null, error: 'Invalid pulp_labels JSON (must be an object of string values)' };
+  }
+};
+
 const stripPulpOrigin = (href: string) => {
   const trimmed = href.trim();
   if (!trimmed) return '';
@@ -77,6 +103,9 @@ export const DebDistribution: React.FC = () => {
     publication: '',
     checkpoint: false,
   });
+
+  const [pulpLabelsJson, setPulpLabelsJson] = useState('');
+  const [pulpLabelsJsonError, setPulpLabelsJsonError] = useState<string | null>(null);
 
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -137,6 +166,7 @@ export const DebDistribution: React.FC = () => {
         publication: stripPulpOrigin(distribution.publication || ''),
         checkpoint: distribution.checkpoint ?? false,
       });
+      setPulpLabelsJson(distribution.pulp_labels ? JSON.stringify(distribution.pulp_labels, null, 2) : '');
     } else {
       setEditingDistribution(null);
       setFormData({
@@ -148,7 +178,9 @@ export const DebDistribution: React.FC = () => {
         publication: '',
         checkpoint: false,
       });
+      setPulpLabelsJson('');
     }
+    setPulpLabelsJsonError(null);
     setOpenDialog(true);
   };
 
@@ -164,6 +196,8 @@ export const DebDistribution: React.FC = () => {
       publication: '',
       checkpoint: false,
     });
+    setPulpLabelsJson('');
+    setPulpLabelsJsonError(null);
   };
 
   const handleFormChange = (field: keyof DistributionFormData, value: any) => {
@@ -172,6 +206,10 @@ export const DebDistribution: React.FC = () => {
 
   const handleSubmit = async () => {
     try {
+      const { labels: pulpLabels, error: labelsError } = parsePulpLabelsJson(pulpLabelsJson);
+      setPulpLabelsJsonError(labelsError);
+      if (labelsError) return;
+
       const payload: any = {
         name: formData.name,
         base_path: formData.base_path,
@@ -181,6 +219,10 @@ export const DebDistribution: React.FC = () => {
         publication: formData.publication || null,
         checkpoint: formData.checkpoint,
       };
+
+      if (pulpLabels && Object.keys(pulpLabels).length > 0) {
+        payload.pulp_labels = pulpLabels;
+      }
 
       if (editingDistribution) {
         await apiService.put(editingDistribution.pulp_href, payload);
@@ -366,6 +408,20 @@ export const DebDistribution: React.FC = () => {
             <FormControlLabel
               control={<Checkbox checked={formData.checkpoint} onChange={(e) => handleFormChange('checkpoint', e.target.checked)} />}
               label="Checkpoint"
+            />
+
+            <TextField
+              label="Pulp Labels (JSON)"
+              fullWidth
+              multiline
+              minRows={3}
+              value={pulpLabelsJson}
+              onChange={(e) => {
+                setPulpLabelsJson(e.target.value);
+                setPulpLabelsJsonError(null);
+              }}
+              error={!!pulpLabelsJsonError}
+              helperText={pulpLabelsJsonError ?? 'Optional. JSON object of string values'}
             />
           </Box>
         </DialogContent>

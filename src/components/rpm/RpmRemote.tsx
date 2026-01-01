@@ -10,7 +10,6 @@ import {
   TableHead,
   TableRow,
   CircularProgress,
-  Alert,
   Box,
   Button,
   IconButton,
@@ -32,6 +31,51 @@ import { apiService, formatPulpApiError } from '../../services/api';
 import { Remote, PulpListResponse } from '../../types/pulp';
 import { ForegroundSnackbar } from '../ForegroundSnackbar';
 
+function parsePulpLabelsJson(input: string): { labels: Record<string, string> | null; error: string | null } {
+  const trimmed = input.trim();
+  if (!trimmed) return { labels: null, error: null };
+
+  try {
+    const parsed: unknown = JSON.parse(trimmed);
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      return { labels: null, error: 'Invalid pulp_labels JSON (must be an object of string values)' };
+    }
+    for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+      if (typeof value !== 'string') {
+        return { labels: null, error: 'Invalid pulp_labels JSON (must be an object of string values)' };
+      }
+      if (typeof key !== 'string') {
+        return { labels: null, error: 'Invalid pulp_labels JSON (must be an object of string values)' };
+      }
+    }
+
+    return { labels: parsed as Record<string, string>, error: null };
+  } catch {
+    return { labels: null, error: 'Invalid pulp_labels JSON (must be an object of string values)' };
+  }
+}
+
+function parseHeadersJson(input: string): { headers: Record<string, string> | null; error: string | null } {
+  const trimmed = input.trim();
+  if (!trimmed) return { headers: null, error: null };
+
+  try {
+    const parsed: unknown = JSON.parse(trimmed);
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      return { headers: null, error: 'Invalid headers JSON (must be an object of string values)' };
+    }
+    for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+      if (typeof key !== 'string' || typeof value !== 'string') {
+        return { headers: null, error: 'Invalid headers JSON (must be an object of string values)' };
+      }
+    }
+
+    return { headers: parsed as Record<string, string>, error: null };
+  } catch {
+    return { headers: null, error: 'Invalid headers JSON (must be an object of string values)' };
+  }
+}
+
 interface RemoteFormData {
   name: string;
   url: string;
@@ -44,7 +88,6 @@ interface RemoteFormData {
   proxy_password: string;
   username: string;
   password: string;
-  pulp_labels: { [key: string]: string };
   download_concurrency: number | null;
   max_retries: number | null;
   policy: string;
@@ -52,7 +95,6 @@ interface RemoteFormData {
   connect_timeout: number | null;
   sock_connect_timeout: number | null;
   sock_read_timeout: number | null;
-  headers: Array<{ name: string; value: string }>;
   rate_limit: number | null;
   sles_auth_token: string;
 }
@@ -76,18 +118,20 @@ export const RpmRemote: React.FC = () => {
     proxy_password: '',
     username: '',
     password: '',
-    pulp_labels: {},
-    download_concurrency: null,
+    download_concurrency: 1,
     max_retries: 3,
     policy: 'immediate',
     total_timeout: null,
     connect_timeout: null,
     sock_connect_timeout: null,
     sock_read_timeout: null,
-    headers: [],
-    rate_limit: null,
+    rate_limit: 0,
     sles_auth_token: '',
   });
+  const [pulpLabelsJson, setPulpLabelsJson] = useState('');
+  const [pulpLabelsJsonError, setPulpLabelsJsonError] = useState<string | null>(null);
+  const [headersJson, setHeadersJson] = useState('');
+  const [headersJsonError, setHeadersJsonError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [remoteToDelete, setRemoteToDelete] = useState<Remote | null>(null);
@@ -114,6 +158,10 @@ export const RpmRemote: React.FC = () => {
   const handleOpenDialog = (remote?: Remote) => {
     if (remote) {
       setEditingRemote(remote);
+      setPulpLabelsJson(remote.pulp_labels ? JSON.stringify(remote.pulp_labels, null, 2) : '');
+      setPulpLabelsJsonError(null);
+      setHeadersJson(remote.headers ? JSON.stringify(remote.headers, null, 2) : '');
+      setHeadersJsonError(null);
       setFormData({
         name: remote.name,
         url: remote.url,
@@ -126,20 +174,22 @@ export const RpmRemote: React.FC = () => {
         proxy_password: '',
         username: '',
         password: '',
-        pulp_labels: remote.pulp_labels || {},
-        download_concurrency: remote.download_concurrency || null,
+        download_concurrency: remote.download_concurrency ?? 1,
         max_retries: remote.max_retries !== undefined && remote.max_retries !== null ? remote.max_retries : 3,
         policy: remote.policy || 'immediate',
         total_timeout: remote.total_timeout || null,
         connect_timeout: remote.connect_timeout || null,
         sock_connect_timeout: remote.sock_connect_timeout || null,
         sock_read_timeout: remote.sock_read_timeout || null,
-        headers: remote.headers ? remote.headers.map(h => ({ name: Object.keys(h)[0] || '', value: Object.values(h)[0] as string || '' })) : [],
-        rate_limit: remote.rate_limit || null,
+        rate_limit: remote.rate_limit ?? 0,
         sles_auth_token: remote.sles_auth_token || '',
       });
     } else {
       setEditingRemote(null);
+      setPulpLabelsJson('');
+      setPulpLabelsJsonError(null);
+      setHeadersJson('');
+      setHeadersJsonError(null);
       setFormData({
         name: '',
         url: '',
@@ -152,16 +202,14 @@ export const RpmRemote: React.FC = () => {
         proxy_password: '',
         username: '',
         password: '',
-        pulp_labels: {},
-        download_concurrency: null,
+        download_concurrency: 1,
         max_retries: 3,
         policy: 'immediate',
         total_timeout: null,
         connect_timeout: null,
         sock_connect_timeout: null,
         sock_read_timeout: null,
-        headers: [],
-        rate_limit: null,
+        rate_limit: 0,
         sles_auth_token: '',
       });
     }
@@ -171,6 +219,10 @@ export const RpmRemote: React.FC = () => {
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setEditingRemote(null);
+    setPulpLabelsJson('');
+    setPulpLabelsJsonError(null);
+    setHeadersJson('');
+    setHeadersJsonError(null);
     setFormData({
       name: '',
       url: '',
@@ -183,16 +235,14 @@ export const RpmRemote: React.FC = () => {
       proxy_password: '',
       username: '',
       password: '',
-      pulp_labels: {},
-      download_concurrency: null,
+      download_concurrency: 1,
       max_retries: 3,
       policy: 'immediate',
       total_timeout: null,
       connect_timeout: null,
       sock_connect_timeout: null,
       sock_read_timeout: null,
-      headers: [],
-      rate_limit: null,
+      rate_limit: 0,
       sles_auth_token: '',
     });
   };
@@ -206,6 +256,52 @@ export const RpmRemote: React.FC = () => {
 
   const handleSubmit = async () => {
     try {
+      const downloadConcurrencyInvalid = formData.download_concurrency !== null && formData.download_concurrency < 1;
+      const rateLimitInvalid = formData.rate_limit !== null && formData.rate_limit < 0;
+      const totalTimeoutInvalid = formData.total_timeout !== null && formData.total_timeout < 0;
+      const connectTimeoutInvalid = formData.connect_timeout !== null && formData.connect_timeout < 0;
+      const sockConnectTimeoutInvalid = formData.sock_connect_timeout !== null && formData.sock_connect_timeout < 0;
+      const sockReadTimeoutInvalid = formData.sock_read_timeout !== null && formData.sock_read_timeout < 0;
+
+      if (downloadConcurrencyInvalid) {
+        setError('Download Concurrency must be >= 1');
+        return;
+      }
+      if (rateLimitInvalid) {
+        setError('Rate Limit must be >= 0');
+        return;
+      }
+      if (totalTimeoutInvalid) {
+        setError('Total Timeout must be >= 0');
+        return;
+      }
+      if (connectTimeoutInvalid) {
+        setError('Connect Timeout must be >= 0');
+        return;
+      }
+      if (sockConnectTimeoutInvalid) {
+        setError('Socket Connect Timeout must be >= 0');
+        return;
+      }
+      if (sockReadTimeoutInvalid) {
+        setError('Socket Read Timeout must be >= 0');
+        return;
+      }
+
+      const { labels: pulpLabels, error: pulpLabelsError } = parsePulpLabelsJson(pulpLabelsJson);
+      setPulpLabelsJsonError(pulpLabelsError);
+      if (pulpLabelsError) {
+        setError(pulpLabelsError);
+        return;
+      }
+
+      const { headers, error: headersError } = parseHeadersJson(headersJson);
+      setHeadersJsonError(headersError);
+      if (headersError) {
+        setError(headersError);
+        return;
+      }
+
       const payload: any = {
         name: formData.name,
         url: formData.url,
@@ -222,7 +318,7 @@ export const RpmRemote: React.FC = () => {
       if (formData.proxy_password) payload.proxy_password = formData.proxy_password;
       if (formData.username) payload.username = formData.username;
       if (formData.password) payload.password = formData.password;
-      if (formData.download_concurrency) payload.download_concurrency = formData.download_concurrency;
+      if (formData.download_concurrency !== null) payload.download_concurrency = formData.download_concurrency;
       if (formData.max_retries !== null) payload.max_retries = formData.max_retries;
       if (formData.total_timeout !== null) payload.total_timeout = formData.total_timeout;
       if (formData.connect_timeout !== null) payload.connect_timeout = formData.connect_timeout;
@@ -230,10 +326,8 @@ export const RpmRemote: React.FC = () => {
       if (formData.sock_read_timeout !== null) payload.sock_read_timeout = formData.sock_read_timeout;
       if (formData.rate_limit !== null) payload.rate_limit = formData.rate_limit;
       if (formData.sles_auth_token) payload.sles_auth_token = formData.sles_auth_token;
-      if (Object.keys(formData.pulp_labels).length > 0) payload.pulp_labels = formData.pulp_labels;
-      if (formData.headers.length > 0) {
-        payload.headers = formData.headers.map(h => ({ [h.name]: h.value }));
-      }
+      if (pulpLabels && Object.keys(pulpLabels).length > 0) payload.pulp_labels = pulpLabels;
+      if (headers && Object.keys(headers).length > 0) payload.headers = headers;
 
       if (editingRemote) {
         // Update existing remote
@@ -468,9 +562,14 @@ export const RpmRemote: React.FC = () => {
               label="Download Concurrency"
               fullWidth
               type="number"
-              value={formData.download_concurrency || ''}
+              value={formData.download_concurrency ?? ''}
               onChange={(e) => handleFormChange('download_concurrency', e.target.value ? parseInt(e.target.value) : null)}
-              helperText="Total number of simultaneous connections"
+              error={formData.download_concurrency !== null && formData.download_concurrency < 1}
+              helperText={
+                formData.download_concurrency !== null && formData.download_concurrency < 1
+                  ? 'Must be >= 1'
+                  : 'Total number of simultaneous connections'
+              }
             />
             <TextField
               label="Max Retries"
@@ -484,9 +583,14 @@ export const RpmRemote: React.FC = () => {
               label="Rate Limit"
               fullWidth
               type="number"
-              value={formData.rate_limit || ''}
+              value={formData.rate_limit ?? ''}
               onChange={(e) => handleFormChange('rate_limit', e.target.value ? parseInt(e.target.value) : null)}
-              helperText="Limits requests per second for each concurrent downloader"
+              error={formData.rate_limit !== null && formData.rate_limit < 0}
+              helperText={
+                formData.rate_limit !== null && formData.rate_limit < 0
+                  ? 'Must be >= 0'
+                  : 'Limits requests per second for each concurrent downloader'
+              }
             />
             
             <Typography variant="h6" sx={{ mt: 2 }}>Proxy Settings</Typography>
@@ -520,7 +624,12 @@ export const RpmRemote: React.FC = () => {
               type="number"
               value={formData.total_timeout || ''}
               onChange={(e) => handleFormChange('total_timeout', e.target.value ? parseFloat(e.target.value) : null)}
-              helperText="Total timeout for download connections"
+              error={formData.total_timeout !== null && formData.total_timeout < 0}
+              helperText={
+                formData.total_timeout !== null && formData.total_timeout < 0
+                  ? 'Must be >= 0'
+                  : 'Total timeout for download connections'
+              }
             />
             <TextField
               label="Connect Timeout"
@@ -528,7 +637,12 @@ export const RpmRemote: React.FC = () => {
               type="number"
               value={formData.connect_timeout || ''}
               onChange={(e) => handleFormChange('connect_timeout', e.target.value ? parseFloat(e.target.value) : null)}
-              helperText="Connect timeout for download connections"
+              error={formData.connect_timeout !== null && formData.connect_timeout < 0}
+              helperText={
+                formData.connect_timeout !== null && formData.connect_timeout < 0
+                  ? 'Must be >= 0'
+                  : 'Connect timeout for download connections'
+              }
             />
             <TextField
               label="Socket Connect Timeout"
@@ -536,7 +650,12 @@ export const RpmRemote: React.FC = () => {
               type="number"
               value={formData.sock_connect_timeout || ''}
               onChange={(e) => handleFormChange('sock_connect_timeout', e.target.value ? parseFloat(e.target.value) : null)}
-              helperText="Socket connect timeout for download connections"
+              error={formData.sock_connect_timeout !== null && formData.sock_connect_timeout < 0}
+              helperText={
+                formData.sock_connect_timeout !== null && formData.sock_connect_timeout < 0
+                  ? 'Must be >= 0'
+                  : 'Socket connect timeout for download connections'
+              }
             />
             <TextField
               label="Socket Read Timeout"
@@ -544,10 +663,44 @@ export const RpmRemote: React.FC = () => {
               type="number"
               value={formData.sock_read_timeout || ''}
               onChange={(e) => handleFormChange('sock_read_timeout', e.target.value ? parseFloat(e.target.value) : null)}
-              helperText="Socket read timeout for download connections"
+              error={formData.sock_read_timeout !== null && formData.sock_read_timeout < 0}
+              helperText={
+                formData.sock_read_timeout !== null && formData.sock_read_timeout < 0
+                  ? 'Must be >= 0'
+                  : 'Socket read timeout for download connections'
+              }
             />
             
             <Typography variant="h6" sx={{ mt: 2 }}>Additional Settings</Typography>
+            <TextField
+              label="Pulp Labels (JSON)"
+              fullWidth
+              multiline
+              minRows={3}
+              value={pulpLabelsJson}
+              onChange={(e) => {
+                setPulpLabelsJson(e.target.value);
+                if (!e.target.value.trim()) setPulpLabelsJsonError(null);
+              }}
+              error={!!pulpLabelsJsonError}
+              helperText={pulpLabelsJsonError || 'Optional: JSON object of string-to-string labels'}
+            />
+            <TextField
+              label="Headers (JSON)"
+              fullWidth
+              multiline
+              minRows={3}
+              value={headersJson}
+              onChange={(e) => {
+                setHeadersJson(e.target.value);
+                if (!e.target.value.trim()) setHeadersJsonError(null);
+              }}
+              error={!!headersJsonError}
+              helperText={
+                headersJsonError ||
+                'Optional: JSON object of string-to-string HTTP headers (example: {"Authorization":"Bearer ..."})'
+              }
+            />
             <TextField
               label="SLES Auth Token"
               fullWidth

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
 import { RpmDistribution } from '../components/rpm/RpmDistribution';
@@ -203,11 +203,45 @@ describe('RpmDistribution Component', () => {
     const dialog = screen.getByRole('dialog');
     await user.type(within(dialog).getByLabelText(/name/i), 'new-distribution');
     await user.type(within(dialog).getByLabelText(/base path/i), 'new/path');
+    fireEvent.change(within(dialog).getByLabelText(/pulp labels/i), {
+      target: { value: '{"env":"dev"}' },
+    });
     await user.click(within(dialog).getByRole('button', { name: /^create$/i }));
 
     await waitFor(() => {
-      expect(apiService.post).toHaveBeenCalledWith('/distributions/rpm/rpm/', expect.any(Object));
+      expect(apiService.post).toHaveBeenCalledWith(
+        '/distributions/rpm/rpm/',
+        expect.objectContaining({
+          pulp_labels: { env: 'dev' },
+        })
+      );
     });
+  });
+
+  it('prevents submit when pulp_labels JSON is invalid', async () => {
+    const user = userEvent.setup();
+    vi.mocked(apiService.get).mockResolvedValue({
+      count: 0,
+      next: null,
+      previous: null,
+      results: [],
+    });
+
+    renderRpmDistribution();
+
+    await user.click(await screen.findByRole('button', { name: /create distribution/i }));
+    const dialog = screen.getByRole('dialog');
+    await user.type(within(dialog).getByLabelText(/name/i), 'new-distribution');
+    await user.type(within(dialog).getByLabelText(/base path/i), 'new/path');
+    fireEvent.change(within(dialog).getByLabelText(/pulp labels/i), {
+      target: { value: '{"k": 1}' },
+    });
+    await user.click(within(dialog).getByRole('button', { name: /^create$/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/invalid pulp_labels json/i)).toBeInTheDocument();
+    });
+    expect(apiService.post).not.toHaveBeenCalled();
   });
 
   it('opens edit dialog and submits update', async () => {

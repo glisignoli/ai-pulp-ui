@@ -25,7 +25,7 @@ describe('RpmRemoteDetail', () => {
     sock_connect_timeout: null,
     sock_read_timeout: null,
     rate_limit: null,
-    headers: [],
+    headers: {},
     sles_auth_token: null,
   };
 
@@ -115,6 +115,68 @@ describe('RpmRemoteDetail', () => {
           policy: 'immediate',
         })
       );
+    });
+  });
+
+  it('includes pulp_labels when provided in edit dialog', async () => {
+    const remoteWithLabels = {
+      ...baseRemote,
+      pulp_labels: { tier: 'prod' },
+    };
+
+    vi.mocked(apiService.get).mockImplementation((url: string) => {
+      if (url === remoteHref) return Promise.resolve(remoteWithLabels as any);
+      return Promise.resolve({ count: 0, next: null, previous: null, results: [] } as any);
+    });
+    vi.mocked(apiService.put).mockResolvedValue({} as any);
+
+    renderAt(remoteHref);
+
+    await waitFor(() => {
+      expect(screen.getByText('Remote: test-remote')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /edit/i }));
+    const dialog = await screen.findByRole('dialog');
+
+    fireEvent.change(within(dialog).getByRole('textbox', { name: /Pulp Labels \(JSON\)/i }), {
+      target: { value: '{"tier":"prod","env":"staging"}' },
+    });
+
+    fireEvent.click(within(dialog).getByRole('button', { name: /save/i }));
+
+    await waitFor(() => {
+      expect(apiService.put).toHaveBeenCalledWith(
+        remoteHref,
+        expect.objectContaining({
+          pulp_labels: { tier: 'prod', env: 'staging' },
+        })
+      );
+    });
+  });
+
+  it('prevents save when download_concurrency is less than 1', async () => {
+    vi.mocked(apiService.get).mockImplementation((url: string) => {
+      if (url === remoteHref) return Promise.resolve(baseRemote as any);
+      return Promise.resolve({ count: 0, next: null, previous: null, results: [] } as any);
+    });
+    vi.mocked(apiService.put).mockResolvedValue({} as any);
+
+    renderAt(remoteHref);
+
+    await waitFor(() => {
+      expect(screen.getByText('Remote: test-remote')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /edit/i }));
+    const dialog = await screen.findByRole('dialog');
+
+    fireEvent.change(within(dialog).getByLabelText(/Download Concurrency/i), { target: { value: '0' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: /save/i }));
+
+    await waitFor(() => {
+      expect(apiService.put).not.toHaveBeenCalled();
+      expect(screen.getByText(/Download Concurrency must be >= 1/i)).toBeInTheDocument();
     });
   });
 

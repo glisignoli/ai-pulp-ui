@@ -39,6 +39,7 @@ interface RepositoryFormData {
   autopublish: boolean;
   retain_package_versions: number | null;
   checksum_type: string;
+  repo_config: string;
   compression_type: string;
   layout: string;
   remote: string;
@@ -71,6 +72,7 @@ export const RpmRepositoryDetail: React.FC = () => {
     autopublish: false,
     retain_package_versions: null,
     checksum_type: '',
+    repo_config: '',
     compression_type: '',
     layout: '',
     remote: '',
@@ -146,6 +148,7 @@ export const RpmRepositoryDetail: React.FC = () => {
       autopublish: repository.autopublish ?? false,
       retain_package_versions: repository.retain_package_versions ?? null,
       checksum_type: repository.checksum_type || '',
+      repo_config: repository.repo_config ? JSON.stringify(repository.repo_config, null, 2) : '',
       compression_type: repository.compression_type || '',
       layout: repository.layout || '',
       remote: repository.remote || '',
@@ -169,13 +172,35 @@ export const RpmRepositoryDetail: React.FC = () => {
     if (!repository) return;
 
     try {
+      const retainRepoVersionsInvalid = formData.retain_repo_versions !== null && formData.retain_repo_versions < 0;
+      const retainPackageVersionsInvalid =
+        formData.retain_package_versions !== null && formData.retain_package_versions < 0;
+
+      if (retainRepoVersionsInvalid) {
+        setError('Retain Repository Versions must be >= 0');
+        return;
+      }
+      if (retainPackageVersionsInvalid) {
+        setError('Retain Package Versions must be >= 0');
+        return;
+      }
+
       const payload: any = {
         name: formData.name,
         description: formData.description || undefined,
-        retain_repo_versions: formData.retain_repo_versions || undefined,
+        retain_repo_versions: formData.retain_repo_versions ?? undefined,
         autopublish: formData.autopublish,
-        retain_package_versions: formData.retain_package_versions || undefined,
+        retain_package_versions: formData.retain_package_versions ?? undefined,
       };
+
+      if (formData.repo_config.trim()) {
+        try {
+          payload.repo_config = JSON.parse(formData.repo_config);
+        } catch {
+          setError('Invalid JSON in repo_config');
+          return;
+        }
+      }
 
       if (formData.remote) payload.remote = formData.remote;
       if (formData.checksum_type) payload.checksum_type = formData.checksum_type;
@@ -358,21 +383,31 @@ export const RpmRepositoryDetail: React.FC = () => {
               label="Retain Repository Versions"
               fullWidth
               type="number"
-              value={formData.retain_repo_versions || ''}
+              value={formData.retain_repo_versions ?? ''}
               onChange={(e) =>
                 handleFormChange('retain_repo_versions', e.target.value ? parseInt(e.target.value) : null)
               }
-              helperText="Number of repository versions to retain (leave empty for default)"
+              error={formData.retain_repo_versions !== null && formData.retain_repo_versions < 0}
+              helperText={
+                formData.retain_repo_versions !== null && formData.retain_repo_versions < 0
+                  ? 'Must be >= 0'
+                  : 'Number of repository versions to retain (leave empty to retain all versions)'
+              }
             />
             <TextField
               label="Retain Package Versions"
               fullWidth
               type="number"
-              value={formData.retain_package_versions || ''}
+              value={formData.retain_package_versions ?? ''}
               onChange={(e) =>
                 handleFormChange('retain_package_versions', e.target.value ? parseInt(e.target.value) : null)
               }
-              helperText="Number of versions of each package to keep (0 = keep all)"
+              error={formData.retain_package_versions !== null && formData.retain_package_versions < 0}
+              helperText={
+                formData.retain_package_versions !== null && formData.retain_package_versions < 0
+                  ? 'Must be >= 0'
+                  : 'Number of versions of each package to keep (0 = keep all)'
+              }
             />
             <FormControl fullWidth>
               <FormControlLabel
@@ -395,11 +430,23 @@ export const RpmRepositoryDetail: React.FC = () => {
               helperText="Preferred checksum type during repo publish"
             >
               <MenuItem value="">None</MenuItem>
+              <MenuItem value="unknown">Unknown</MenuItem>
+              <MenuItem value="md5">MD5</MenuItem>
+              <MenuItem value="sha1">SHA1</MenuItem>
+              <MenuItem value="sha224">SHA224</MenuItem>
               <MenuItem value="sha256">SHA256</MenuItem>
               <MenuItem value="sha384">SHA384</MenuItem>
               <MenuItem value="sha512">SHA512</MenuItem>
-              <MenuItem value="sha1">SHA1 (legacy)</MenuItem>
             </TextField>
+            <TextField
+              label="Repo Config (JSON)"
+              fullWidth
+              multiline
+              rows={4}
+              value={formData.repo_config}
+              onChange={(e) => handleFormChange('repo_config', e.target.value)}
+              helperText="Optional: Repository configuration as a JSON document"
+            />
             <TextField
               label="Compression Type"
               fullWidth

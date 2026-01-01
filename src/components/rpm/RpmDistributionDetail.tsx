@@ -20,6 +20,7 @@ import {
 import { Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { apiService, formatPulpApiError } from '../../services/api';
+import { toExposedBackendUrl } from '../../services/exposedBackend';
 import { PulpListResponse, Publication, Repository, Distribution } from '../../types/pulp';
 
 interface DistributionFormData {
@@ -32,6 +33,32 @@ interface DistributionFormData {
   generate_repo_config: boolean;
   checkpoint: boolean;
 }
+
+const parsePulpLabelsJson = (
+  input: string
+): { labels: Record<string, string> | null; error: string | null } => {
+  const trimmed = input.trim();
+  if (!trimmed) return { labels: null, error: null };
+
+  try {
+    const parsed = JSON.parse(trimmed) as unknown;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return { labels: null, error: 'Invalid pulp_labels JSON (must be an object of string values)' };
+    }
+
+    const record: Record<string, string> = {};
+    for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+      if (typeof value !== 'string') {
+        return { labels: null, error: 'Invalid pulp_labels JSON (must be an object of string values)' };
+      }
+      record[key] = value;
+    }
+
+    return { labels: record, error: null };
+  } catch {
+    return { labels: null, error: 'Invalid pulp_labels JSON (must be an object of string values)' };
+  }
+};
 
 export const RpmDistributionDetail: React.FC = () => {
   const navigate = useNavigate();
@@ -61,6 +88,9 @@ export const RpmDistributionDetail: React.FC = () => {
     generate_repo_config: false,
     checkpoint: false,
   });
+
+  const [pulpLabelsJson, setPulpLabelsJson] = useState('');
+  const [pulpLabelsJsonError, setPulpLabelsJsonError] = useState<string | null>(null);
 
   const stripPulpOrigin = (href: string) => {
     const trimmed = href.trim();
@@ -137,6 +167,8 @@ export const RpmDistributionDetail: React.FC = () => {
       generate_repo_config: distribution.generate_repo_config ?? false,
       checkpoint: distribution.checkpoint ?? false,
     });
+    setPulpLabelsJson(distribution.pulp_labels ? JSON.stringify(distribution.pulp_labels, null, 2) : '');
+    setPulpLabelsJsonError(null);
     setEditOpen(true);
     await fetchPublications();
     await fetchRepositories();
@@ -157,6 +189,10 @@ export const RpmDistributionDetail: React.FC = () => {
     if (!distribution) return;
 
     try {
+      const { labels: pulpLabels, error: labelsError } = parsePulpLabelsJson(pulpLabelsJson);
+      setPulpLabelsJsonError(labelsError);
+      if (labelsError) return;
+
       const payload: any = {
         name: formData.name,
         base_path: formData.base_path,
@@ -168,6 +204,10 @@ export const RpmDistributionDetail: React.FC = () => {
       if (formData.content_guard) payload.content_guard = formData.content_guard;
       if (formData.repository) payload.repository = formData.repository;
       if (formData.publication) payload.publication = formData.publication;
+
+      if (pulpLabels && Object.keys(pulpLabels).length > 0) {
+        payload.pulp_labels = pulpLabels;
+      }
 
       await apiService.put(distribution.pulp_href, payload);
       setSuccessMessage('Distribution updated successfully');
@@ -238,6 +278,8 @@ export const RpmDistributionDetail: React.FC = () => {
     );
   }
 
+  const exposedBaseUrl = toExposedBackendUrl(distribution.base_url ?? null);
+
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
@@ -246,6 +288,18 @@ export const RpmDistributionDetail: React.FC = () => {
           <Button variant="outlined" sx={{ mr: 1 }} onClick={() => navigate('/rpm/distribution')}>
             Back
           </Button>
+          {exposedBaseUrl && (
+            <Button
+              variant="outlined"
+              sx={{ mr: 1 }}
+              component="a"
+              href={exposedBaseUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Open
+            </Button>
+          )}
           <Button variant="contained" color="primary" sx={{ mr: 1 }} onClick={openEdit}>
             <EditIcon sx={{ mr: 1 }} /> Edit
           </Button>
@@ -343,6 +397,20 @@ export const RpmDistributionDetail: React.FC = () => {
                 />
               }
               label="Generate Repo Config"
+            />
+
+            <TextField
+              label="Pulp Labels (JSON)"
+              fullWidth
+              multiline
+              minRows={3}
+              value={pulpLabelsJson}
+              onChange={(e) => {
+                setPulpLabelsJson(e.target.value);
+                setPulpLabelsJsonError(null);
+              }}
+              error={!!pulpLabelsJsonError}
+              helperText={pulpLabelsJsonError ?? 'Optional. JSON object of string values'}
             />
           </Box>
         </DialogContent>
