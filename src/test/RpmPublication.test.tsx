@@ -5,7 +5,20 @@ import userEvent from '@testing-library/user-event';
 import RpmPublication from '../components/rpm/RpmPublication';
 import { apiService } from '../services/api';
 
-vi.mock('../services/api');
+vi.mock('../services/api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../services/api')>();
+  return {
+    ...actual,
+    apiService: {
+      ...actual.apiService,
+      get: vi.fn(),
+      post: vi.fn(),
+      put: vi.fn(),
+      patch: vi.fn(),
+      delete: vi.fn(),
+    },
+  };
+});
 
 const mockedApiService = vi.mocked(apiService, { deep: true });
 
@@ -74,7 +87,7 @@ describe('RpmPublication', () => {
       expect(screen.getByText('sha256')).toBeInTheDocument();
     });
 
-    expect(apiService.get).toHaveBeenCalledWith('/pulp/api/v3/publications/rpm/rpm/');
+    expect(apiService.get).toHaveBeenCalledWith('/pulp/api/v3/publications/rpm/rpm/?limit=25&offset=0');
   });
 
   it('should open create dialog when Create button is clicked', async () => {

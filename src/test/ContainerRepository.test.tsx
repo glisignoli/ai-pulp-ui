@@ -4,7 +4,20 @@ import { MemoryRouter } from 'react-router-dom';
 import { ContainerRepository } from '../components/container/ContainerRepository';
 import { apiService } from '../services/api';
 
-vi.mock('../services/api');
+vi.mock('../services/api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../services/api')>();
+  return {
+    ...actual,
+    apiService: {
+      ...actual.apiService,
+      get: vi.fn(),
+      post: vi.fn(),
+      put: vi.fn(),
+      patch: vi.fn(),
+      delete: vi.fn(),
+    },
+  };
+});
 
 describe('ContainerRepository', () => {
   beforeEach(() => {
@@ -28,7 +41,7 @@ describe('ContainerRepository', () => {
     const remoteHref = '/pulp/api/v3/remotes/container/container/9/';
 
     vi.mocked(apiService.get).mockImplementation((url: string) => {
-      if (url === '/repositories/container/container/') {
+      if (url.startsWith('/repositories/container/container/')) {
         return Promise.resolve({
           count: 1,
           next: null,
@@ -44,7 +57,7 @@ describe('ContainerRepository', () => {
           ],
         } as any);
       }
-      if (url === '/remotes/container/container/') {
+      if (url.startsWith('/remotes/container/container/')) {
         return Promise.resolve({
           count: 1,
           next: null,
@@ -70,7 +83,7 @@ describe('ContainerRepository', () => {
 
   it('opens create dialog when Create Repository is clicked', async () => {
     vi.mocked(apiService.get).mockImplementation((url: string) => {
-      if (url === '/repositories/container/container/' || url === '/remotes/container/container/') {
+      if (url.startsWith('/repositories/container/container/') || url.startsWith('/remotes/container/container/')) {
         return Promise.resolve({ count: 0, next: null, previous: null, results: [] } as any);
       }
       return Promise.resolve({ count: 0, next: null, previous: null, results: [] } as any);
@@ -96,7 +109,7 @@ describe('ContainerRepository', () => {
 
   it('creates a new repository with expected payload', async () => {
     vi.mocked(apiService.get).mockImplementation((url: string) => {
-      if (url === '/repositories/container/container/' || url === '/remotes/container/container/') {
+      if (url.startsWith('/repositories/container/container/') || url.startsWith('/remotes/container/container/')) {
         return Promise.resolve({ count: 0, next: null, previous: null, results: [] } as any);
       }
       return Promise.resolve({ count: 0, next: null, previous: null, results: [] } as any);

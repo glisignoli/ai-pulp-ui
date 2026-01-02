@@ -8,6 +8,7 @@ import {
   TableCell,
   TableContainer,
   TableHead,
+  TablePagination,
   TableRow,
   CircularProgress,
   Alert,
@@ -26,7 +27,7 @@ import {
 } from '@mui/material';
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { apiService, formatPulpApiError } from '../../services/api';
+import { apiService, DEFAULT_PAGE_SIZE, formatPulpApiError, withPaginationParams } from '../../services/api';
 import { Distribution, PulpListResponse, Publication, Repository } from '../../types/pulp';
 import { ForegroundSnackbar } from '../ForegroundSnackbar';
 
@@ -77,6 +78,9 @@ export const RpmDistribution: React.FC = () => {
   const [repositoriesLoading, setRepositoriesLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [page, setPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
+
   const [openDialog, setOpenDialog] = useState(false);
   const [editingDistribution, setEditingDistribution] = useState<Distribution | null>(null);
   const [formData, setFormData] = useState<DistributionFormData>({
@@ -110,11 +114,15 @@ export const RpmDistribution: React.FC = () => {
     return trimmed;
   };
 
-  const fetchDistributions = async () => {
+  const fetchDistributions = async (pageToLoad = page) => {
     try {
       setLoading(true);
-      const response = await apiService.get<PulpListResponse<Distribution>>('/distributions/rpm/rpm/');
+      const offset = pageToLoad * DEFAULT_PAGE_SIZE;
+      const response = await apiService.get<PulpListResponse<Distribution>>(
+        withPaginationParams('/distributions/rpm/rpm/', { offset })
+      );
       setDistributions(response.results);
+      setTotalCount(response.count);
       setError(null);
     } catch (err) {
       setError('Failed to load distributions');
@@ -124,7 +132,7 @@ export const RpmDistribution: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchDistributions();
+    fetchDistributions(0);
     fetchPublications();
     fetchRepositories();
   }, []);
@@ -132,7 +140,9 @@ export const RpmDistribution: React.FC = () => {
   const fetchPublications = async () => {
     try {
       setPublicationsLoading(true);
-      const response = await apiService.get<PulpListResponse<Publication>>('/publications/rpm/rpm/');
+      const response = await apiService.get<PulpListResponse<Publication>>(
+        withPaginationParams('/publications/rpm/rpm/', { offset: 0 })
+      );
       setPublications(response.results);
     } catch (err) {
       console.error('Failed to load publications:', err);
@@ -144,13 +154,20 @@ export const RpmDistribution: React.FC = () => {
   const fetchRepositories = async () => {
     try {
       setRepositoriesLoading(true);
-      const response = await apiService.get<PulpListResponse<Repository>>('/repositories/rpm/rpm/');
+      const response = await apiService.get<PulpListResponse<Repository>>(
+        withPaginationParams('/repositories/rpm/rpm/', { offset: 0 })
+      );
       setRepositories(response.results);
     } catch (err) {
       console.error('Failed to load repositories:', err);
     } finally {
       setRepositoriesLoading(false);
     }
+  };
+
+  const handlePageChange = (_event: unknown, newPage: number) => {
+    setPage(newPage);
+    void fetchDistributions(newPage);
   };
 
 
@@ -367,6 +384,15 @@ export const RpmDistribution: React.FC = () => {
           </TableBody>
         </Table>
       </TableContainer>
+
+      <TablePagination
+        component="div"
+        count={totalCount}
+        page={page}
+        onPageChange={handlePageChange}
+        rowsPerPage={DEFAULT_PAGE_SIZE}
+        rowsPerPageOptions={[DEFAULT_PAGE_SIZE]}
+      />
 
       {/* Create/Edit Dialog */}
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>

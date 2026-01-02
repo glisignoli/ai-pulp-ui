@@ -5,14 +5,20 @@ import { BrowserRouter } from 'react-router-dom';
 import { RpmDistribution } from '../components/rpm/RpmDistribution';
 import { apiService } from '../services/api';
 
-vi.mock('../services/api', () => ({
-  apiService: {
-    get: vi.fn(),
-    post: vi.fn(),
-    put: vi.fn(),
-    delete: vi.fn(),
-  },
-}));
+vi.mock('../services/api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../services/api')>();
+  return {
+    ...actual,
+    apiService: {
+      ...actual.apiService,
+      get: vi.fn(),
+      post: vi.fn(),
+      put: vi.fn(),
+      patch: vi.fn(),
+      delete: vi.fn(),
+    },
+  };
+});
 
 const renderRpmDistribution = () => {
   return render(

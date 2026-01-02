@@ -4,7 +4,20 @@ import { MemoryRouter } from 'react-router-dom';
 import { DebRepository } from '../components/deb/DebRepository';
 import { apiService } from '../services/api';
 
-vi.mock('../services/api');
+vi.mock('../services/api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../services/api')>();
+  return {
+    ...actual,
+    apiService: {
+      ...actual.apiService,
+      get: vi.fn(),
+      post: vi.fn(),
+      put: vi.fn(),
+      patch: vi.fn(),
+      delete: vi.fn(),
+    },
+  };
+});
 
 const mockRepositories = [
   {

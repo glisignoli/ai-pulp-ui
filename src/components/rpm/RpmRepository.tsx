@@ -8,6 +8,7 @@ import {
   TableCell,
   TableContainer,
   TableHead,
+  TablePagination,
   TableRow,
   CircularProgress,
   Alert,
@@ -29,7 +30,7 @@ import {
 } from '@mui/material';
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { apiService, formatPulpApiError } from '../../services/api';
+import { apiService, DEFAULT_PAGE_SIZE, formatPulpApiError, withPaginationParams } from '../../services/api';
 import { Repository, Remote, PulpListResponse } from '../../types/pulp';
 import { ForegroundSnackbar } from '../ForegroundSnackbar';
 
@@ -56,6 +57,8 @@ export const RpmRepository: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [remotesLoading, setRemotesLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingRepo, setEditingRepo] = useState<Repository | null>(null);
   const [formData, setFormData] = useState<RepositoryFormData>({
@@ -77,13 +80,16 @@ export const RpmRepository: React.FC = () => {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [repoToDelete, setRepoToDelete] = useState<Repository | null>(null);
 
-  const fetchRepositories = async () => {
+  const fetchRepositories = async (pageToLoad: number = page) => {
     try {
       setLoading(true);
+      const offset = pageToLoad * DEFAULT_PAGE_SIZE;
       const response = await apiService.get<PulpListResponse<Repository>>(
-        '/repositories/rpm/rpm/'
+        withPaginationParams('/repositories/rpm/rpm/', { offset })
       );
       setRepositories(response.results);
+      setTotalCount(response.count);
+      setPage(pageToLoad);
       setError(null);
     } catch (err) {
       setError('Failed to load repositories');
@@ -96,7 +102,7 @@ export const RpmRepository: React.FC = () => {
     try {
       setRemotesLoading(true);
       const response = await apiService.get<PulpListResponse<Remote>>(
-        '/remotes/rpm/rpm/'
+        withPaginationParams('/remotes/rpm/rpm/', { offset: 0 })
       );
       setRemotes(response.results);
     } catch (err) {
@@ -107,9 +113,13 @@ export const RpmRepository: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchRepositories();
-    fetchRemotes();
+    void fetchRepositories(0);
+    void fetchRemotes();
   }, []);
+
+  const handlePageChange = (_event: unknown, newPage: number) => {
+    void fetchRepositories(newPage);
+  };
 
   const handleOpenDialog = (repo?: Repository) => {
     if (repo) {
@@ -229,7 +239,7 @@ export const RpmRepository: React.FC = () => {
       }
 
       handleCloseDialog();
-      fetchRepositories();
+      await fetchRepositories(editingRepo ? page : 0);
     } catch (err) {
       setError(formatPulpApiError(err, `Failed to ${editingRepo ? 'update' : 'create'} repository`));
     }
@@ -248,7 +258,8 @@ export const RpmRepository: React.FC = () => {
       setSuccessMessage('Repository deleted successfully');
       setDeleteConfirmOpen(false);
       setRepoToDelete(null);
-      fetchRepositories();
+      const nextPage = repositories.length === 1 && page > 0 ? page - 1 : page;
+      await fetchRepositories(nextPage);
     } catch (err) {
       setError(formatPulpApiError(err, 'Failed to delete repository'));
       setDeleteConfirmOpen(false);
@@ -347,6 +358,15 @@ export const RpmRepository: React.FC = () => {
           </TableBody>
         </Table>
       </TableContainer>
+
+        <TablePagination
+          component="div"
+          count={totalCount}
+          page={page}
+          onPageChange={handlePageChange}
+          rowsPerPage={DEFAULT_PAGE_SIZE}
+          rowsPerPageOptions={[DEFAULT_PAGE_SIZE]}
+        />
 
       {/* Create/Edit Dialog */}
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>

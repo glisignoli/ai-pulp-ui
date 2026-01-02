@@ -15,6 +15,7 @@ import {
   IconButton,
   Paper,
   Snackbar,
+  TablePagination,
   Table,
   TableBody,
   TableCell,
@@ -26,7 +27,7 @@ import {
 } from '@mui/material';
 import { Add as AddIcon, Delete as DeleteIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { apiService, formatPulpApiError } from '../../services/api';
+import { apiService, DEFAULT_PAGE_SIZE, formatPulpApiError, withPaginationParams } from '../../services/api';
 import { Publication, PulpListResponse, Repository, RepositoryVersion } from '../../types/pulp';
 
 interface PublicationFormData {
@@ -50,6 +51,9 @@ const DebPublication: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [versionsLoading, setVersionsLoading] = useState(false);
 
+  const [page, setPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
+
   const [openCreateDialog, setOpenCreateDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [selectedPublication, setSelectedPublication] = useState<Publication | null>(null);
@@ -69,15 +73,19 @@ const DebPublication: React.FC = () => {
   });
 
   useEffect(() => {
-    void loadPublications();
+    void loadPublications(0);
     void loadRepositories();
   }, []);
 
-  const loadPublications = async () => {
+  const loadPublications = async (pageToLoad = page) => {
     try {
       setLoading(true);
-      const response = await apiService.get<PulpListResponse<Publication>>('/publications/deb/apt/');
+      const offset = pageToLoad * DEFAULT_PAGE_SIZE;
+      const response = await apiService.get<PulpListResponse<Publication>>(
+        withPaginationParams('/publications/deb/apt/', { offset })
+      );
       setPublications(response?.results || []);
+      setTotalCount(response?.count ?? 0);
     } catch {
       setSnackbarMessage('Failed to load publications');
       setSnackbarSeverity('error');
@@ -89,7 +97,9 @@ const DebPublication: React.FC = () => {
 
   const loadRepositories = async () => {
     try {
-      const response = await apiService.get<PulpListResponse<Repository>>('/repositories/deb/apt/');
+      const response = await apiService.get<PulpListResponse<Repository>>(
+        withPaginationParams('/repositories/deb/apt/', { offset: 0 })
+      );
       const repos = response?.results || [];
       setRepositories(repos);
       const repoMap = new Map<string, string>();
@@ -167,7 +177,8 @@ const DebPublication: React.FC = () => {
       setSnackbarSeverity('success');
       setSnackbarOpen(true);
       setOpenCreateDialog(false);
-      await loadPublications();
+      setPage(0);
+      await loadPublications(0);
     } catch (error) {
       setSnackbarMessage(formatPulpApiError(error, 'Failed to create publication'));
       setSnackbarSeverity('error');
@@ -184,12 +195,17 @@ const DebPublication: React.FC = () => {
       setSnackbarSeverity('success');
       setSnackbarOpen(true);
       setOpenDeleteDialog(false);
-      await loadPublications();
+      await loadPublications(page);
     } catch (error) {
       setSnackbarMessage(formatPulpApiError(error, 'Failed to delete publication'));
       setSnackbarSeverity('error');
       setSnackbarOpen(true);
     }
+  };
+
+  const handlePageChange = (_event: unknown, newPage: number) => {
+    setPage(newPage);
+    void loadPublications(newPage);
   };
 
   if (loading) {
@@ -256,6 +272,15 @@ const DebPublication: React.FC = () => {
           </TableBody>
         </Table>
       </TableContainer>
+
+      <TablePagination
+        component="div"
+        count={totalCount}
+        page={page}
+        onPageChange={handlePageChange}
+        rowsPerPage={DEFAULT_PAGE_SIZE}
+        rowsPerPageOptions={[DEFAULT_PAGE_SIZE]}
+      />
 
       <Dialog open={openCreateDialog} onClose={() => setOpenCreateDialog(false)} maxWidth="md" fullWidth>
         <DialogTitle>Create Publication</DialogTitle>

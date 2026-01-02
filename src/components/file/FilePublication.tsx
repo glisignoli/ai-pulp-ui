@@ -21,13 +21,14 @@ import {
   TableCell,
   TableContainer,
   TableHead,
+  TablePagination,
   TableRow,
   TextField,
   Typography,
 } from '@mui/material';
 import { Add as AddIcon, Delete as DeleteIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { apiService, formatPulpApiError } from '../../services/api';
+import { apiService, DEFAULT_PAGE_SIZE, formatPulpApiError, withPaginationParams } from '../../services/api';
 import { PulpListResponse, Publication, Repository, RepositoryVersion } from '../../types/pulp';
 
 interface PublicationFormData {
@@ -46,6 +47,8 @@ export const FilePublication: React.FC = () => {
   const [versionsLoading, setVersionsLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
 
   const [openDialog, setOpenDialog] = useState(false);
   const [formData, setFormData] = useState<PublicationFormData>({
@@ -59,16 +62,19 @@ export const FilePublication: React.FC = () => {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [publicationToDelete, setPublicationToDelete] = useState<Publication | null>(null);
 
-  const fetchData = async () => {
+  const fetchData = async (pageToLoad: number = page) => {
     try {
       setLoading(true);
+      const offset = pageToLoad * DEFAULT_PAGE_SIZE;
       const [pubRes, repoRes] = await Promise.all([
-        apiService.get<PulpListResponse<Publication>>('/publications/file/file/'),
-        apiService.get<PulpListResponse<Repository>>('/repositories/file/file/'),
+        apiService.get<PulpListResponse<Publication>>(withPaginationParams('/publications/file/file/', { offset })),
+        apiService.get<PulpListResponse<Repository>>(withPaginationParams('/repositories/file/file/', { offset: 0 })),
       ]);
 
       setPublications(pubRes.results);
       setRepositories(repoRes.results);
+      setTotalCount(pubRes.count);
+      setPage(pageToLoad);
       setError(null);
     } catch {
       setError('Failed to load publications');
@@ -78,8 +84,12 @@ export const FilePublication: React.FC = () => {
   };
 
   useEffect(() => {
-    void fetchData();
+    void fetchData(0);
   }, []);
+
+  const handlePageChange = (_event: unknown, newPage: number) => {
+    void fetchData(newPage);
+  };
 
   const loadRepositoryVersions = async (repositoryHref: string) => {
     if (!repositoryHref) {
@@ -92,7 +102,9 @@ export const FilePublication: React.FC = () => {
       const versionsEndpoint = repositoryHref.endsWith('/')
         ? `${repositoryHref}versions/`
         : `${repositoryHref}/versions/`;
-      const response = await apiService.get<PulpListResponse<RepositoryVersion>>(versionsEndpoint);
+      const response = await apiService.get<PulpListResponse<RepositoryVersion>>(
+        withPaginationParams(versionsEndpoint, { offset: 0 })
+      );
       setRepositoryVersions(response?.results || []);
     } catch {
       setRepositoryVersions([]);
@@ -146,7 +158,7 @@ export const FilePublication: React.FC = () => {
       await apiService.post('/publications/file/file/', payload);
       setSuccessMessage('Publication creation task started');
       handleCloseDialog();
-      await fetchData();
+      await fetchData(0);
     } catch (error) {
       setError(formatPulpApiError(error, 'Failed to create publication'));
     }
@@ -165,7 +177,8 @@ export const FilePublication: React.FC = () => {
       setSuccessMessage('Publication delete task started');
       setDeleteConfirmOpen(false);
       setPublicationToDelete(null);
-      await fetchData();
+      const nextPage = publications.length === 1 && page > 0 ? page - 1 : page;
+      await fetchData(nextPage);
     } catch (error) {
       setError(formatPulpApiError(error, 'Failed to delete publication'));
       setDeleteConfirmOpen(false);
@@ -243,6 +256,15 @@ export const FilePublication: React.FC = () => {
           </TableBody>
         </Table>
       </TableContainer>
+
+        <TablePagination
+          component="div"
+          count={totalCount}
+          page={page}
+          onPageChange={handlePageChange}
+          rowsPerPage={DEFAULT_PAGE_SIZE}
+          rowsPerPageOptions={[DEFAULT_PAGE_SIZE]}
+        />
 
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
         <DialogTitle>Create Publication</DialogTitle>

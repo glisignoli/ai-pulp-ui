@@ -5,13 +5,18 @@ import { Login } from '../components/Login';
 import { AuthProvider } from '../contexts/AuthContext';
 import { apiService } from '../services/api';
 
-vi.mock('../services/api', () => ({
-  apiService: {
-    login: vi.fn(),
-    logout: vi.fn(),
-    isAuthenticated: vi.fn(() => false),
-  },
-}));
+vi.mock('../services/api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../services/api')>();
+  return {
+    ...actual,
+    apiService: {
+      ...actual.apiService,
+      login: vi.fn(),
+      logout: vi.fn(),
+      isAuthenticated: vi.fn(() => false),
+    },
+  };
+});
 
 const renderLogin = () => {
   return render(

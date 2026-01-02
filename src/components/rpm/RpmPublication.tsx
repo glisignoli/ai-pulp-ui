@@ -25,6 +25,7 @@ import {
   TableCell,
   TableContainer,
   TableHead,
+  TablePagination,
   TableRow,
   IconButton,
   CircularProgress,
@@ -32,7 +33,7 @@ import {
 import { Add as AddIcon, Delete as DeleteIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { Publication, PulpListResponse, Repository, RepositoryVersion } from '../../types/pulp';
-import { apiService } from '../../services/api';
+import { apiService, DEFAULT_PAGE_SIZE, withPaginationParams } from '../../services/api';
 
 interface PublicationFormData {
   repository_version: string;
@@ -51,6 +52,9 @@ const RpmPublication: React.FC = () => {
   const [repositoryVersions, setRepositoryVersions] = useState<RepositoryVersion[]>([]);
   const [repositoryMap, setRepositoryMap] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
+
+  const [page, setPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
   const [versionsLoading, setVersionsLoading] = useState(false);
   const [openCreateDialog, setOpenCreateDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
@@ -70,15 +74,19 @@ const RpmPublication: React.FC = () => {
   });
 
   useEffect(() => {
-    loadPublications();
+    loadPublications(0);
     loadRepositories();
   }, []);
 
-  const loadPublications = async () => {
+  const loadPublications = async (pageToLoad = page) => {
     try {
       setLoading(true);
-      const response = await apiService.get<PulpListResponse<Publication>>('/pulp/api/v3/publications/rpm/rpm/');
+      const offset = pageToLoad * DEFAULT_PAGE_SIZE;
+      const response = await apiService.get<PulpListResponse<Publication>>(
+        withPaginationParams('/pulp/api/v3/publications/rpm/rpm/', { offset })
+      );
       setPublications(response?.results || []);
+      setTotalCount(response?.count ?? 0);
     } catch (error) {
       console.error('Failed to load publications:', error);
       setSnackbarMessage('Failed to load publications');
@@ -91,7 +99,9 @@ const RpmPublication: React.FC = () => {
 
   const loadRepositories = async () => {
     try {
-      const response = await apiService.get<PulpListResponse<Repository>>('/pulp/api/v3/repositories/rpm/rpm/');
+      const response = await apiService.get<PulpListResponse<Repository>>(
+        withPaginationParams('/pulp/api/v3/repositories/rpm/rpm/', { offset: 0 })
+      );
       const repos = response?.results || [];
       setRepositories(repos);
       
@@ -104,6 +114,11 @@ const RpmPublication: React.FC = () => {
     } catch (error) {
       console.error('Failed to load repositories:', error);
     }
+  };
+
+  const handlePageChange = (_event: unknown, newPage: number) => {
+    setPage(newPage);
+    void loadPublications(newPage);
   };
 
   const loadRepositoryVersions = async (repositoryHref: string) => {
@@ -303,6 +318,15 @@ const RpmPublication: React.FC = () => {
           </TableBody>
         </Table>
       </TableContainer>
+
+      <TablePagination
+        component="div"
+        count={totalCount}
+        page={page}
+        onPageChange={handlePageChange}
+        rowsPerPage={DEFAULT_PAGE_SIZE}
+        rowsPerPageOptions={[DEFAULT_PAGE_SIZE]}
+      />
 
       {/* Create Dialog */}
       <Dialog open={openCreateDialog} onClose={() => setOpenCreateDialog(false)} maxWidth="md" fullWidth>

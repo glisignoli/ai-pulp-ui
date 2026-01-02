@@ -20,13 +20,14 @@ import {
   TableCell,
   TableContainer,
   TableHead,
+  TablePagination,
   TableRow,
   TextField,
   Typography,
 } from '@mui/material';
 import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { apiService, formatPulpApiError } from '../../services/api';
+import { apiService, DEFAULT_PAGE_SIZE, formatPulpApiError, withPaginationParams } from '../../services/api';
 import { PulpListResponse, Remote } from '../../types/pulp';
 import { ForegroundSnackbar } from '../ForegroundSnackbar';
 
@@ -111,6 +112,8 @@ export const DebRemote: React.FC = () => {
   const [remotes, setRemotes] = useState<Remote[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
 
   const [openDialog, setOpenDialog] = useState(false);
   const [editingRemote, setEditingRemote] = useState<Remote | null>(null);
@@ -153,11 +156,16 @@ export const DebRemote: React.FC = () => {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [remoteToDelete, setRemoteToDelete] = useState<Remote | null>(null);
 
-  const fetchRemotes = async () => {
+  const fetchRemotes = async (pageToLoad: number = page) => {
     try {
       setLoading(true);
-      const response = await apiService.get<PulpListResponse<Remote>>('/remotes/deb/apt/');
+      const offset = pageToLoad * DEFAULT_PAGE_SIZE;
+      const response = await apiService.get<PulpListResponse<Remote>>(
+        withPaginationParams('/remotes/deb/apt/', { offset })
+      );
       setRemotes(response.results);
+      setTotalCount(response.count);
+      setPage(pageToLoad);
       setError(null);
     } catch {
       setError('Failed to load remotes');
@@ -167,8 +175,12 @@ export const DebRemote: React.FC = () => {
   };
 
   useEffect(() => {
-    void fetchRemotes();
+    void fetchRemotes(0);
   }, []);
+
+  const handlePageChange = (_event: unknown, newPage: number) => {
+    void fetchRemotes(newPage);
+  };
 
   const handleOpenDialog = (remote?: Remote) => {
     if (remote) {
@@ -352,7 +364,7 @@ export const DebRemote: React.FC = () => {
       }
 
       handleCloseDialog();
-      await fetchRemotes();
+      await fetchRemotes(editingRemote ? page : 0);
     } catch (error) {
       setError(formatPulpApiError(error, `Failed to ${editingRemote ? 'update' : 'create'} remote`));
     }
@@ -371,7 +383,8 @@ export const DebRemote: React.FC = () => {
       setSuccessMessage('Remote delete task started');
       setDeleteConfirmOpen(false);
       setRemoteToDelete(null);
-      await fetchRemotes();
+      const nextPage = remotes.length === 1 && page > 0 ? page - 1 : page;
+      await fetchRemotes(nextPage);
     } catch (error) {
       setError(formatPulpApiError(error, 'Failed to delete remote'));
       setDeleteConfirmOpen(false);
@@ -449,6 +462,15 @@ export const DebRemote: React.FC = () => {
           </TableBody>
         </Table>
       </TableContainer>
+
+      <TablePagination
+        component="div"
+        count={totalCount}
+        page={page}
+        onPageChange={handlePageChange}
+        rowsPerPage={DEFAULT_PAGE_SIZE}
+        rowsPerPageOptions={[DEFAULT_PAGE_SIZE]}
+      />
 
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
         <DialogTitle>{editingRemote ? 'Edit Remote' : 'Create Remote'}</DialogTitle>

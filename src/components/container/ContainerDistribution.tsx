@@ -20,6 +20,7 @@ import {
   TableCell,
   TableContainer,
   TableHead,
+  TablePagination,
   TableRow,
   TextField,
   Typography,
@@ -33,7 +34,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import type { Distribution, Repository } from '../../types/pulp';
 import { containerService } from '../../services/container';
-import { formatPulpApiError } from '../../services/api';
+import { DEFAULT_PAGE_SIZE, formatPulpApiError } from '../../services/api';
 import { ForegroundSnackbar } from '../ForegroundSnackbar';
 
 interface DistributionFormData {
@@ -71,6 +72,9 @@ export const ContainerDistribution: React.FC = () => {
   const [repositoriesLoading, setRepositoriesLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [page, setPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
+
   const [openDialog, setOpenDialog] = useState(false);
   const [editingDistribution, setEditingDistribution] = useState<Distribution | null>(null);
   const [formData, setFormData] = useState<DistributionFormData>({
@@ -93,11 +97,13 @@ export const ContainerDistribution: React.FC = () => {
     [repositories]
   );
 
-  const fetchDistributions = async () => {
+  const fetchDistributions = async (pageToLoad = page) => {
     try {
       setLoading(true);
-      const response = await containerService.distributions.list();
+      const offset = pageToLoad * DEFAULT_PAGE_SIZE;
+      const response = await containerService.distributions.list(offset);
       setDistributions(response.results);
+      setTotalCount(response.count);
       setError(null);
     } catch {
       setError('Failed to load distributions');
@@ -109,7 +115,7 @@ export const ContainerDistribution: React.FC = () => {
   const fetchRepositories = async () => {
     try {
       setRepositoriesLoading(true);
-      const response = await containerService.repositories.list();
+      const response = await containerService.repositories.list(0);
       setRepositories(response.results);
     } catch {
       // optional
@@ -119,9 +125,14 @@ export const ContainerDistribution: React.FC = () => {
   };
 
   useEffect(() => {
-    void fetchDistributions();
+    void fetchDistributions(0);
     void fetchRepositories();
   }, []);
+
+  const handlePageChange = (_event: unknown, newPage: number) => {
+    setPage(newPage);
+    void fetchDistributions(newPage);
+  };
 
   const handleOpenDialog = (dist?: Distribution) => {
     if (dist) {
@@ -289,6 +300,15 @@ export const ContainerDistribution: React.FC = () => {
             </TableBody>
           </Table>
         </TableContainer>
+
+        <TablePagination
+          component="div"
+          count={totalCount}
+          page={page}
+          onPageChange={handlePageChange}
+          rowsPerPage={DEFAULT_PAGE_SIZE}
+          rowsPerPageOptions={[DEFAULT_PAGE_SIZE]}
+        />
       </Paper>
 
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>

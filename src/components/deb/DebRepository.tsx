@@ -20,13 +20,14 @@ import {
   TableCell,
   TableContainer,
   TableHead,
+  TablePagination,
   TableRow,
   TextField,
   Typography,
 } from '@mui/material';
 import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { apiService, formatPulpApiError } from '../../services/api';
+import { apiService, DEFAULT_PAGE_SIZE, formatPulpApiError, withPaginationParams } from '../../services/api';
 import { PulpListResponse, Remote, Repository } from '../../types/pulp';
 import { ForegroundSnackbar } from '../ForegroundSnackbar';
 
@@ -74,6 +75,8 @@ export const DebRepository: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [remotesLoading, setRemotesLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
 
   const [openDialog, setOpenDialog] = useState(false);
   const [editingRepo, setEditingRepo] = useState<Repository | null>(null);
@@ -97,11 +100,16 @@ export const DebRepository: React.FC = () => {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [repoToDelete, setRepoToDelete] = useState<Repository | null>(null);
 
-  const fetchRepositories = async () => {
+  const fetchRepositories = async (pageToLoad: number = page) => {
     try {
       setLoading(true);
-      const response = await apiService.get<PulpListResponse<Repository>>('/repositories/deb/apt/');
+      const offset = pageToLoad * DEFAULT_PAGE_SIZE;
+      const response = await apiService.get<PulpListResponse<Repository>>(
+        withPaginationParams('/repositories/deb/apt/', { offset })
+      );
       setRepositories(response.results);
+      setTotalCount(response.count);
+      setPage(pageToLoad);
       setError(null);
     } catch {
       setError('Failed to load repositories');
@@ -113,7 +121,9 @@ export const DebRepository: React.FC = () => {
   const fetchRemotes = async () => {
     try {
       setRemotesLoading(true);
-      const response = await apiService.get<PulpListResponse<Remote>>('/remotes/deb/apt/');
+      const response = await apiService.get<PulpListResponse<Remote>>(
+        withPaginationParams('/remotes/deb/apt/', { offset: 0 })
+      );
       setRemotes(response.results);
     } catch {
       // optional
@@ -123,9 +133,13 @@ export const DebRepository: React.FC = () => {
   };
 
   useEffect(() => {
-    void fetchRepositories();
+    void fetchRepositories(0);
     void fetchRemotes();
   }, []);
+
+  const handlePageChange = (_event: unknown, newPage: number) => {
+    void fetchRepositories(newPage);
+  };
 
   const handleOpenDialog = (repo?: Repository) => {
     if (repo) {
@@ -235,7 +249,7 @@ export const DebRepository: React.FC = () => {
       }
 
       handleCloseDialog();
-      await fetchRepositories();
+      await fetchRepositories(editingRepo ? page : 0);
     } catch (error) {
       setError(formatPulpApiError(error, `Failed to ${editingRepo ? 'update' : 'create'} repository`));
     }
@@ -254,7 +268,8 @@ export const DebRepository: React.FC = () => {
       setSuccessMessage('Repository deleted successfully');
       setDeleteConfirmOpen(false);
       setRepoToDelete(null);
-      await fetchRepositories();
+      const nextPage = repositories.length === 1 && page > 0 ? page - 1 : page;
+      await fetchRepositories(nextPage);
     } catch (error) {
       setError(formatPulpApiError(error, 'Failed to delete repository'));
       setDeleteConfirmOpen(false);
@@ -338,6 +353,15 @@ export const DebRepository: React.FC = () => {
           </TableBody>
         </Table>
       </TableContainer>
+
+      <TablePagination
+        component="div"
+        count={totalCount}
+        page={page}
+        onPageChange={handlePageChange}
+        rowsPerPage={DEFAULT_PAGE_SIZE}
+        rowsPerPageOptions={[DEFAULT_PAGE_SIZE]}
+      />
 
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
         <DialogTitle>{editingRepo ? 'Edit Repository' : 'Create Repository'}</DialogTitle>

@@ -5,25 +5,28 @@ import { MemoryRouter } from 'react-router-dom';
 import { FileContentFiles } from '../components/file/FileContentFiles';
 import { apiService } from '../services/api';
 
-vi.mock('../services/api', () => ({
-  apiService: {
-    get: vi.fn(),
-    post: vi.fn(),
-    put: vi.fn(),
-    delete: vi.fn(),
-  },
-  formatPulpApiError: (_err: unknown, fallback: string) => fallback,
-}));
+vi.mock('../services/api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../services/api')>();
+  return {
+    ...actual,
+    apiService: {
+      ...actual.apiService,
+      get: vi.fn(),
+      post: vi.fn(),
+      put: vi.fn(),
+      patch: vi.fn(),
+      delete: vi.fn(),
+    },
+    formatPulpApiError: (_err: unknown, fallback: string) => fallback,
+  };
+});
 
 describe('FileContentFiles', () => {
   beforeEach(() => {
-    vi.mocked(apiService.get).mockReset();
-    vi.mocked(apiService.post).mockReset();
-    vi.mocked(apiService.put).mockReset();
-    vi.mocked(apiService.delete).mockReset();
+    vi.clearAllMocks();
   });
 
-  it('renders file contents after loading', async () => {
+  it('loads and displays file content list', async () => {
     vi.mocked(apiService.get).mockResolvedValueOnce({
       count: 1,
       next: null,
@@ -36,7 +39,7 @@ describe('FileContentFiles', () => {
           sha256: 'abc123',
         },
       ],
-    });
+    } as any);
 
     render(
       <MemoryRouter>
@@ -46,7 +49,7 @@ describe('FileContentFiles', () => {
 
     await waitFor(() => expect(screen.getByRole('heading', { name: /file contents/i })).toBeVisible());
     expect(screen.getByText('foo/bar.txt')).toBeInTheDocument();
-    expect(vi.mocked(apiService.get)).toHaveBeenCalledWith('/content/file/files/?limit=100');
+    expect(vi.mocked(apiService.get)).toHaveBeenCalledWith('/content/file/files/?limit=25&offset=0');
   });
 
   it('validates upload requires relative_path', async () => {

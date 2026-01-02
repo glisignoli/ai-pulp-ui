@@ -17,6 +17,7 @@ import {
   TableCell,
   TableContainer,
   TableHead,
+  TablePagination,
   TableRow,
   TextField,
   Typography,
@@ -33,7 +34,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import type { Remote } from '../../types/pulp';
 import { containerService } from '../../services/container';
-import { formatPulpApiError } from '../../services/api';
+import { DEFAULT_PAGE_SIZE, formatPulpApiError } from '../../services/api';
 import { ForegroundSnackbar } from '../ForegroundSnackbar';
 
 interface RemoteFormData {
@@ -64,6 +65,9 @@ export const ContainerRemote: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [page, setPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
+
   const [openDialog, setOpenDialog] = useState(false);
   const [editingRemote, setEditingRemote] = useState<Remote | null>(null);
   const [formData, setFormData] = useState<RemoteFormData>({
@@ -83,11 +87,13 @@ export const ContainerRemote: React.FC = () => {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [remoteToDelete, setRemoteToDelete] = useState<Remote | null>(null);
 
-  const fetchRemotes = async () => {
+  const fetchRemotes = async (pageToLoad = page) => {
     try {
       setLoading(true);
-      const response = await containerService.remotes.list();
+      const offset = pageToLoad * DEFAULT_PAGE_SIZE;
+      const response = await containerService.remotes.list(offset);
       setRemotes(response.results);
+      setTotalCount(response.count);
       setError(null);
     } catch {
       setError('Failed to load remotes');
@@ -97,8 +103,13 @@ export const ContainerRemote: React.FC = () => {
   };
 
   useEffect(() => {
-    void fetchRemotes();
+    void fetchRemotes(0);
   }, []);
+
+  const handlePageChange = (_event: unknown, newPage: number) => {
+    setPage(newPage);
+    void fetchRemotes(newPage);
+  };
 
   const handleOpenDialog = (remote?: Remote) => {
     if (remote) {
@@ -267,6 +278,15 @@ export const ContainerRemote: React.FC = () => {
             </TableBody>
           </Table>
         </TableContainer>
+
+        <TablePagination
+          component="div"
+          count={totalCount}
+          page={page}
+          onPageChange={handlePageChange}
+          rowsPerPage={DEFAULT_PAGE_SIZE}
+          rowsPerPageOptions={[DEFAULT_PAGE_SIZE]}
+        />
       </Paper>
 
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>

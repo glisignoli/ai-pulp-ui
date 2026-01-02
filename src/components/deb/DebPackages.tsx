@@ -17,13 +17,14 @@ import {
   TableCell,
   TableContainer,
   TableHead,
+  TablePagination,
   TableRow,
   TextField,
   Typography,
 } from '@mui/material';
 import { Add as AddIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { apiService, formatPulpApiError } from '../../services/api';
+import { apiService, DEFAULT_PAGE_SIZE, formatPulpApiError, withPaginationParams } from '../../services/api';
 import { DebPackage, PulpListResponse } from '../../types/pulp';
 import { ForegroundSnackbar } from '../ForegroundSnackbar';
 
@@ -35,6 +36,9 @@ export const DebPackages: React.FC = () => {
   const [packages, setPackages] = useState<DebPackage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [page, setPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
 
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -53,11 +57,15 @@ export const DebPackages: React.FC = () => {
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
 
-  const fetchPackages = async () => {
+  const fetchPackages = async (pageToLoad = page) => {
     try {
       setLoading(true);
-      const response = await apiService.get<PulpListResponse<DebPackage>>('/content/deb/packages/?limit=100');
+      const offset = pageToLoad * DEFAULT_PAGE_SIZE;
+      const response = await apiService.get<PulpListResponse<DebPackage>>(
+        withPaginationParams('/content/deb/packages/', { offset })
+      );
       setPackages(response?.results || []);
+      setTotalCount(response?.count ?? 0);
       setError(null);
     } catch {
       setError('Failed to load packages');
@@ -67,8 +75,13 @@ export const DebPackages: React.FC = () => {
   };
 
   useEffect(() => {
-    void fetchPackages();
+    void fetchPackages(0);
   }, []);
+
+  const handlePageChange = (_event: unknown, newPage: number) => {
+    setPage(newPage);
+    void fetchPackages(newPage);
+  };
 
   const openUpload = () => {
     setSelectedFile(null);
@@ -262,6 +275,15 @@ export const DebPackages: React.FC = () => {
           </TableBody>
         </Table>
       </TableContainer>
+
+      <TablePagination
+        component="div"
+        count={totalCount}
+        page={page}
+        onPageChange={handlePageChange}
+        rowsPerPage={DEFAULT_PAGE_SIZE}
+        rowsPerPageOptions={[DEFAULT_PAGE_SIZE]}
+      />
 
       <Dialog open={uploadOpen} onClose={closeUpload} maxWidth="sm" fullWidth>
         <DialogTitle>Upload DEB Package</DialogTitle>

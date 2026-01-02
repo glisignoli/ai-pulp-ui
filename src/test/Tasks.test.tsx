@@ -6,7 +6,20 @@ import { Tasks } from '../components/tasks/Tasks';
 import { TaskDetail } from '../components/tasks/TaskDetail';
 import { apiService } from '../services/api';
 
-vi.mock('../services/api');
+vi.mock('../services/api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../services/api')>();
+  return {
+    ...actual,
+    apiService: {
+      ...actual.apiService,
+      get: vi.fn(),
+      post: vi.fn(),
+      put: vi.fn(),
+      patch: vi.fn(),
+      delete: vi.fn(),
+    },
+  };
+});
 
 const renderWithRoutes = (initialEntry: string) => {
   return render(
@@ -54,7 +67,7 @@ describe('Tasks', () => {
       expect(screen.getByText('running')).toBeInTheDocument();
     });
 
-    expect(apiService.get).toHaveBeenCalledWith('/tasks/');
+    expect(apiService.get).toHaveBeenCalledWith('/tasks/?limit=25&offset=0');
   });
 
   it('shows Cancel for running tasks and calls cancel endpoint', async () => {
@@ -70,7 +83,7 @@ describe('Tasks', () => {
         },
       ],
     });
-    (apiService.post as any).mockResolvedValue({});
+    (apiService.patch as any).mockResolvedValue({});
 
     renderWithRoutes('/tasks');
 
@@ -82,7 +95,7 @@ describe('Tasks', () => {
   await user.click(screen.getByRole('button', { name: 'Cancel' }));
 
     await waitFor(() => {
-      expect(apiService.post).toHaveBeenCalledWith('/pulp/api/v3/tasks/1/cancel/', {});
+      expect(apiService.patch).toHaveBeenCalledWith('/pulp/api/v3/tasks/1/', { state: 'canceled' });
     });
   });
 
@@ -156,7 +169,7 @@ describe('Tasks', () => {
     await user.click(screen.getByRole('option', { name: 'failed' }));
 
     await waitFor(() => {
-      expect(apiService.get).toHaveBeenLastCalledWith('/tasks/?state=failed');
+      expect(apiService.get).toHaveBeenLastCalledWith('/tasks/?state=failed&limit=25&offset=0');
       expect(screen.getByText('failed-task')).toBeInTheDocument();
       expect(screen.getByRole('combobox', { name: /state/i })).toHaveTextContent('failed');
 

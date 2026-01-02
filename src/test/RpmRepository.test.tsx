@@ -4,7 +4,20 @@ import { RpmRepository } from '../components/rpm/RpmRepository';
 import { apiService } from '../services/api';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
-vi.mock('../services/api');
+vi.mock('../services/api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../services/api')>();
+  return {
+    ...actual,
+    apiService: {
+      ...actual.apiService,
+      get: vi.fn(),
+      post: vi.fn(),
+      put: vi.fn(),
+      patch: vi.fn(),
+      delete: vi.fn(),
+    },
+  };
+});
 
 const mockRepositories = [
   {
@@ -530,7 +543,7 @@ describe('RpmRepository', () => {
 
     // Verify remotes are loaded for the autocomplete
     await waitFor(() => {
-      expect(apiService.get).toHaveBeenCalledWith('/remotes/rpm/rpm/');
+      expect(apiService.get).toHaveBeenCalledWith('/remotes/rpm/rpm/?limit=25&offset=0');
     });
   });
 

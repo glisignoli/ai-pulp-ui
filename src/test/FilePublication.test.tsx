@@ -5,15 +5,21 @@ import { BrowserRouter } from 'react-router-dom';
 import { FilePublication } from '../components/file/FilePublication';
 import { apiService } from '../services/api';
 
-vi.mock('../services/api', () => ({
-  apiService: {
-    get: vi.fn(),
-    post: vi.fn(),
-    put: vi.fn(),
-    delete: vi.fn(),
-  },
-  formatPulpApiError: (_err: unknown, fallback: string) => fallback,
-}));
+vi.mock('../services/api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../services/api')>();
+  return {
+    ...actual,
+    apiService: {
+      ...actual.apiService,
+      get: vi.fn(),
+      post: vi.fn(),
+      put: vi.fn(),
+      patch: vi.fn(),
+      delete: vi.fn(),
+    },
+    formatPulpApiError: (_err: unknown, fallback: string) => fallback,
+  };
+});
 
 const renderFilePublication = () => {
   return render(
@@ -25,10 +31,7 @@ const renderFilePublication = () => {
 
 describe('FilePublication Component', () => {
   beforeEach(() => {
-    vi.mocked(apiService.get).mockReset();
-    vi.mocked(apiService.post).mockReset();
-    vi.mocked(apiService.put).mockReset();
-    vi.mocked(apiService.delete).mockReset();
+    vi.clearAllMocks();
   });
 
   const getMuiSelectComboboxes = (container: HTMLElement): HTMLElement[] => {

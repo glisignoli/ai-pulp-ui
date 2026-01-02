@@ -4,7 +4,20 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ContainerRemoteDetail } from '../components/container/ContainerRemoteDetail';
 import { apiService } from '../services/api';
 
-vi.mock('../services/api');
+vi.mock('../services/api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../services/api')>();
+  return {
+    ...actual,
+    apiService: {
+      ...actual.apiService,
+      get: vi.fn(),
+      post: vi.fn(),
+      put: vi.fn(),
+      patch: vi.fn(),
+      delete: vi.fn(),
+    },
+  };
+});
 
 describe('ContainerRemoteDetail', () => {
   const remoteHref = '/pulp/api/v3/remotes/container/container/1/';

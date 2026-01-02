@@ -18,6 +18,7 @@ import {
   TableCell,
   TableContainer,
   TableHead,
+  TablePagination,
   TableRow,
   TextField,
   Typography,
@@ -31,7 +32,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import type { Remote, Repository } from '../../types/pulp';
 import { containerService } from '../../services/container';
-import { formatPulpApiError } from '../../services/api';
+import { DEFAULT_PAGE_SIZE, formatPulpApiError } from '../../services/api';
 import { ForegroundSnackbar } from '../ForegroundSnackbar';
 
 interface RepositoryFormData {
@@ -52,6 +53,9 @@ export const ContainerRepository: React.FC = () => {
   const [remotesLoading, setRemotesLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [page, setPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
+
   const [openDialog, setOpenDialog] = useState(false);
   const [editingRepo, setEditingRepo] = useState<Repository | null>(null);
   const [formData, setFormData] = useState<RepositoryFormData>({
@@ -68,11 +72,13 @@ export const ContainerRepository: React.FC = () => {
 
   const remoteOptions = useMemo(() => remotes.map((r) => ({ label: r.name, value: r.pulp_href })), [remotes]);
 
-  const fetchRepositories = async () => {
+  const fetchRepositories = async (pageToLoad = page) => {
     try {
       setLoading(true);
-      const response = await containerService.repositories.list();
+      const offset = pageToLoad * DEFAULT_PAGE_SIZE;
+      const response = await containerService.repositories.list(offset);
       setRepositories(response.results);
+      setTotalCount(response.count);
       setError(null);
     } catch {
       setError('Failed to load repositories');
@@ -84,7 +90,7 @@ export const ContainerRepository: React.FC = () => {
   const fetchRemotes = async () => {
     try {
       setRemotesLoading(true);
-      const response = await containerService.remotes.list();
+      const response = await containerService.remotes.list(0);
       setRemotes(response.results);
     } catch {
       // optional
@@ -94,9 +100,14 @@ export const ContainerRepository: React.FC = () => {
   };
 
   useEffect(() => {
-    void fetchRepositories();
+    void fetchRepositories(0);
     void fetchRemotes();
   }, []);
+
+  const handlePageChange = (_event: unknown, newPage: number) => {
+    setPage(newPage);
+    void fetchRepositories(newPage);
+  };
 
   const handleOpenDialog = (repo?: Repository) => {
     if (repo) {
@@ -248,6 +259,15 @@ export const ContainerRepository: React.FC = () => {
             </TableBody>
           </Table>
         </TableContainer>
+
+        <TablePagination
+          component="div"
+          count={totalCount}
+          page={page}
+          onPageChange={handlePageChange}
+          rowsPerPage={DEFAULT_PAGE_SIZE}
+          rowsPerPageOptions={[DEFAULT_PAGE_SIZE]}
+        />
       </Paper>
 
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>

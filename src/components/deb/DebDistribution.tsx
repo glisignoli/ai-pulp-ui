@@ -20,13 +20,14 @@ import {
   TableCell,
   TableContainer,
   TableHead,
+  TablePagination,
   TableRow,
   TextField,
   Typography,
 } from '@mui/material';
 import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { apiService, formatPulpApiError } from '../../services/api';
+import { apiService, DEFAULT_PAGE_SIZE, formatPulpApiError, withPaginationParams } from '../../services/api';
 import { Distribution, Publication, PulpListResponse, Repository } from '../../types/pulp';
 import { ForegroundSnackbar } from '../ForegroundSnackbar';
 
@@ -92,6 +93,9 @@ export const DebDistribution: React.FC = () => {
   const [repositoriesLoading, setRepositoriesLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [page, setPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
+
   const [openDialog, setOpenDialog] = useState(false);
   const [editingDistribution, setEditingDistribution] = useState<Distribution | null>(null);
   const [formData, setFormData] = useState<DistributionFormData>({
@@ -111,11 +115,15 @@ export const DebDistribution: React.FC = () => {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [distributionToDelete, setDistributionToDelete] = useState<Distribution | null>(null);
 
-  const fetchDistributions = async () => {
+  const fetchDistributions = async (pageToLoad = page) => {
     try {
       setLoading(true);
-      const response = await apiService.get<PulpListResponse<Distribution>>('/distributions/deb/apt/');
+      const offset = pageToLoad * DEFAULT_PAGE_SIZE;
+      const response = await apiService.get<PulpListResponse<Distribution>>(
+        withPaginationParams('/distributions/deb/apt/', { offset })
+      );
       setDistributions(response.results);
+      setTotalCount(response.count);
       setError(null);
     } catch {
       setError('Failed to load distributions');
@@ -127,7 +135,9 @@ export const DebDistribution: React.FC = () => {
   const fetchPublications = async () => {
     try {
       setPublicationsLoading(true);
-      const response = await apiService.get<PulpListResponse<Publication>>('/publications/deb/apt/');
+      const response = await apiService.get<PulpListResponse<Publication>>(
+        withPaginationParams('/publications/deb/apt/', { offset: 0 })
+      );
       setPublications(response.results);
     } catch {
       // optional
@@ -139,7 +149,9 @@ export const DebDistribution: React.FC = () => {
   const fetchRepositories = async () => {
     try {
       setRepositoriesLoading(true);
-      const response = await apiService.get<PulpListResponse<Repository>>('/repositories/deb/apt/');
+      const response = await apiService.get<PulpListResponse<Repository>>(
+        withPaginationParams('/repositories/deb/apt/', { offset: 0 })
+      );
       setRepositories(response.results);
     } catch {
       // optional
@@ -149,10 +161,15 @@ export const DebDistribution: React.FC = () => {
   };
 
   useEffect(() => {
-    void fetchDistributions();
+    void fetchDistributions(0);
     void fetchPublications();
     void fetchRepositories();
   }, []);
+
+  const handlePageChange = (_event: unknown, newPage: number) => {
+    setPage(newPage);
+    void fetchDistributions(newPage);
+  };
 
   const handleOpenDialog = (distribution?: Distribution) => {
     if (distribution) {
@@ -334,6 +351,15 @@ export const DebDistribution: React.FC = () => {
           </TableBody>
         </Table>
       </TableContainer>
+
+      <TablePagination
+        component="div"
+        count={totalCount}
+        page={page}
+        onPageChange={handlePageChange}
+        rowsPerPage={DEFAULT_PAGE_SIZE}
+        rowsPerPageOptions={[DEFAULT_PAGE_SIZE]}
+      />
 
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
         <DialogTitle>{editingDistribution ? 'Edit Distribution' : 'Create Distribution'}</DialogTitle>

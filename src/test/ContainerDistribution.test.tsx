@@ -4,7 +4,20 @@ import { MemoryRouter } from 'react-router-dom';
 import { ContainerDistribution } from '../components/container/ContainerDistribution';
 import { apiService } from '../services/api';
 
-vi.mock('../services/api');
+vi.mock('../services/api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../services/api')>();
+  return {
+    ...actual,
+    apiService: {
+      ...actual.apiService,
+      get: vi.fn(),
+      post: vi.fn(),
+      put: vi.fn(),
+      patch: vi.fn(),
+      delete: vi.fn(),
+    },
+  };
+});
 
 describe('ContainerDistribution', () => {
   beforeEach(() => {
@@ -25,7 +38,7 @@ describe('ContainerDistribution', () => {
 
   it('renders distributions after loading', async () => {
     vi.mocked(apiService.get).mockImplementation((url: string) => {
-      if (url === '/distributions/container/container/') {
+      if (url.startsWith('/distributions/container/container/')) {
         return Promise.resolve({
           count: 1,
           next: null,
@@ -41,7 +54,7 @@ describe('ContainerDistribution', () => {
           ],
         } as any);
       }
-      if (url === '/repositories/container/container/') {
+      if (url.startsWith('/repositories/container/container/')) {
         return Promise.resolve({ count: 0, next: null, previous: null, results: [] } as any);
       }
       return Promise.resolve({ count: 0, next: null, previous: null, results: [] } as any);
@@ -61,7 +74,7 @@ describe('ContainerDistribution', () => {
 
   it('opens create dialog when Create Distribution is clicked', async () => {
     vi.mocked(apiService.get).mockImplementation((url: string) => {
-      if (url === '/distributions/container/container/' || url === '/repositories/container/container/') {
+      if (url.startsWith('/distributions/container/container/') || url.startsWith('/repositories/container/container/')) {
         return Promise.resolve({ count: 0, next: null, previous: null, results: [] } as any);
       }
       return Promise.resolve({ count: 0, next: null, previous: null, results: [] } as any);
@@ -88,7 +101,7 @@ describe('ContainerDistribution', () => {
 
   it('creates a new distribution with repository_version href', async () => {
     vi.mocked(apiService.get).mockImplementation((url: string) => {
-      if (url === '/distributions/container/container/' || url === '/repositories/container/container/') {
+      if (url.startsWith('/distributions/container/container/') || url.startsWith('/repositories/container/container/')) {
         return Promise.resolve({ count: 0, next: null, previous: null, results: [] } as any);
       }
       return Promise.resolve({ count: 0, next: null, previous: null, results: [] } as any);

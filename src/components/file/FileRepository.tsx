@@ -18,6 +18,7 @@ import {
   TableCell,
   TableContainer,
   TableHead,
+  TablePagination,
   TableRow,
   TextField,
   Typography,
@@ -33,7 +34,7 @@ import {
   Visibility as VisibilityIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { apiService, formatPulpApiError } from '../../services/api';
+import { apiService, DEFAULT_PAGE_SIZE, formatPulpApiError, withPaginationParams } from '../../services/api';
 import { PulpListResponse, Remote, Repository } from '../../types/pulp';
 import { ForegroundSnackbar } from '../ForegroundSnackbar';
 
@@ -90,6 +91,9 @@ export const FileRepository: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [page, setPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
+
   const [openDialog, setOpenDialog] = useState(false);
   const [editingRepository, setEditingRepository] = useState<Repository | null>(null);
   const [formData, setFormData] = useState<RepositoryFormData>({
@@ -120,14 +124,18 @@ export const FileRepository: React.FC = () => {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [repositoryToDelete, setRepositoryToDelete] = useState<Repository | null>(null);
 
-  const fetchData = async () => {
+  const fetchData = async (pageToLoad = page) => {
     try {
       setLoading(true);
+      const offset = pageToLoad * DEFAULT_PAGE_SIZE;
       const [repoRes, remoteRes] = await Promise.all([
-        apiService.get<PulpListResponse<Repository>>('/repositories/file/file/'),
-        apiService.get<PulpListResponse<Remote>>('/remotes/file/file/'),
+        apiService.get<PulpListResponse<Repository>>(
+          withPaginationParams('/repositories/file/file/', { offset })
+        ),
+        apiService.get<PulpListResponse<Remote>>(withPaginationParams('/remotes/file/file/', { offset: 0 })),
       ]);
       setRepositories(repoRes.results);
+      setTotalCount(repoRes.count);
       setRemotes(remoteRes.results);
       setError(null);
     } catch {
@@ -138,8 +146,13 @@ export const FileRepository: React.FC = () => {
   };
 
   useEffect(() => {
-    void fetchData();
+    void fetchData(0);
   }, []);
+
+  const handlePageChange = (_event: unknown, newPage: number) => {
+    setPage(newPage);
+    void fetchData(newPage);
+  };
 
   const handleOpenDialog = (repo?: Repository) => {
     if (repo) {
@@ -446,6 +459,15 @@ export const FileRepository: React.FC = () => {
           </TableBody>
         </Table>
       </TableContainer>
+
+      <TablePagination
+        component="div"
+        count={totalCount}
+        page={page}
+        onPageChange={handlePageChange}
+        rowsPerPage={DEFAULT_PAGE_SIZE}
+        rowsPerPageOptions={[DEFAULT_PAGE_SIZE]}
+      />
 
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
         <DialogTitle>{editingRepository ? 'Edit Repository' : 'Create Repository'}</DialogTitle>

@@ -2,6 +2,59 @@ import axios from 'axios';
 
 const API_PATH = '/pulp/api/v3';
 
+export const DEFAULT_PAGE_SIZE = 25;
+
+type QueryValue = string | number | boolean | null | undefined;
+
+const toSearchParamsString = (params: URLSearchParams) => {
+  const s = params.toString();
+  return s ? `?${s}` : '';
+};
+
+/**
+ * Returns an endpoint with merged query params.
+ *
+ * - Accepts absolute URLs, full API paths, or API-relative endpoints.
+ * - Preserves existing query parameters.
+ * - Omits params where value is null/undefined/empty-string.
+ */
+export const withQueryParams = (endpoint: string, params: Record<string, QueryValue>): string => {
+  const trimmed = endpoint.trim();
+  if (!trimmed) return trimmed;
+
+  const isAbsolute = trimmed.startsWith('http://') || trimmed.startsWith('https://');
+  const base = 'http://local.invalid';
+  const url = new URL(trimmed, isAbsolute ? undefined : base);
+
+  const search = new URLSearchParams(url.search);
+  for (const [key, value] of Object.entries(params)) {
+    if (value === null || value === undefined || value === '') {
+      continue;
+    }
+    search.set(key, String(value));
+  }
+
+  const newSearch = toSearchParamsString(search);
+  if (isAbsolute) {
+    url.search = newSearch;
+    return url.toString();
+  }
+
+  return `${url.pathname}${newSearch}${url.hash ?? ''}`;
+};
+
+export const withPaginationParams = (
+  endpoint: string,
+  options?: {
+    limit?: number;
+    offset?: number;
+  }
+): string => {
+  const limit = options?.limit ?? DEFAULT_PAGE_SIZE;
+  const offset = options?.offset ?? 0;
+  return withQueryParams(endpoint, { limit, offset });
+};
+
 export const getPulpApiErrorPayload = (error: unknown): unknown | undefined => {
   if (!axios.isAxiosError(error)) return undefined;
   return error.response?.data;
@@ -216,6 +269,21 @@ class ApiService {
   async put<T>(endpoint: string, data: any): Promise<T> {
     try {
       const response = await axios.put(buildApiUrl(endpoint), data);
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 401) {
+        this.clearAuthToken();
+        window.location.href = '/login';
+      }
+
+      enhanceAxiosErrorMessage(error);
+      throw error;
+    }
+  }
+
+  async patch<T>(endpoint: string, data: any): Promise<T> {
+    try {
+      const response = await axios.patch(buildApiUrl(endpoint), data);
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.status === 401) {

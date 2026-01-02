@@ -39,6 +39,11 @@ interface NavigationItem {
 
 const navigationItems: NavigationItem[] = [
   {
+    title: 'Home',
+    path: '/',
+    icon: <Home />,
+  },
+  {
     title: 'Container',
     path: '/container',
     icon: <Storage />,
@@ -71,11 +76,6 @@ const navigationItems: NavigationItem[] = [
       { title: 'Remote', path: '/file/remote', icon: <Cloud /> },
       { title: 'Repository', path: '/file/repository', icon: <Folder /> },
     ],
-  },
-  {
-    title: 'Home',
-    path: '/',
-    icon: <Home />,
   },
   {
     title: 'RPM',

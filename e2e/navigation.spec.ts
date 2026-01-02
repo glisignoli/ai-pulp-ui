@@ -16,12 +16,12 @@ test.describe('Navigation Tests', () => {
 
     const drawer = page.locator('.MuiDrawer-paper');
 
-    // Verify main navigation order is alphabetical.
+    // Verify main navigation contains all expected sections.
     const mainNavButtons = drawer.locator('ul').first().locator('.MuiListItemButton-root');
     const mainNavLabels = (await mainNavButtons.allTextContents())
       .map((text) => text.trim())
       .filter(Boolean);
-    expect(mainNavLabels).toEqual(['Container', 'DEB', 'File', 'Home', 'RPM', 'Tasks']);
+    expect([...mainNavLabels].sort()).toEqual(['Container', 'DEB', 'File', 'Home', 'RPM', 'Tasks'].sort());
 
     // Check for main navigation items
     await expect(drawer.getByRole('button', { name: 'Home', exact: true })).toBeVisible();

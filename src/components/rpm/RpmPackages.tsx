@@ -18,12 +18,13 @@ import {
   TableCell,
   TableHead,
   TableRow,
+  TablePagination,
   Typography,
   IconButton,
 } from '@mui/material';
 import { Add as AddIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { apiService, formatPulpApiError } from '../../services/api';
+import { apiService, DEFAULT_PAGE_SIZE, formatPulpApiError, withPaginationParams } from '../../services/api';
 import { PulpListResponse, RpmPackage } from '../../types/pulp';
 import { ForegroundSnackbar } from '../ForegroundSnackbar';
 
@@ -34,6 +35,9 @@ export const RpmPackages: React.FC = () => {
   const [packages, setPackages] = useState<RpmPackage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [page, setPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
 
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -50,11 +54,15 @@ export const RpmPackages: React.FC = () => {
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
 
-  const fetchPackages = async () => {
+  const fetchPackages = async (pageToLoad = page) => {
     try {
       setLoading(true);
-      const response = await apiService.get<PulpListResponse<RpmPackage>>('/content/rpm/packages/?limit=100');
+      const offset = pageToLoad * DEFAULT_PAGE_SIZE;
+      const response = await apiService.get<PulpListResponse<RpmPackage>>(
+        withPaginationParams('/content/rpm/packages/', { offset })
+      );
       setPackages(response?.results || []);
+      setTotalCount(response?.count ?? 0);
       setError(null);
     } catch (err) {
       setError('Failed to load packages');
@@ -64,8 +72,13 @@ export const RpmPackages: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchPackages();
+    fetchPackages(0);
   }, []);
+
+  const handlePageChange = (_event: unknown, newPage: number) => {
+    setPage(newPage);
+    void fetchPackages(newPage);
+  };
 
   const openUpload = () => {
     setSelectedFile(null);
@@ -259,6 +272,15 @@ export const RpmPackages: React.FC = () => {
           </TableBody>
         </Table>
       </TableContainer>
+
+      <TablePagination
+        component="div"
+        count={totalCount}
+        page={page}
+        onPageChange={handlePageChange}
+        rowsPerPage={DEFAULT_PAGE_SIZE}
+        rowsPerPageOptions={[DEFAULT_PAGE_SIZE]}
+      />
 
       <Dialog open={uploadOpen} onClose={closeUpload} maxWidth="sm" fullWidth>
         <DialogTitle>Upload RPM Package</DialogTitle>

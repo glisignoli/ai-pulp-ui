@@ -21,13 +21,20 @@ import {
   TableCell,
   TableContainer,
   TableHead,
+  TablePagination,
   TableRow,
   Tooltip,
   Typography,
 } from '@mui/material';
 import { Cancel as CancelIcon, Delete as DeleteIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { apiService, formatPulpApiError } from '../../services/api';
+import {
+  apiService,
+  DEFAULT_PAGE_SIZE,
+  formatPulpApiError,
+  withPaginationParams,
+  withQueryParams,
+} from '../../services/api';
 import { PulpListResponse, Task } from '../../types/pulp';
 
 export const Tasks: React.FC = () => {
@@ -38,16 +45,23 @@ export const Tasks: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [stateFilter, setStateFilter] = useState<string>('');
+
+  const [page, setPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
   const [busyByHref, setBusyByHref] = useState<Record<string, boolean>>({});
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
 
-  const fetchTasks = async () => {
+  const fetchTasks = async (pageToLoad = page) => {
     try {
       setLoading(true);
-      const endpoint = stateFilter ? `/tasks/?state=${encodeURIComponent(stateFilter)}` : '/tasks/';
-      const response = await apiService.get<PulpListResponse<Task>>(endpoint);
+      const baseEndpoint = stateFilter ? withQueryParams('/tasks/', { state: stateFilter }) : '/tasks/';
+      const offset = pageToLoad * DEFAULT_PAGE_SIZE;
+      const response = await apiService.get<PulpListResponse<Task>>(
+        withPaginationParams(baseEndpoint, { offset })
+      );
       setTasks(response.results);
+      setTotalCount(response.count);
       setError(null);
     } catch {
       setError('Failed to load tasks');
@@ -57,9 +71,15 @@ export const Tasks: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchTasks();
+    setPage(0);
+    fetchTasks(0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stateFilter]);
+
+  const handlePageChange = (_event: unknown, newPage: number) => {
+    setPage(newPage);
+    void fetchTasks(newPage);
+  };
 
   const viewTask = (href: string) => {
     navigate(`/tasks/view?href=${encodeURIComponent(href)}`);
@@ -75,7 +95,7 @@ export const Tasks: React.FC = () => {
 
     try {
       setBusyByHref((prev) => ({ ...prev, [task.pulp_href]: true }));
-      await apiService.post(`${task.pulp_href}cancel/`, {});
+      await apiService.patch(task.pulp_href, { state: 'canceled' });
       setError(null);
       await fetchTasks();
     } catch (error) {
@@ -225,6 +245,15 @@ export const Tasks: React.FC = () => {
             </TableBody>
           </Table>
         </TableContainer>
+
+        <TablePagination
+          component="div"
+          count={totalCount}
+          page={page}
+          onPageChange={handlePageChange}
+          rowsPerPage={DEFAULT_PAGE_SIZE}
+          rowsPerPageOptions={[DEFAULT_PAGE_SIZE]}
+        />
       </Paper>
 
       <Dialog open={deleteConfirmOpen} onClose={closeDeleteConfirm} maxWidth="xs" fullWidth>
