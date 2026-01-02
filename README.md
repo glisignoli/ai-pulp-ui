@@ -2,7 +2,7 @@
 
 > Note: Everything in this repository was generated using VS Code and the models GPT-5.2 and Sonnet 4.5.
 >
-> If you find any 
+> If you find any bugs or have any requests feel free to raise a github issue.
 
 React + TypeScript frontend for managing Pulp resources (RPM, File, DEB) via the Pulp REST API.
 

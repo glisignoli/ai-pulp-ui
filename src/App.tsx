@@ -63,11 +63,13 @@ const theme = createTheme({
 });
 
 function App() {
+  const routerBasename = import.meta.env.BASE_URL.replace(/\/$/, '');
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <AuthProvider>
-        <BrowserRouter>
+        <BrowserRouter basename={routerBasename}>
           <Routes>
             <Route path={ROUTES.LOGIN} element={<Login />} />
             <Route

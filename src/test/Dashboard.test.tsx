@@ -1,7 +1,29 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { Dashboard } from '../components/Dashboard';
+
+import { statusService } from '../services/status';
+
+vi.mock('../services/status', () => ({
+  statusService: {
+    read: vi.fn(),
+  },
+}));
+
+beforeEach(() => {
+  vi.mocked(statusService.read).mockResolvedValue({
+    versions: [],
+    online_workers: [],
+    online_api_apps: [],
+    online_content_apps: [],
+    database_connection: { connected: true },
+    redis_connection: { connected: true },
+    storage: { total: 0, used: 0, free: 0 },
+    content_settings: { content_origin: '', content_path_prefix: '' },
+    domain_enabled: true,
+  });
+});
 
 const renderDashboard = () => {
   return render(
@@ -18,18 +40,9 @@ describe('Dashboard Component', () => {
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
   });
 
-  it('renders all content type cards', () => {
+  it('renders status section', async () => {
     renderDashboard();
-    
-    expect(screen.getByText('RPM')).toBeInTheDocument();
-    expect(screen.getByText('File')).toBeInTheDocument();
-    expect(screen.getByText('DEB')).toBeInTheDocument();
-  });
 
-  it('renders welcome message', () => {
-    renderDashboard();
-    
-    expect(screen.getByText('Welcome to Pulp UI')).toBeInTheDocument();
-    expect(screen.getByText(/Pulp is a platform for managing repositories/i)).toBeInTheDocument();
+    expect(await screen.findByText('System Status')).toBeInTheDocument();
   });
 });

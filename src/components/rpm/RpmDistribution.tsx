@@ -11,7 +11,6 @@ import {
   TablePagination,
   TableRow,
   CircularProgress,
-  Alert,
   Box,
   Button,
   IconButton,
@@ -30,7 +29,7 @@ import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Visibility as V
 import { useNavigate } from 'react-router-dom';
 import { DEFAULT_PAGE_SIZE, formatPulpApiError } from '../../services/api';
 import { rpmDistributionOrderingOptions } from '../../constants/orderingOptions';
-import { Distribution, PulpListResponse, Publication, Repository } from '../../types/pulp';
+import { Distribution, Publication, Repository } from '../../types/pulp';
 import { ForegroundSnackbar } from '../ForegroundSnackbar';
 import { parsePulpLabelsJson, stripPulpOrigin } from '../../utils/pulp';
 import { rpmService } from '../../services/rpm';

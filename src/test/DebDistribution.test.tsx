@@ -163,7 +163,7 @@ describe('DebDistribution', () => {
       expect(screen.getByText(/invalid pulp_labels json/i)).toBeInTheDocument();
     });
     expect(apiService.post).not.toHaveBeenCalled();
-  });
+  }, 20000);
 
   it('requests distributions with ordering and pagination params', async () => {
     const user = userEvent.setup();

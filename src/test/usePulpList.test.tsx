@@ -125,13 +125,11 @@ describe('usePulpList', () => {
   it('does not set state after unmount when the request resolves later', async () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    let resolvePromise: ((value: { count: number; results: Item[] }) => void) | null = null;
-    const list = vi.fn().mockImplementation(
-      () =>
-        new Promise<{ count: number; results: Item[] }>((resolve) => {
-          resolvePromise = resolve;
-        })
-    );
+    let resolveDeferred!: (value: { count: number; results: Item[] }) => void;
+    const deferred = new Promise<{ count: number; results: Item[] }>((resolve) => {
+      resolveDeferred = resolve;
+    });
+    const list = vi.fn().mockReturnValue(deferred);
 
     const { unmount } = renderHook(() =>
       usePulpList<Item>({
@@ -142,7 +140,7 @@ describe('usePulpList', () => {
     );
 
     unmount();
-    resolvePromise?.({ count: 0, results: [] });
+    resolveDeferred({ count: 0, results: [] });
 
     // Allow microtasks to flush.
     await Promise.resolve();

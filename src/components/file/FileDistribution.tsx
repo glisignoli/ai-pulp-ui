@@ -30,7 +30,7 @@ import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, Visibility as V
 import { useNavigate } from 'react-router-dom';
 import { DEFAULT_PAGE_SIZE, formatPulpApiError } from '../../services/api';
 import { fileDistributionOrderingOptions } from '../../constants/orderingOptions';
-import { Distribution, Publication, PulpListResponse, Repository } from '../../types/pulp';
+import { Distribution, Publication, Repository } from '../../types/pulp';
 import { ForegroundSnackbar } from '../ForegroundSnackbar';
 import { parsePulpLabelsJson, stripPulpOrigin } from '../../utils/pulp';
 import { fileService } from '../../services/file';
