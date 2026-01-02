@@ -34,6 +34,7 @@ import { Add as AddIcon, Delete as DeleteIcon, Visibility as VisibilityIcon } fr
 import { useNavigate } from 'react-router-dom';
 import { Publication, PulpListResponse, Repository, RepositoryVersion } from '../../types/pulp';
 import { apiService, DEFAULT_PAGE_SIZE, withPaginationParams } from '../../services/api';
+import { rpmPublicationOrderingOptions } from '../../constants/orderingOptions';
 
 interface PublicationFormData {
   repository_version: string;
@@ -55,6 +56,7 @@ const RpmPublication: React.FC = () => {
 
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
+  const [ordering, setOrdering] = useState<string>('');
   const [versionsLoading, setVersionsLoading] = useState(false);
   const [openCreateDialog, setOpenCreateDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
@@ -78,12 +80,12 @@ const RpmPublication: React.FC = () => {
     loadRepositories();
   }, []);
 
-  const loadPublications = async (pageToLoad = page) => {
+  const loadPublications = async (pageToLoad = page, orderingToUse = ordering) => {
     try {
       setLoading(true);
       const offset = pageToLoad * DEFAULT_PAGE_SIZE;
       const response = await apiService.get<PulpListResponse<Publication>>(
-        withPaginationParams('/pulp/api/v3/publications/rpm/rpm/', { offset })
+        withPaginationParams('/pulp/api/v3/publications/rpm/rpm/', { offset, ordering: orderingToUse })
       );
       setPublications(response?.results || []);
       setTotalCount(response?.count ?? 0);
@@ -119,6 +121,12 @@ const RpmPublication: React.FC = () => {
   const handlePageChange = (_event: unknown, newPage: number) => {
     setPage(newPage);
     void loadPublications(newPage);
+  };
+
+  const handleOrderingChange = (newOrdering: string) => {
+    setOrdering(newOrdering);
+    setPage(0);
+    void loadPublications(0, newOrdering);
   };
 
   const loadRepositoryVersions = async (repositoryHref: string) => {
@@ -262,6 +270,23 @@ const RpmPublication: React.FC = () => {
         >
           Create Publication
         </Button>
+      </Box>
+
+      <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+        <TextField
+          select
+          label="Order by"
+          value={ordering}
+          onChange={(e) => handleOrderingChange(e.target.value)}
+          sx={{ minWidth: 260 }}
+        >
+          <MenuItem value="">Default</MenuItem>
+          {rpmPublicationOrderingOptions.map((option) => (
+            <MenuItem key={option.value} value={option.value}>
+              {option.label}
+            </MenuItem>
+          ))}
+        </TextField>
       </Box>
 
       <TableContainer component={Paper}>

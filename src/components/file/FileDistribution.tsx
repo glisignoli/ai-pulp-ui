@@ -13,6 +13,7 @@ import {
   DialogTitle,
   FormControlLabel,
   IconButton,
+  MenuItem,
   Paper,
   Snackbar,
   Table,
@@ -28,6 +29,7 @@ import {
 import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { apiService, DEFAULT_PAGE_SIZE, formatPulpApiError, withPaginationParams } from '../../services/api';
+import { fileDistributionOrderingOptions } from '../../constants/orderingOptions';
 import { Distribution, Publication, PulpListResponse, Repository } from '../../types/pulp';
 import { ForegroundSnackbar } from '../ForegroundSnackbar';
 
@@ -96,6 +98,8 @@ export const FileDistribution: React.FC = () => {
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
 
+  const [ordering, setOrdering] = useState<string>('');
+
   const [openDialog, setOpenDialog] = useState(false);
   const [editingDistribution, setEditingDistribution] = useState<Distribution | null>(null);
   const [formData, setFormData] = useState<DistributionFormData>({
@@ -120,7 +124,7 @@ export const FileDistribution: React.FC = () => {
       setLoading(true);
       const offset = pageToLoad * DEFAULT_PAGE_SIZE;
       const response = await apiService.get<PulpListResponse<Distribution>>(
-        withPaginationParams('/distributions/file/file/', { offset })
+        withPaginationParams('/distributions/file/file/', { offset, ordering })
       );
       setDistributions(response.results);
       setTotalCount(response.count);
@@ -169,6 +173,12 @@ export const FileDistribution: React.FC = () => {
   const handlePageChange = (_event: unknown, newPage: number) => {
     setPage(newPage);
     void fetchDistributions(newPage);
+  };
+
+  const handleOrderingChange = (newOrdering: string) => {
+    setOrdering(newOrdering);
+    setPage(0);
+    void fetchDistributions(0);
   };
 
   const handleOpenDialog = (distribution?: Distribution) => {
@@ -298,6 +308,25 @@ export const FileDistribution: React.FC = () => {
           Create Distribution
         </Button>
       </Box>
+
+      <Box display="flex" justifyContent="flex-start" alignItems="center" mb={2}>
+        <TextField
+          select
+          size="small"
+          label="Order by"
+          value={ordering}
+          onChange={(e) => handleOrderingChange(e.target.value)}
+          sx={{ minWidth: 260 }}
+        >
+          <MenuItem value="">Default</MenuItem>
+          {fileDistributionOrderingOptions.map((opt) => (
+            <MenuItem key={opt.value} value={opt.value}>
+              {opt.label}
+            </MenuItem>
+          ))}
+        </TextField>
+      </Box>
+
       <ForegroundSnackbar
         open={!!error}
         message={error ?? ''}

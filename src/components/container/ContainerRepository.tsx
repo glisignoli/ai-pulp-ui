@@ -11,6 +11,7 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
+  MenuItem,
   Paper,
   Snackbar,
   Table,
@@ -33,6 +34,7 @@ import { useNavigate } from 'react-router-dom';
 import type { Remote, Repository } from '../../types/pulp';
 import { containerService } from '../../services/container';
 import { DEFAULT_PAGE_SIZE, formatPulpApiError } from '../../services/api';
+import { containerRepositoryOrderingOptions } from '../../constants/orderingOptions';
 import { ForegroundSnackbar } from '../ForegroundSnackbar';
 
 interface RepositoryFormData {
@@ -56,6 +58,8 @@ export const ContainerRepository: React.FC = () => {
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
 
+  const [ordering, setOrdering] = useState<string>('');
+
   const [openDialog, setOpenDialog] = useState(false);
   const [editingRepo, setEditingRepo] = useState<Repository | null>(null);
   const [formData, setFormData] = useState<RepositoryFormData>({
@@ -76,7 +80,7 @@ export const ContainerRepository: React.FC = () => {
     try {
       setLoading(true);
       const offset = pageToLoad * DEFAULT_PAGE_SIZE;
-      const response = await containerService.repositories.list(offset);
+      const response = await containerService.repositories.list(offset, ordering);
       setRepositories(response.results);
       setTotalCount(response.count);
       setError(null);
@@ -107,6 +111,12 @@ export const ContainerRepository: React.FC = () => {
   const handlePageChange = (_event: unknown, newPage: number) => {
     setPage(newPage);
     void fetchRepositories(newPage);
+  };
+
+  const handleOrderingChange = (newOrdering: string) => {
+    setOrdering(newOrdering);
+    setPage(0);
+    void fetchRepositories(0);
   };
 
   const handleOpenDialog = (repo?: Repository) => {
@@ -209,6 +219,25 @@ export const ContainerRepository: React.FC = () => {
           Create Repository
         </Button>
       </Box>
+
+      <Box display="flex" justifyContent="flex-start" alignItems="center" mb={2}>
+        <TextField
+          select
+          size="small"
+          label="Order by"
+          value={ordering}
+          onChange={(e) => handleOrderingChange(e.target.value)}
+          sx={{ minWidth: 260 }}
+        >
+          <MenuItem value="">Default</MenuItem>
+          {containerRepositoryOrderingOptions.map((opt) => (
+            <MenuItem key={opt.value} value={opt.value}>
+              {opt.label}
+            </MenuItem>
+          ))}
+        </TextField>
+      </Box>
+
       <ForegroundSnackbar
         open={!!error}
         message={error ?? ''}

@@ -580,4 +580,119 @@ pk - Pk
 -pk - Pk (descending)
 
 ## Remote
+pulp_id - Pulp id
+-pulp_id - Pulp id (descending)
+pulp_created - Pulp created
+-pulp_created - Pulp created (descending)
+pulp_last_updated - Pulp last updated
+-pulp_last_updated - Pulp last updated (descending)
+pulp_type - Pulp type
+-pulp_type - Pulp type (descending)
+name - Name
+-name - Name (descending)
+pulp_labels - Pulp labels
+-pulp_labels - Pulp labels (descending)
+url - Url
+-url - Url (descending)
+ca_cert - Ca cert
+-ca_cert - Ca cert (descending)
+client_cert - Client cert
+-client_cert - Client cert (descending)
+client_key - Client key
+-client_key - Client key (descending)
+tls_validation - Tls validation
+-tls_validation - Tls validation (descending)
+username - Username
+-username - Username (descending)
+password - Password
+-password - Password (descending)
+proxy_url - Proxy url
+-proxy_url - Proxy url (descending)
+proxy_username - Proxy username
+-proxy_username - Proxy username (descending)
+proxy_password - Proxy password
+-proxy_password - Proxy password (descending)
+download_concurrency - Download concurrency
+-download_concurrency - Download concurrency (descending)
+max_retries - Max retries
+-max_retries - Max retries (descending)
+policy - Policy
+-policy - Policy (descending)
+total_timeout - Total timeout
+-total_timeout - Total timeout (descending)
+connect_timeout - Connect timeout
+-connect_timeout - Connect timeout (descending)
+sock_connect_timeout - Sock connect timeout
+-sock_connect_timeout - Sock connect timeout (descending)
+sock_read_timeout - Sock read timeout
+-sock_read_timeout - Sock read timeout (descending)
+headers - Headers
+-headers - Headers (descending)
+rate_limit - Rate limit
+-rate_limit - Rate limit (descending)
+pk - Pk
+-pk - Pk (descending)
 
+## Repository
+pulp_id - Pulp id
+-pulp_id - Pulp id (descending)
+pulp_created - Pulp created
+-pulp_created - Pulp created (descending)
+pulp_last_updated - Pulp last updated
+-pulp_last_updated - Pulp last updated (descending)
+pulp_type - Pulp type
+-pulp_type - Pulp type (descending)
+name - Name
+-name - Name (descending)
+pulp_labels - Pulp labels
+-pulp_labels - Pulp labels (descending)
+description - Description
+-description - Description (descending)
+next_version - Next version
+-next_version - Next version (descending)
+retain_repo_versions - Retain repo versions
+-retain_repo_versions - Retain repo versions (descending)
+user_hidden - User hidden
+-user_hidden - User hidden (descending)
+pk - Pk
+-pk - Pk (descending)
+
+# Tasks
+pulp_id - Pulp id
+-pulp_id - Pulp id (descending)
+pulp_created - Pulp created
+-pulp_created - Pulp created (descending)
+pulp_last_updated - Pulp last updated
+-pulp_last_updated - Pulp last updated (descending)
+state - State
+-state - State (descending)
+name - Name
+-name - Name (descending)
+logging_cid - Logging cid
+-logging_cid - Logging cid (descending)
+unblocked_at - Unblocked at
+-unblocked_at - Unblocked at (descending)
+started_at - Started at
+-started_at - Started at (descending)
+finished_at - Finished at
+-finished_at - Finished at (descending)
+error - Error
+-error - Error (descending)
+enc_args - Enc args
+-enc_args - Enc args (descending)
+enc_kwargs - Enc kwargs
+-enc_kwargs - Enc kwargs (descending)
+reserved_resources_record - Reserved resources record
+-reserved_resources_record - Reserved resources record (descending)
+versions - Versions
+-versions - Versions (descending)
+profile_options - Profile options
+-profile_options - Profile options (descending)
+immediate - Immediate
+-immediate - Immediate (descending)
+deferred - Deferred
+-deferred - Deferred (descending)
+result - Result
+-result - Result (descending)
+pk - Pk
+-pk - Pk (descending)

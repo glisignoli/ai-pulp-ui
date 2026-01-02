@@ -13,6 +13,7 @@ import {
   DialogTitle,
   FormControlLabel,
   IconButton,
+  MenuItem,
   Paper,
   Snackbar,
   Table,
@@ -28,6 +29,7 @@ import {
 import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { apiService, DEFAULT_PAGE_SIZE, formatPulpApiError, withPaginationParams } from '../../services/api';
+import { debRepositoryOrderingOptions } from '../../constants/orderingOptions';
 import { PulpListResponse, Remote, Repository } from '../../types/pulp';
 import { ForegroundSnackbar } from '../ForegroundSnackbar';
 
@@ -78,6 +80,8 @@ export const DebRepository: React.FC = () => {
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
 
+  const [ordering, setOrdering] = useState<string>('');
+
   const [openDialog, setOpenDialog] = useState(false);
   const [editingRepo, setEditingRepo] = useState<Repository | null>(null);
   const [formData, setFormData] = useState<RepositoryFormData>({
@@ -105,7 +109,7 @@ export const DebRepository: React.FC = () => {
       setLoading(true);
       const offset = pageToLoad * DEFAULT_PAGE_SIZE;
       const response = await apiService.get<PulpListResponse<Repository>>(
-        withPaginationParams('/repositories/deb/apt/', { offset })
+        withPaginationParams('/repositories/deb/apt/', { offset, ordering })
       );
       setRepositories(response.results);
       setTotalCount(response.count);
@@ -139,6 +143,11 @@ export const DebRepository: React.FC = () => {
 
   const handlePageChange = (_event: unknown, newPage: number) => {
     void fetchRepositories(newPage);
+  };
+
+  const handleOrderingChange = (newOrdering: string) => {
+    setOrdering(newOrdering);
+    void fetchRepositories(0);
   };
 
   const handleOpenDialog = (repo?: Repository) => {
@@ -298,6 +307,24 @@ export const DebRepository: React.FC = () => {
         <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => handleOpenDialog()}>
           Create Repository
         </Button>
+      </Box>
+
+      <Box display="flex" justifyContent="flex-start" alignItems="center" mb={2}>
+        <TextField
+          select
+          size="small"
+          label="Order by"
+          value={ordering}
+          onChange={(e) => handleOrderingChange(e.target.value)}
+          sx={{ minWidth: 260 }}
+        >
+          <MenuItem value="">Default</MenuItem>
+          {debRepositoryOrderingOptions.map((opt) => (
+            <MenuItem key={opt.value} value={opt.value}>
+              {opt.label}
+            </MenuItem>
+          ))}
+        </TextField>
       </Box>
 
       <ForegroundSnackbar

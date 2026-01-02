@@ -8,8 +8,8 @@ const DISTRIBUTIONS_ENDPOINT = '/distributions/container/container/';
 
 export const containerService = {
   repositories: {
-    list: (offset = 0) =>
-      apiService.get<PulpListResponse<Repository>>(withPaginationParams(REPOSITORIES_ENDPOINT, { offset })),
+    list: (offset = 0, ordering?: string) =>
+      apiService.get<PulpListResponse<Repository>>(withPaginationParams(REPOSITORIES_ENDPOINT, { offset, ordering })),
     create: (payload: any) => apiService.post(REPOSITORIES_ENDPOINT, payload),
     update: (href: string, payload: any) => apiService.put(href, payload),
     delete: (href: string) => apiService.delete(href),
@@ -18,16 +18,16 @@ export const containerService = {
     sync: (href: string, payload: any) => apiService.post(`${href}sync/`, payload),
   },
   remotes: {
-    list: (offset = 0) =>
-      apiService.get<PulpListResponse<Remote>>(withPaginationParams(REMOTES_ENDPOINT, { offset })),
+    list: (offset = 0, ordering?: string) =>
+      apiService.get<PulpListResponse<Remote>>(withPaginationParams(REMOTES_ENDPOINT, { offset, ordering })),
     create: (payload: any) => apiService.post(REMOTES_ENDPOINT, payload),
     update: (href: string, payload: any) => apiService.put(href, payload),
     delete: (href: string) => apiService.delete(href),
     read: (href: string) => apiService.get<Remote>(href),
   },
   distributions: {
-    list: (offset = 0) =>
-      apiService.get<PulpListResponse<Distribution>>(withPaginationParams(DISTRIBUTIONS_ENDPOINT, { offset })),
+    list: (offset = 0, ordering?: string) =>
+      apiService.get<PulpListResponse<Distribution>>(withPaginationParams(DISTRIBUTIONS_ENDPOINT, { offset, ordering })),
     create: (payload: any) => apiService.post(DISTRIBUTIONS_ENDPOINT, payload),
     update: (href: string, payload: any) => apiService.put(href, payload),
     delete: (href: string) => apiService.delete(href),

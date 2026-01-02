@@ -13,6 +13,7 @@ import {
   DialogTitle,
   FormControlLabel,
   IconButton,
+  MenuItem,
   Paper,
   Snackbar,
   TablePagination,
@@ -28,6 +29,7 @@ import {
 import { Add as AddIcon, Delete as DeleteIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { apiService, DEFAULT_PAGE_SIZE, formatPulpApiError, withPaginationParams } from '../../services/api';
+import { debPublicationOrderingOptions } from '../../constants/orderingOptions';
 import { Publication, PulpListResponse, Repository, RepositoryVersion } from '../../types/pulp';
 
 interface PublicationFormData {
@@ -53,6 +55,8 @@ const DebPublication: React.FC = () => {
 
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
+
+  const [ordering, setOrdering] = useState<string>('');
 
   const [openCreateDialog, setOpenCreateDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
@@ -82,7 +86,7 @@ const DebPublication: React.FC = () => {
       setLoading(true);
       const offset = pageToLoad * DEFAULT_PAGE_SIZE;
       const response = await apiService.get<PulpListResponse<Publication>>(
-        withPaginationParams('/publications/deb/apt/', { offset })
+        withPaginationParams('/publications/deb/apt/', { offset, ordering })
       );
       setPublications(response?.results || []);
       setTotalCount(response?.count ?? 0);
@@ -208,6 +212,12 @@ const DebPublication: React.FC = () => {
     void loadPublications(newPage);
   };
 
+  const handleOrderingChange = (newOrdering: string) => {
+    setOrdering(newOrdering);
+    setPage(0);
+    void loadPublications(0);
+  };
+
   if (loading) {
     return (
       <Container>
@@ -225,6 +235,24 @@ const DebPublication: React.FC = () => {
         <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={handleCreateClick}>
           Create Publication
         </Button>
+      </Box>
+
+      <Box display="flex" justifyContent="flex-start" alignItems="center" mb={2}>
+        <TextField
+          select
+          size="small"
+          label="Order by"
+          value={ordering}
+          onChange={(e) => handleOrderingChange(e.target.value)}
+          sx={{ minWidth: 260 }}
+        >
+          <MenuItem value="">Default</MenuItem>
+          {debPublicationOrderingOptions.map((opt) => (
+            <MenuItem key={opt.value} value={opt.value}>
+              {opt.label}
+            </MenuItem>
+          ))}
+        </TextField>
       </Box>
 
       <TableContainer component={Paper}>

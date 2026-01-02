@@ -20,6 +20,7 @@ import {
   DialogContent,
   DialogActions,
   TextField,
+  MenuItem,
   Snackbar,
   FormControlLabel,
   Checkbox,
@@ -28,6 +29,7 @@ import {
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { apiService, DEFAULT_PAGE_SIZE, formatPulpApiError, withPaginationParams } from '../../services/api';
+import { rpmDistributionOrderingOptions } from '../../constants/orderingOptions';
 import { Distribution, PulpListResponse, Publication, Repository } from '../../types/pulp';
 import { ForegroundSnackbar } from '../ForegroundSnackbar';
 
@@ -81,6 +83,8 @@ export const RpmDistribution: React.FC = () => {
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
 
+  const [ordering, setOrdering] = useState<string>('');
+
   const [openDialog, setOpenDialog] = useState(false);
   const [editingDistribution, setEditingDistribution] = useState<Distribution | null>(null);
   const [formData, setFormData] = useState<DistributionFormData>({
@@ -119,7 +123,7 @@ export const RpmDistribution: React.FC = () => {
       setLoading(true);
       const offset = pageToLoad * DEFAULT_PAGE_SIZE;
       const response = await apiService.get<PulpListResponse<Distribution>>(
-        withPaginationParams('/distributions/rpm/rpm/', { offset })
+        withPaginationParams('/distributions/rpm/rpm/', { offset, ordering })
       );
       setDistributions(response.results);
       setTotalCount(response.count);
@@ -168,6 +172,12 @@ export const RpmDistribution: React.FC = () => {
   const handlePageChange = (_event: unknown, newPage: number) => {
     setPage(newPage);
     void fetchDistributions(newPage);
+  };
+
+  const handleOrderingChange = (newOrdering: string) => {
+    setOrdering(newOrdering);
+    setPage(0);
+    void fetchDistributions(0);
   };
 
 
@@ -315,6 +325,24 @@ export const RpmDistribution: React.FC = () => {
         >
           Create Distribution
         </Button>
+      </Box>
+
+      <Box display="flex" justifyContent="flex-start" alignItems="center" mb={2}>
+        <TextField
+          select
+          size="small"
+          label="Order by"
+          value={ordering}
+          onChange={(e) => handleOrderingChange(e.target.value)}
+          sx={{ minWidth: 260 }}
+        >
+          <MenuItem value="">Default</MenuItem>
+          {rpmDistributionOrderingOptions.map((opt) => (
+            <MenuItem key={opt.value} value={opt.value}>
+              {opt.label}
+            </MenuItem>
+          ))}
+        </TextField>
       </Box>
 
       <ForegroundSnackbar

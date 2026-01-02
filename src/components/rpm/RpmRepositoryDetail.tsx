@@ -272,8 +272,11 @@ export const RpmRepositoryDetail: React.FC = () => {
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">RPM Repository</Typography>
+        <Typography variant="h4">Repository: {repository.name}</Typography>
         <Box display="flex" gap={1} alignItems="center">
+          <Button variant="outlined" onClick={() => navigate('/rpm/repository')}>
+            Back
+          </Button>
           {repository.remote ? (
             <Button
               variant="contained"

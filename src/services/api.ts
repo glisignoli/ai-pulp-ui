@@ -48,11 +48,13 @@ export const withPaginationParams = (
   options?: {
     limit?: number;
     offset?: number;
+    ordering?: string;
   }
 ): string => {
   const limit = options?.limit ?? DEFAULT_PAGE_SIZE;
   const offset = options?.offset ?? 0;
-  return withQueryParams(endpoint, { limit, offset });
+  const ordering = options?.ordering ?? '';
+  return withQueryParams(endpoint, { limit, offset, ordering });
 };
 
 export const getPulpApiErrorPayload = (error: unknown): unknown | undefined => {

@@ -31,6 +31,7 @@ import {
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { apiService, DEFAULT_PAGE_SIZE, formatPulpApiError, withPaginationParams } from '../../services/api';
+import { rpmRepositoryOrderingOptions } from '../../constants/orderingOptions';
 import { Repository, Remote, PulpListResponse } from '../../types/pulp';
 import { ForegroundSnackbar } from '../ForegroundSnackbar';
 
@@ -59,6 +60,8 @@ export const RpmRepository: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
+
+  const [ordering, setOrdering] = useState<string>('');
   const [openDialog, setOpenDialog] = useState(false);
   const [editingRepo, setEditingRepo] = useState<Repository | null>(null);
   const [formData, setFormData] = useState<RepositoryFormData>({
@@ -85,7 +88,7 @@ export const RpmRepository: React.FC = () => {
       setLoading(true);
       const offset = pageToLoad * DEFAULT_PAGE_SIZE;
       const response = await apiService.get<PulpListResponse<Repository>>(
-        withPaginationParams('/repositories/rpm/rpm/', { offset })
+        withPaginationParams('/repositories/rpm/rpm/', { offset, ordering })
       );
       setRepositories(response.results);
       setTotalCount(response.count);
@@ -119,6 +122,11 @@ export const RpmRepository: React.FC = () => {
 
   const handlePageChange = (_event: unknown, newPage: number) => {
     void fetchRepositories(newPage);
+  };
+
+  const handleOrderingChange = (newOrdering: string) => {
+    setOrdering(newOrdering);
+    void fetchRepositories(0);
   };
 
   const handleOpenDialog = (repo?: Repository) => {
@@ -295,6 +303,24 @@ export const RpmRepository: React.FC = () => {
         >
           Create Repository
         </Button>
+      </Box>
+
+      <Box display="flex" justifyContent="flex-start" alignItems="center" mb={2}>
+        <TextField
+          select
+          size="small"
+          label="Order by"
+          value={ordering}
+          onChange={(e) => handleOrderingChange(e.target.value)}
+          sx={{ minWidth: 260 }}
+        >
+          <MenuItem value="">Default</MenuItem>
+          {rpmRepositoryOrderingOptions.map((opt) => (
+            <MenuItem key={opt.value} value={opt.value}>
+              {opt.label}
+            </MenuItem>
+          ))}
+        </TextField>
       </Box>
 
       <ForegroundSnackbar

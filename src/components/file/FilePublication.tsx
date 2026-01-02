@@ -29,6 +29,7 @@ import {
 import { Add as AddIcon, Delete as DeleteIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { apiService, DEFAULT_PAGE_SIZE, formatPulpApiError, withPaginationParams } from '../../services/api';
+import { filePublicationOrderingOptions } from '../../constants/orderingOptions';
 import { PulpListResponse, Publication, Repository, RepositoryVersion } from '../../types/pulp';
 
 interface PublicationFormData {
@@ -50,6 +51,8 @@ export const FilePublication: React.FC = () => {
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
 
+  const [ordering, setOrdering] = useState<string>('');
+
   const [openDialog, setOpenDialog] = useState(false);
   const [formData, setFormData] = useState<PublicationFormData>({
     repository: '',
@@ -67,7 +70,9 @@ export const FilePublication: React.FC = () => {
       setLoading(true);
       const offset = pageToLoad * DEFAULT_PAGE_SIZE;
       const [pubRes, repoRes] = await Promise.all([
-        apiService.get<PulpListResponse<Publication>>(withPaginationParams('/publications/file/file/', { offset })),
+        apiService.get<PulpListResponse<Publication>>(
+          withPaginationParams('/publications/file/file/', { offset, ordering })
+        ),
         apiService.get<PulpListResponse<Repository>>(withPaginationParams('/repositories/file/file/', { offset: 0 })),
       ]);
 
@@ -89,6 +94,11 @@ export const FilePublication: React.FC = () => {
 
   const handlePageChange = (_event: unknown, newPage: number) => {
     void fetchData(newPage);
+  };
+
+  const handleOrderingChange = (newOrdering: string) => {
+    setOrdering(newOrdering);
+    void fetchData(0);
   };
 
   const loadRepositoryVersions = async (repositoryHref: string) => {
@@ -207,6 +217,24 @@ export const FilePublication: React.FC = () => {
         <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={handleOpenDialog}>
           Create Publication
         </Button>
+      </Box>
+
+      <Box display="flex" justifyContent="flex-start" alignItems="center" mb={2}>
+        <TextField
+          select
+          size="small"
+          label="Order by"
+          value={ordering}
+          onChange={(e) => handleOrderingChange(e.target.value)}
+          sx={{ minWidth: 260 }}
+        >
+          <MenuItem value="">Default</MenuItem>
+          {filePublicationOrderingOptions.map((opt) => (
+            <MenuItem key={opt.value} value={opt.value}>
+              {opt.label}
+            </MenuItem>
+          ))}
+        </TextField>
       </Box>
 
       {error && (

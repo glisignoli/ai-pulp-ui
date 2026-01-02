@@ -29,6 +29,7 @@ import {
 import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { apiService, DEFAULT_PAGE_SIZE, formatPulpApiError, withPaginationParams } from '../../services/api';
+import { fileRemoteOrderingOptions } from '../../constants/orderingOptions';
 import { PulpListResponse, Remote } from '../../types/pulp';
 import { ForegroundSnackbar } from '../ForegroundSnackbar';
 
@@ -108,6 +109,8 @@ export const FileRemote: React.FC = () => {
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
 
+  const [ordering, setOrdering] = useState<string>('');
+
   const [openDialog, setOpenDialog] = useState(false);
   const [editingRemote, setEditingRemote] = useState<Remote | null>(null);
   const [formData, setFormData] = useState<RemoteFormData>({
@@ -146,7 +149,7 @@ export const FileRemote: React.FC = () => {
       setLoading(true);
       const offset = pageToLoad * DEFAULT_PAGE_SIZE;
       const response = await apiService.get<PulpListResponse<Remote>>(
-        withPaginationParams('/remotes/file/file/', { offset })
+        withPaginationParams('/remotes/file/file/', { offset, ordering })
       );
       setRemotes(response.results);
       setTotalCount(response.count);
@@ -165,6 +168,11 @@ export const FileRemote: React.FC = () => {
 
   const handlePageChange = (_event: unknown, newPage: number) => {
     void fetchRemotes(newPage);
+  };
+
+  const handleOrderingChange = (newOrdering: string) => {
+    setOrdering(newOrdering);
+    void fetchRemotes(0);
   };
 
   const handleOpenDialog = (remote?: Remote) => {
@@ -371,6 +379,25 @@ export const FileRemote: React.FC = () => {
           Create Remote
         </Button>
       </Box>
+
+      <Box display="flex" justifyContent="flex-start" alignItems="center" mb={2}>
+        <TextField
+          select
+          size="small"
+          label="Order by"
+          value={ordering}
+          onChange={(e) => handleOrderingChange(e.target.value)}
+          sx={{ minWidth: 260 }}
+        >
+          <MenuItem value="">Default</MenuItem>
+          {fileRemoteOrderingOptions.map((opt) => (
+            <MenuItem key={opt.value} value={opt.value}>
+              {opt.label}
+            </MenuItem>
+          ))}
+        </TextField>
+      </Box>
+
       <ForegroundSnackbar
         open={!!error}
         message={error ?? ''}

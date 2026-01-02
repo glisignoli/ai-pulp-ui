@@ -35,6 +35,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { apiService, DEFAULT_PAGE_SIZE, formatPulpApiError, withPaginationParams } from '../../services/api';
+import { fileRepositoryOrderingOptions } from '../../constants/orderingOptions';
 import { PulpListResponse, Remote, Repository } from '../../types/pulp';
 import { ForegroundSnackbar } from '../ForegroundSnackbar';
 
@@ -94,6 +95,8 @@ export const FileRepository: React.FC = () => {
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
 
+  const [ordering, setOrdering] = useState<string>('');
+
   const [openDialog, setOpenDialog] = useState(false);
   const [editingRepository, setEditingRepository] = useState<Repository | null>(null);
   const [formData, setFormData] = useState<RepositoryFormData>({
@@ -130,7 +133,7 @@ export const FileRepository: React.FC = () => {
       const offset = pageToLoad * DEFAULT_PAGE_SIZE;
       const [repoRes, remoteRes] = await Promise.all([
         apiService.get<PulpListResponse<Repository>>(
-          withPaginationParams('/repositories/file/file/', { offset })
+          withPaginationParams('/repositories/file/file/', { offset, ordering })
         ),
         apiService.get<PulpListResponse<Remote>>(withPaginationParams('/remotes/file/file/', { offset: 0 })),
       ]);
@@ -152,6 +155,12 @@ export const FileRepository: React.FC = () => {
   const handlePageChange = (_event: unknown, newPage: number) => {
     setPage(newPage);
     void fetchData(newPage);
+  };
+
+  const handleOrderingChange = (newOrdering: string) => {
+    setOrdering(newOrdering);
+    setPage(0);
+    void fetchData(0);
   };
 
   const handleOpenDialog = (repo?: Repository) => {
@@ -396,6 +405,24 @@ export const FileRepository: React.FC = () => {
             Create Repository
           </Button>
         </Box>
+      </Box>
+
+      <Box display="flex" justifyContent="flex-start" alignItems="center" mb={2}>
+        <TextField
+          select
+          size="small"
+          label="Order by"
+          value={ordering}
+          onChange={(e) => handleOrderingChange(e.target.value)}
+          sx={{ minWidth: 260 }}
+        >
+          <MenuItem value="">Default</MenuItem>
+          {fileRepositoryOrderingOptions.map((opt) => (
+            <MenuItem key={opt.value} value={opt.value}>
+              {opt.label}
+            </MenuItem>
+          ))}
+        </TextField>
       </Box>
 
       <ForegroundSnackbar

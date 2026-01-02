@@ -10,6 +10,7 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
+  MenuItem,
   Paper,
   Snackbar,
   Table,
@@ -25,6 +26,7 @@ import {
 import { Add as AddIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { apiService, DEFAULT_PAGE_SIZE, formatPulpApiError, withPaginationParams } from '../../services/api';
+import { debPackageOrderingOptions } from '../../constants/orderingOptions';
 import { DebPackage, PulpListResponse } from '../../types/pulp';
 import { ForegroundSnackbar } from '../ForegroundSnackbar';
 
@@ -39,6 +41,8 @@ export const DebPackages: React.FC = () => {
 
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
+
+  const [ordering, setOrdering] = useState<string>('');
 
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -62,7 +66,7 @@ export const DebPackages: React.FC = () => {
       setLoading(true);
       const offset = pageToLoad * DEFAULT_PAGE_SIZE;
       const response = await apiService.get<PulpListResponse<DebPackage>>(
-        withPaginationParams('/content/deb/packages/', { offset })
+        withPaginationParams('/content/deb/packages/', { offset, ordering })
       );
       setPackages(response?.results || []);
       setTotalCount(response?.count ?? 0);
@@ -81,6 +85,12 @@ export const DebPackages: React.FC = () => {
   const handlePageChange = (_event: unknown, newPage: number) => {
     setPage(newPage);
     void fetchPackages(newPage);
+  };
+
+  const handleOrderingChange = (newOrdering: string) => {
+    setOrdering(newOrdering);
+    setPage(0);
+    void fetchPackages(0);
   };
 
   const openUpload = () => {
@@ -222,6 +232,25 @@ export const DebPackages: React.FC = () => {
           Upload Package
         </Button>
       </Box>
+
+      <Box display="flex" justifyContent="flex-start" alignItems="center" mb={2}>
+        <TextField
+          select
+          size="small"
+          label="Order by"
+          value={ordering}
+          onChange={(e) => handleOrderingChange(e.target.value)}
+          sx={{ minWidth: 260 }}
+        >
+          <MenuItem value="">Default</MenuItem>
+          {debPackageOrderingOptions.map((opt) => (
+            <MenuItem key={opt.value} value={opt.value}>
+              {opt.label}
+            </MenuItem>
+          ))}
+        </TextField>
+      </Box>
+
       <ForegroundSnackbar
         open={!!error}
         message={error ?? ''}

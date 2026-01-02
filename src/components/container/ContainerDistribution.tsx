@@ -13,6 +13,7 @@ import {
   DialogTitle,
   FormControlLabel,
   IconButton,
+  MenuItem,
   Paper,
   Snackbar,
   Table,
@@ -35,6 +36,7 @@ import { useNavigate } from 'react-router-dom';
 import type { Distribution, Repository } from '../../types/pulp';
 import { containerService } from '../../services/container';
 import { DEFAULT_PAGE_SIZE, formatPulpApiError } from '../../services/api';
+import { containerDistributionOrderingOptions } from '../../constants/orderingOptions';
 import { ForegroundSnackbar } from '../ForegroundSnackbar';
 
 interface DistributionFormData {
@@ -75,6 +77,8 @@ export const ContainerDistribution: React.FC = () => {
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
 
+  const [ordering, setOrdering] = useState<string>('');
+
   const [openDialog, setOpenDialog] = useState(false);
   const [editingDistribution, setEditingDistribution] = useState<Distribution | null>(null);
   const [formData, setFormData] = useState<DistributionFormData>({
@@ -101,7 +105,7 @@ export const ContainerDistribution: React.FC = () => {
     try {
       setLoading(true);
       const offset = pageToLoad * DEFAULT_PAGE_SIZE;
-      const response = await containerService.distributions.list(offset);
+      const response = await containerService.distributions.list(offset, ordering);
       setDistributions(response.results);
       setTotalCount(response.count);
       setError(null);
@@ -122,6 +126,12 @@ export const ContainerDistribution: React.FC = () => {
     } finally {
       setRepositoriesLoading(false);
     }
+  };
+
+  const handleOrderingChange = (newOrdering: string) => {
+    setOrdering(newOrdering);
+    setPage(0);
+    void fetchDistributions(0);
   };
 
   useEffect(() => {
@@ -250,6 +260,25 @@ export const ContainerDistribution: React.FC = () => {
           Create Distribution
         </Button>
       </Box>
+
+      <Box display="flex" justifyContent="flex-start" alignItems="center" mb={2}>
+        <TextField
+          select
+          size="small"
+          label="Order by"
+          value={ordering}
+          onChange={(e) => handleOrderingChange(e.target.value)}
+          sx={{ minWidth: 260 }}
+        >
+          <MenuItem value="">Default</MenuItem>
+          {containerDistributionOrderingOptions.map((opt) => (
+            <MenuItem key={opt.value} value={opt.value}>
+              {opt.label}
+            </MenuItem>
+          ))}
+        </TextField>
+      </Box>
+
       <ForegroundSnackbar
         open={!!error}
         message={error ?? ''}

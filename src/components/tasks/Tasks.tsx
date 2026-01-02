@@ -36,6 +36,7 @@ import {
   withQueryParams,
 } from '../../services/api';
 import { PulpListResponse, Task } from '../../types/pulp';
+import { taskOrderingOptions } from '../../constants/orderingOptions';
 
 export const Tasks: React.FC = () => {
   const TASK_STATES = ['canceled', 'canceling', 'completed', 'failed', 'running', 'skipped', 'waiting'] as const;
@@ -45,6 +46,7 @@ export const Tasks: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [stateFilter, setStateFilter] = useState<string>('');
+  const [ordering, setOrdering] = useState<string>('');
 
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
@@ -52,13 +54,13 @@ export const Tasks: React.FC = () => {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
 
-  const fetchTasks = async (pageToLoad = page) => {
+  const fetchTasks = async (pageToLoad = page, orderingToUse = ordering, stateToUse = stateFilter) => {
     try {
       setLoading(true);
-      const baseEndpoint = stateFilter ? withQueryParams('/tasks/', { state: stateFilter }) : '/tasks/';
+      const baseEndpoint = stateToUse ? withQueryParams('/tasks/', { state: stateToUse }) : '/tasks/';
       const offset = pageToLoad * DEFAULT_PAGE_SIZE;
       const response = await apiService.get<PulpListResponse<Task>>(
-        withPaginationParams(baseEndpoint, { offset })
+        withPaginationParams(baseEndpoint, { offset, ordering: orderingToUse })
       );
       setTasks(response.results);
       setTotalCount(response.count);
@@ -72,9 +74,15 @@ export const Tasks: React.FC = () => {
 
   useEffect(() => {
     setPage(0);
-    fetchTasks(0);
+    fetchTasks(0, ordering, stateFilter);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stateFilter]);
+
+  const handleOrderingChange = (newOrdering: string) => {
+    setOrdering(newOrdering);
+    setPage(0);
+    void fetchTasks(0, newOrdering, stateFilter);
+  };
 
   const handlePageChange = (_event: unknown, newPage: number) => {
     setPage(newPage);
@@ -148,8 +156,8 @@ export const Tasks: React.FC = () => {
         Tasks
       </Typography>
 
-      <Box sx={{ mb: 2, maxWidth: 320 }}>
-        <FormControl fullWidth size="small">
+      <Box sx={{ mb: 2, display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+        <FormControl sx={{ minWidth: 220 }} size="small">
           <InputLabel id="tasks-state-filter-label">State</InputLabel>
           <Select
             labelId="tasks-state-filter-label"
@@ -161,6 +169,23 @@ export const Tasks: React.FC = () => {
             {TASK_STATES.map((s) => (
               <MenuItem key={s} value={s}>
                 {s}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
+        <FormControl sx={{ minWidth: 260 }} size="small">
+          <InputLabel id="tasks-ordering-label">Order by</InputLabel>
+          <Select
+            labelId="tasks-ordering-label"
+            value={ordering}
+            label="Order by"
+            onChange={(e) => handleOrderingChange(String(e.target.value))}
+          >
+            <MenuItem value="">Default</MenuItem>
+            {taskOrderingOptions.map((option) => (
+              <MenuItem key={option.value} value={option.value}>
+                {option.label}
               </MenuItem>
             ))}
           </Select>

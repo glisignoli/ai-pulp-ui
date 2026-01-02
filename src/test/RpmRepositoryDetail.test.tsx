@@ -65,7 +65,7 @@ describe('RpmRepositoryDetail', () => {
     renderAt(repoHref);
 
     await waitFor(() => {
-      expect(screen.getByText('RPM Repository')).toBeInTheDocument();
+      expect(screen.getByText('Repository: test-repo')).toBeInTheDocument();
       expect(screen.getByText('GET Result')).toBeInTheDocument();
     });
 
@@ -109,7 +109,7 @@ describe('RpmRepositoryDetail', () => {
     renderAt(repoHref);
 
     await waitFor(() => {
-      expect(screen.getByText('RPM Repository')).toBeInTheDocument();
+      expect(screen.getByText('Repository: test-repo')).toBeInTheDocument();
     });
 
     expect(screen.queryByRole('button', { name: 'Sync' })).not.toBeInTheDocument();
@@ -139,7 +139,7 @@ describe('RpmRepositoryDetail', () => {
     renderAt(repoHref);
 
     await waitFor(() => {
-      expect(screen.getByText('RPM Repository')).toBeInTheDocument();
+      expect(screen.getByText('Repository: test-repo')).toBeInTheDocument();
     });
 
     fireEvent.click(screen.getByTitle('Edit'));
@@ -180,7 +180,7 @@ describe('RpmRepositoryDetail', () => {
     renderAt(repoHref);
 
     await waitFor(() => {
-      expect(screen.getByText('RPM Repository')).toBeInTheDocument();
+      expect(screen.getByText('Repository: test-repo')).toBeInTheDocument();
     });
 
     fireEvent.click(screen.getByTitle('Edit'));
@@ -220,7 +220,7 @@ describe('RpmRepositoryDetail', () => {
     renderAt(repoHref);
 
     await waitFor(() => {
-      expect(screen.getByText('RPM Repository')).toBeInTheDocument();
+      expect(screen.getByText('Repository: test-repo')).toBeInTheDocument();
     });
 
     fireEvent.click(screen.getByTitle('Edit'));
@@ -252,7 +252,7 @@ describe('RpmRepositoryDetail', () => {
     renderAt(repoHref);
 
     await waitFor(() => {
-      expect(screen.getByText('RPM Repository')).toBeInTheDocument();
+      expect(screen.getByText('Repository: test-repo')).toBeInTheDocument();
     });
 
     fireEvent.click(screen.getByTitle('Delete'));

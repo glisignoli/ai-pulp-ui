@@ -35,6 +35,7 @@ import { useNavigate } from 'react-router-dom';
 import type { Remote } from '../../types/pulp';
 import { containerService } from '../../services/container';
 import { DEFAULT_PAGE_SIZE, formatPulpApiError } from '../../services/api';
+import { containerRemoteOrderingOptions } from '../../constants/orderingOptions';
 import { ForegroundSnackbar } from '../ForegroundSnackbar';
 
 interface RemoteFormData {
@@ -68,6 +69,8 @@ export const ContainerRemote: React.FC = () => {
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
 
+  const [ordering, setOrdering] = useState<string>('');
+
   const [openDialog, setOpenDialog] = useState(false);
   const [editingRemote, setEditingRemote] = useState<Remote | null>(null);
   const [formData, setFormData] = useState<RemoteFormData>({
@@ -91,7 +94,7 @@ export const ContainerRemote: React.FC = () => {
     try {
       setLoading(true);
       const offset = pageToLoad * DEFAULT_PAGE_SIZE;
-      const response = await containerService.remotes.list(offset);
+      const response = await containerService.remotes.list(offset, ordering);
       setRemotes(response.results);
       setTotalCount(response.count);
       setError(null);
@@ -109,6 +112,12 @@ export const ContainerRemote: React.FC = () => {
   const handlePageChange = (_event: unknown, newPage: number) => {
     setPage(newPage);
     void fetchRemotes(newPage);
+  };
+
+  const handleOrderingChange = (newOrdering: string) => {
+    setOrdering(newOrdering);
+    setPage(0);
+    void fetchRemotes(0);
   };
 
   const handleOpenDialog = (remote?: Remote) => {
@@ -230,6 +239,25 @@ export const ContainerRemote: React.FC = () => {
           Create Remote
         </Button>
       </Box>
+
+      <Box display="flex" justifyContent="flex-start" alignItems="center" mb={2}>
+        <TextField
+          select
+          size="small"
+          label="Order by"
+          value={ordering}
+          onChange={(e) => handleOrderingChange(e.target.value)}
+          sx={{ minWidth: 260 }}
+        >
+          <MenuItem value="">Default</MenuItem>
+          {containerRemoteOrderingOptions.map((opt) => (
+            <MenuItem key={opt.value} value={opt.value}>
+              {opt.label}
+            </MenuItem>
+          ))}
+        </TextField>
+      </Box>
+
       <ForegroundSnackbar
         open={!!error}
         message={error ?? ''}

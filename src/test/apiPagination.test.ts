@@ -13,6 +13,12 @@ describe('api pagination helpers', () => {
     );
   });
 
+  it('adds ordering and preserves existing query params', () => {
+    expect(withPaginationParams('/tasks/?state=running', { offset: 25, ordering: '-pulp_created' })).toBe(
+      `/tasks/?state=running&limit=${DEFAULT_PAGE_SIZE}&offset=25&ordering=-pulp_created`
+    );
+  });
+
   it('withQueryParams merges and overwrites keys', () => {
     expect(withQueryParams('/foo/?a=1', { a: 2, b: 'x' })).toBe('/foo/?a=2&b=x');
   });
