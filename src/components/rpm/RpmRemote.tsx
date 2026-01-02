@@ -32,30 +32,7 @@ import { apiService, DEFAULT_PAGE_SIZE, formatPulpApiError, withPaginationParams
 import { rpmRemoteOrderingOptions } from '../../constants/orderingOptions';
 import { Remote, PulpListResponse } from '../../types/pulp';
 import { ForegroundSnackbar } from '../ForegroundSnackbar';
-
-function parsePulpLabelsJson(input: string): { labels: Record<string, string> | null; error: string | null } {
-  const trimmed = input.trim();
-  if (!trimmed) return { labels: null, error: null };
-
-  try {
-    const parsed: unknown = JSON.parse(trimmed);
-    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-      return { labels: null, error: 'Invalid pulp_labels JSON (must be an object of string values)' };
-    }
-    for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
-      if (typeof value !== 'string') {
-        return { labels: null, error: 'Invalid pulp_labels JSON (must be an object of string values)' };
-      }
-      if (typeof key !== 'string') {
-        return { labels: null, error: 'Invalid pulp_labels JSON (must be an object of string values)' };
-      }
-    }
-
-    return { labels: parsed as Record<string, string>, error: null };
-  } catch {
-    return { labels: null, error: 'Invalid pulp_labels JSON (must be an object of string values)' };
-  }
-}
+import { parsePulpLabelsJson } from '../../utils/pulp';
 
 function parseHeadersJson(input: string): { headers: Record<string, string> | null; error: string | null } {
   const trimmed = input.trim();

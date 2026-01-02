@@ -22,6 +22,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { apiService, formatPulpApiError } from '../../services/api';
 import { toExposedBackendUrl } from '../../services/exposedBackend';
 import { PulpListResponse, Publication, Repository, Distribution } from '../../types/pulp';
+import { parsePulpLabelsJson, stripPulpOrigin } from '../../utils/pulp';
 
 interface DistributionFormData {
   name: string;
@@ -33,32 +34,6 @@ interface DistributionFormData {
   generate_repo_config: boolean;
   checkpoint: boolean;
 }
-
-const parsePulpLabelsJson = (
-  input: string
-): { labels: Record<string, string> | null; error: string | null } => {
-  const trimmed = input.trim();
-  if (!trimmed) return { labels: null, error: null };
-
-  try {
-    const parsed = JSON.parse(trimmed) as unknown;
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-      return { labels: null, error: 'Invalid pulp_labels JSON (must be an object of string values)' };
-    }
-
-    const record: Record<string, string> = {};
-    for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
-      if (typeof value !== 'string') {
-        return { labels: null, error: 'Invalid pulp_labels JSON (must be an object of string values)' };
-      }
-      record[key] = value;
-    }
-
-    return { labels: record, error: null };
-  } catch {
-    return { labels: null, error: 'Invalid pulp_labels JSON (must be an object of string values)' };
-  }
-};
 
 export const RpmDistributionDetail: React.FC = () => {
   const navigate = useNavigate();
@@ -91,20 +66,6 @@ export const RpmDistributionDetail: React.FC = () => {
 
   const [pulpLabelsJson, setPulpLabelsJson] = useState('');
   const [pulpLabelsJsonError, setPulpLabelsJsonError] = useState<string | null>(null);
-
-  const stripPulpOrigin = (href: string) => {
-    const trimmed = href.trim();
-    if (!trimmed) return '';
-    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-      try {
-        const parsed = new URL(trimmed);
-        return parsed.pathname;
-      } catch {
-        return trimmed;
-      }
-    }
-    return trimmed;
-  };
 
   const fetchDistribution = async () => {
     if (!href) {

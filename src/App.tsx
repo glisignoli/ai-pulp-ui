@@ -49,6 +49,8 @@ import {
   ContainerRepositoryDetail,
 } from './components/container';
 
+import { ROUTES } from './constants/routes';
+
 const theme = createTheme({
   palette: {
     primary: {
@@ -67,9 +69,9 @@ function App() {
       <AuthProvider>
         <BrowserRouter>
           <Routes>
-            <Route path="/login" element={<Login />} />
+            <Route path={ROUTES.LOGIN} element={<Login />} />
             <Route
-              path="/"
+              path={ROUTES.ROOT}
               element={
                 <ProtectedRoute>
                   <Layout>
@@ -79,53 +81,56 @@ function App() {
               }
             >
               <Route index element={<Dashboard />} />
-              <Route path="rpm/distribution" element={<RpmDistribution />} />
-              <Route path="rpm/distribution/view" element={<RpmDistributionDetail />} />
-              <Route path="rpm/publication" element={<RpmPublication />} />
-              <Route path="rpm/publication/view" element={<RpmPublicationDetail />} />
-              <Route path="rpm/remote" element={<RpmRemote />} />
-              <Route path="rpm/remote/view" element={<RpmRemoteDetail />} />
-              <Route path="rpm/repository" element={<RpmRepository />} />
-              <Route path="rpm/repository/view" element={<RpmRepositoryDetail />} />
-              <Route path="rpm/content/packages" element={<RpmPackages />} />
-              <Route path="rpm/content/packages/view" element={<RpmPackageDetail />} />
+              <Route path={ROUTES.RPM.DISTRIBUTION} element={<RpmDistribution />} />
+              <Route path={ROUTES.RPM.DISTRIBUTION_VIEW} element={<RpmDistributionDetail />} />
+              <Route path={ROUTES.RPM.PUBLICATION} element={<RpmPublication />} />
+              <Route path={ROUTES.RPM.PUBLICATION_VIEW} element={<RpmPublicationDetail />} />
+              <Route path={ROUTES.RPM.REMOTE} element={<RpmRemote />} />
+              <Route path={ROUTES.RPM.REMOTE_VIEW} element={<RpmRemoteDetail />} />
+              <Route path={ROUTES.RPM.REPOSITORY} element={<RpmRepository />} />
+              <Route path={ROUTES.RPM.REPOSITORY_VIEW} element={<RpmRepositoryDetail />} />
+              <Route path={ROUTES.RPM.PACKAGES} element={<RpmPackages />} />
+              <Route path={ROUTES.RPM.PACKAGES_VIEW} element={<RpmPackageDetail />} />
 
-              <Route path="file/distribution" element={<FileDistribution />} />
-              <Route path="file/distribution/view" element={<FileDistributionDetail />} />
-              <Route path="file/content/files" element={<FileContentFiles />} />
-              <Route path="file/content/files/view" element={<FileContentFileDetail />} />
-              <Route path="file/publication" element={<FilePublication />} />
-              <Route path="file/publication/view" element={<FilePublicationDetail />} />
-              <Route path="file/remote" element={<FileRemote />} />
-              <Route path="file/remote/view" element={<FileRemoteDetail />} />
-              <Route path="file/repository" element={<FileRepository />} />
-              <Route path="file/repository/view" element={<FileRepositoryDetail />} />
+              <Route path={ROUTES.FILE.DISTRIBUTION} element={<FileDistribution />} />
+              <Route path={ROUTES.FILE.DISTRIBUTION_VIEW} element={<FileDistributionDetail />} />
+              <Route path={ROUTES.FILE.CONTENT_FILES} element={<FileContentFiles />} />
+              <Route path={ROUTES.FILE.CONTENT_FILES_VIEW} element={<FileContentFileDetail />} />
+              <Route path={ROUTES.FILE.PUBLICATION} element={<FilePublication />} />
+              <Route path={ROUTES.FILE.PUBLICATION_VIEW} element={<FilePublicationDetail />} />
+              <Route path={ROUTES.FILE.REMOTE} element={<FileRemote />} />
+              <Route path={ROUTES.FILE.REMOTE_VIEW} element={<FileRemoteDetail />} />
+              <Route path={ROUTES.FILE.REPOSITORY} element={<FileRepository />} />
+              <Route path={ROUTES.FILE.REPOSITORY_VIEW} element={<FileRepositoryDetail />} />
 
-              <Route path="deb/distribution" element={<DebDistribution />} />
-              <Route path="deb/distribution/view" element={<DebDistributionDetail />} />
-              <Route path="deb/publication" element={<DebPublication />} />
-              <Route path="deb/publication/view" element={<DebPublicationDetail />} />
-              <Route path="deb/remote" element={<DebRemote />} />
-              <Route path="deb/remote/view" element={<DebRemoteDetail />} />
-              <Route path="deb/repository" element={<DebRepository />} />
-              <Route path="deb/repository/view" element={<DebRepositoryDetail />} />
-              <Route path="deb/content/packages" element={<DebPackages />} />
-              <Route path="deb/content/packages/view" element={<DebPackageDetail />} />
+              <Route path={ROUTES.DEB.DISTRIBUTION} element={<DebDistribution />} />
+              <Route path={ROUTES.DEB.DISTRIBUTION_VIEW} element={<DebDistributionDetail />} />
+              <Route path={ROUTES.DEB.PUBLICATION} element={<DebPublication />} />
+              <Route path={ROUTES.DEB.PUBLICATION_VIEW} element={<DebPublicationDetail />} />
+              <Route path={ROUTES.DEB.REMOTE} element={<DebRemote />} />
+              <Route path={ROUTES.DEB.REMOTE_VIEW} element={<DebRemoteDetail />} />
+              <Route path={ROUTES.DEB.REPOSITORY} element={<DebRepository />} />
+              <Route path={ROUTES.DEB.REPOSITORY_VIEW} element={<DebRepositoryDetail />} />
+              <Route path={ROUTES.DEB.PACKAGES} element={<DebPackages />} />
+              <Route path={ROUTES.DEB.PACKAGES_VIEW} element={<DebPackageDetail />} />
 
-              <Route path="tasks" element={<Tasks />} />
-              <Route path="tasks/view" element={<TaskDetail />} />
+              <Route path={ROUTES.TASKS.ROOT} element={<Tasks />} />
+              <Route path={ROUTES.TASKS.VIEW} element={<TaskDetail />} />
 
-              <Route path="container/distribution" element={<ContainerDistribution />} />
+              <Route path={ROUTES.CONTAINER.DISTRIBUTION} element={<ContainerDistribution />} />
               <Route
-                path="container/distribution/view"
+                path={ROUTES.CONTAINER.DISTRIBUTION_VIEW}
                 element={<ContainerDistributionDetail />}
               />
-              <Route path="container/remote" element={<ContainerRemote />} />
-              <Route path="container/remote/view" element={<ContainerRemoteDetail />} />
-              <Route path="container/repository" element={<ContainerRepository />} />
-              <Route path="container/repository/view" element={<ContainerRepositoryDetail />} />
+              <Route path={ROUTES.CONTAINER.REMOTE} element={<ContainerRemote />} />
+              <Route path={ROUTES.CONTAINER.REMOTE_VIEW} element={<ContainerRemoteDetail />} />
+              <Route path={ROUTES.CONTAINER.REPOSITORY} element={<ContainerRepository />} />
+              <Route
+                path={ROUTES.CONTAINER.REPOSITORY_VIEW}
+                element={<ContainerRepositoryDetail />}
+              />
             </Route>
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<Navigate to={ROUTES.ROOT} replace />} />
           </Routes>
         </BrowserRouter>
       </AuthProvider>

@@ -28,10 +28,13 @@ import {
 } from '@mui/material';
 import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { apiService, DEFAULT_PAGE_SIZE, formatPulpApiError, withPaginationParams } from '../../services/api';
+import { DEFAULT_PAGE_SIZE, formatPulpApiError } from '../../services/api';
 import { debDistributionOrderingOptions } from '../../constants/orderingOptions';
 import { Distribution, Publication, PulpListResponse, Repository } from '../../types/pulp';
 import { ForegroundSnackbar } from '../ForegroundSnackbar';
+import { parsePulpLabelsJson, stripPulpOrigin } from '../../utils/pulp';
+import { debService } from '../../services/deb';
+import { usePulpList } from '../../hooks/usePulpList';
 
 interface DistributionFormData {
   name: string;
@@ -43,62 +46,32 @@ interface DistributionFormData {
   checkpoint: boolean;
 }
 
-const parsePulpLabelsJson = (
-  input: string
-): { labels: Record<string, string> | null; error: string | null } => {
-  const trimmed = input.trim();
-  if (!trimmed) return { labels: null, error: null };
-
-  try {
-    const parsed = JSON.parse(trimmed) as unknown;
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-      return { labels: null, error: 'Invalid pulp_labels JSON (must be an object of string values)' };
-    }
-
-    const record: Record<string, string> = {};
-    for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
-      if (typeof value !== 'string') {
-        return { labels: null, error: 'Invalid pulp_labels JSON (must be an object of string values)' };
-      }
-      record[key] = value;
-    }
-
-    return { labels: record, error: null };
-  } catch {
-    return { labels: null, error: 'Invalid pulp_labels JSON (must be an object of string values)' };
-  }
-};
-
-const stripPulpOrigin = (href: string) => {
-  const trimmed = href.trim();
-  if (!trimmed) return '';
-  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-    try {
-      const parsed = new URL(trimmed);
-      return parsed.pathname;
-    } catch {
-      return trimmed;
-    }
-  }
-  return trimmed;
-};
+ 
 
 export const DebDistribution: React.FC = () => {
   const navigate = useNavigate();
 
-  const [distributions, setDistributions] = useState<Distribution[]>([]);
+  const {
+    items: distributions,
+    loading,
+    error,
+    setError,
+    page,
+    totalCount,
+    ordering,
+    handlePageChange,
+    handleOrderingChange,
+    refresh: refreshDistributions,
+  } = usePulpList<Distribution>({
+    list: debService.distributions.list,
+    pageSize: DEFAULT_PAGE_SIZE,
+    errorMessage: 'Failed to load distributions',
+  });
   const [publications, setPublications] = useState<Publication[]>([]);
   const [repositories, setRepositories] = useState<Repository[]>([]);
 
-  const [loading, setLoading] = useState(true);
   const [publicationsLoading, setPublicationsLoading] = useState(false);
   const [repositoriesLoading, setRepositoriesLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const [page, setPage] = useState(0);
-  const [totalCount, setTotalCount] = useState(0);
-
-  const [ordering, setOrdering] = useState<string>('');
 
   const [openDialog, setOpenDialog] = useState(false);
   const [editingDistribution, setEditingDistribution] = useState<Distribution | null>(null);
@@ -119,29 +92,10 @@ export const DebDistribution: React.FC = () => {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [distributionToDelete, setDistributionToDelete] = useState<Distribution | null>(null);
 
-  const fetchDistributions = async (pageToLoad = page) => {
-    try {
-      setLoading(true);
-      const offset = pageToLoad * DEFAULT_PAGE_SIZE;
-      const response = await apiService.get<PulpListResponse<Distribution>>(
-        withPaginationParams('/distributions/deb/apt/', { offset, ordering })
-      );
-      setDistributions(response.results);
-      setTotalCount(response.count);
-      setError(null);
-    } catch {
-      setError('Failed to load distributions');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const fetchPublications = async () => {
     try {
       setPublicationsLoading(true);
-      const response = await apiService.get<PulpListResponse<Publication>>(
-        withPaginationParams('/publications/deb/apt/', { offset: 0 })
-      );
+      const response = await debService.publications.list(0);
       setPublications(response.results);
     } catch {
       // optional
@@ -153,9 +107,7 @@ export const DebDistribution: React.FC = () => {
   const fetchRepositories = async () => {
     try {
       setRepositoriesLoading(true);
-      const response = await apiService.get<PulpListResponse<Repository>>(
-        withPaginationParams('/repositories/deb/apt/', { offset: 0 })
-      );
+      const response = await debService.repositories.list(0);
       setRepositories(response.results);
     } catch {
       // optional
@@ -165,21 +117,9 @@ export const DebDistribution: React.FC = () => {
   };
 
   useEffect(() => {
-    void fetchDistributions(0);
     void fetchPublications();
     void fetchRepositories();
   }, []);
-
-  const handlePageChange = (_event: unknown, newPage: number) => {
-    setPage(newPage);
-    void fetchDistributions(newPage);
-  };
-
-  const handleOrderingChange = (newOrdering: string) => {
-    setOrdering(newOrdering);
-    setPage(0);
-    void fetchDistributions(0);
-  };
 
   const handleOpenDialog = (distribution?: Distribution) => {
     if (distribution) {
@@ -252,15 +192,15 @@ export const DebDistribution: React.FC = () => {
       }
 
       if (editingDistribution) {
-        await apiService.put(editingDistribution.pulp_href, payload);
+        await debService.distributions.update(editingDistribution.pulp_href, payload);
         setSuccessMessage('Distribution updated successfully');
       } else {
-        await apiService.post('/distributions/deb/apt/', payload);
+        await debService.distributions.create(payload);
         setSuccessMessage('Distribution create task started');
       }
 
       handleCloseDialog();
-      await fetchDistributions();
+      refreshDistributions();
     } catch (error) {
       setError(formatPulpApiError(error, `Failed to ${editingDistribution ? 'update' : 'create'} distribution`));
     }
@@ -274,11 +214,11 @@ export const DebDistribution: React.FC = () => {
   const handleDeleteConfirm = async () => {
     if (!distributionToDelete) return;
     try {
-      await apiService.delete(distributionToDelete.pulp_href);
+      await debService.distributions.delete(distributionToDelete.pulp_href);
       setSuccessMessage('Distribution delete task started');
       setDeleteConfirmOpen(false);
       setDistributionToDelete(null);
-      await fetchDistributions();
+      refreshDistributions();
     } catch (error) {
       setError(formatPulpApiError(error, 'Failed to delete distribution'));
       setDeleteConfirmOpen(false);

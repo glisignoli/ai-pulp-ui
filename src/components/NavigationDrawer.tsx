@@ -26,6 +26,7 @@ import {
   ExpandMore,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
+import { ROUTES } from '../constants/routes';
 
 const DRAWER_WIDTH = 240;
 const DRAWER_WIDTH_COLLAPSED = 60;
@@ -40,58 +41,58 @@ interface NavigationItem {
 const navigationItems: NavigationItem[] = [
   {
     title: 'Home',
-    path: '/',
+    path: ROUTES.ROOT,
     icon: <Home />,
   },
   {
     title: 'Container',
-    path: '/container',
+    path: ROUTES.CONTAINER.ROOT,
     icon: <Storage />,
     children: [
-      { title: 'Distributions', path: '/container/distribution', icon: <Cloud /> },
-      { title: 'Remotes', path: '/container/remote', icon: <Cloud /> },
-      { title: 'Repositories', path: '/container/repository', icon: <Folder /> },
+      { title: 'Distributions', path: ROUTES.CONTAINER.DISTRIBUTION, icon: <Cloud /> },
+      { title: 'Remotes', path: ROUTES.CONTAINER.REMOTE, icon: <Cloud /> },
+      { title: 'Repositories', path: ROUTES.CONTAINER.REPOSITORY, icon: <Folder /> },
     ],
   },
   {
     title: 'DEB',
-    path: '/deb',
+    path: ROUTES.DEB.ROOT,
     icon: <Storage />,
     children: [
-      { title: 'Distribution', path: '/deb/distribution', icon: <Cloud /> },
-      { title: 'Packages', path: '/deb/content/packages', icon: <Inventory2 /> },
-      { title: 'Publication', path: '/deb/publication', icon: <Article /> },
-      { title: 'Remote', path: '/deb/remote', icon: <Cloud /> },
-      { title: 'Repository', path: '/deb/repository', icon: <Folder /> },
+      { title: 'Distribution', path: ROUTES.DEB.DISTRIBUTION, icon: <Cloud /> },
+      { title: 'Packages', path: ROUTES.DEB.PACKAGES, icon: <Inventory2 /> },
+      { title: 'Publication', path: ROUTES.DEB.PUBLICATION, icon: <Article /> },
+      { title: 'Remote', path: ROUTES.DEB.REMOTE, icon: <Cloud /> },
+      { title: 'Repository', path: ROUTES.DEB.REPOSITORY, icon: <Folder /> },
     ],
   },
   {
     title: 'File',
-    path: '/file',
+    path: ROUTES.FILE.ROOT,
     icon: <Article />,
     children: [
-      { title: 'Distribution', path: '/file/distribution', icon: <Cloud /> },
-      { title: 'Files', path: '/file/content/files', icon: <Inventory2 /> },
-      { title: 'Publication', path: '/file/publication', icon: <Article /> },
-      { title: 'Remote', path: '/file/remote', icon: <Cloud /> },
-      { title: 'Repository', path: '/file/repository', icon: <Folder /> },
+      { title: 'Distribution', path: ROUTES.FILE.DISTRIBUTION, icon: <Cloud /> },
+      { title: 'Files', path: ROUTES.FILE.CONTENT_FILES, icon: <Inventory2 /> },
+      { title: 'Publication', path: ROUTES.FILE.PUBLICATION, icon: <Article /> },
+      { title: 'Remote', path: ROUTES.FILE.REMOTE, icon: <Cloud /> },
+      { title: 'Repository', path: ROUTES.FILE.REPOSITORY, icon: <Folder /> },
     ],
   },
   {
     title: 'RPM',
-    path: '/rpm',
+    path: ROUTES.RPM.ROOT,
     icon: <Storage />,
     children: [
-      { title: 'Distribution', path: '/rpm/distribution', icon: <Cloud /> },
-      { title: 'Packages', path: '/rpm/content/packages', icon: <Inventory2 /> },
-      { title: 'Publication', path: '/rpm/publication', icon: <Article /> },
-      { title: 'Remote', path: '/rpm/remote', icon: <Cloud /> },
-      { title: 'Repository', path: '/rpm/repository', icon: <Folder /> },
+      { title: 'Distribution', path: ROUTES.RPM.DISTRIBUTION, icon: <Cloud /> },
+      { title: 'Packages', path: ROUTES.RPM.PACKAGES, icon: <Inventory2 /> },
+      { title: 'Publication', path: ROUTES.RPM.PUBLICATION, icon: <Article /> },
+      { title: 'Remote', path: ROUTES.RPM.REMOTE, icon: <Cloud /> },
+      { title: 'Repository', path: ROUTES.RPM.REPOSITORY, icon: <Folder /> },
     ],
   },
   {
     title: 'Tasks',
-    path: '/tasks',
+    path: ROUTES.TASKS.ROOT,
     icon: <Assignment />,
   },
 ];
@@ -191,3 +192,4 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({ open, onTogg
     </Drawer>
   );
 };
+

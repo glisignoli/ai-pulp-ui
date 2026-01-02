@@ -23,6 +23,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { Distribution, Repository } from '../../types/pulp';
 import { containerService } from '../../services/container';
 import { formatPulpApiError } from '../../services/api';
+import { stripPulpOrigin } from '../../utils/pulp';
 
 interface DistributionFormData {
   name: string;
@@ -34,20 +35,6 @@ interface DistributionFormData {
   private: boolean;
   description: string;
 }
-
-const stripPulpOrigin = (href: string) => {
-  const trimmed = href.trim();
-  if (!trimmed) return '';
-  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-    try {
-      const parsed = new URL(trimmed);
-      return parsed.pathname;
-    } catch {
-      return trimmed;
-    }
-  }
-  return trimmed;
-};
 
 export const ContainerDistributionDetail: React.FC = () => {
   const navigate = useNavigate();

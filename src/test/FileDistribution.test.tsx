@@ -112,4 +112,49 @@ describe('FileDistribution Component', () => {
 
     expect(apiService.post).not.toHaveBeenCalled();
   });
+
+  it('requests distributions with ordering and pagination params', async () => {
+    const user = userEvent.setup();
+
+    // Use count > pageSize (25) so the "next page" button is enabled.
+    const emptyList = { count: 26, next: null, previous: null, results: [] };
+    vi.mocked(apiService.get).mockResolvedValue(emptyList);
+
+    renderFileDistribution();
+
+    // Wait for load.
+    await screen.findByText('File Distributions');
+
+    await user.click(screen.getByLabelText(/go to next page/i));
+    await waitFor(() => {
+      const calledWithOffset25 = vi
+        .mocked(apiService.get)
+        .mock.calls.some(
+          ([url]) =>
+            typeof url === 'string' &&
+            url.includes('/distributions/file/file/') &&
+            url.includes('limit=25') &&
+            url.includes('offset=25')
+        );
+      expect(calledWithOffset25).toBe(true);
+    });
+
+    const orderBy = screen.getByLabelText(/order by/i);
+    await user.click(orderBy);
+    await user.click(await screen.findByRole('option', { name: /^name$/i }));
+
+    await waitFor(() => {
+      const calledWithOrdering = vi
+        .mocked(apiService.get)
+        .mock.calls.some(
+          ([url]) =>
+            typeof url === 'string' &&
+            url.includes('/distributions/file/file/') &&
+            url.includes('limit=25') &&
+            url.includes('offset=0') &&
+            url.includes('ordering=name')
+        );
+      expect(calledWithOrdering).toBe(true);
+    });
+  });
 });

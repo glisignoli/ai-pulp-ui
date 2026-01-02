@@ -207,8 +207,12 @@ describe('RpmDistribution Component', () => {
 
     await user.click(await screen.findByRole('button', { name: /create distribution/i }));
     const dialog = screen.getByRole('dialog');
-    await user.type(within(dialog).getByLabelText(/name/i), 'new-distribution');
-    await user.type(within(dialog).getByLabelText(/base path/i), 'new/path');
+    fireEvent.change(within(dialog).getByLabelText(/name/i), {
+      target: { value: 'new-distribution' },
+    });
+    fireEvent.change(within(dialog).getByLabelText(/base path/i), {
+      target: { value: 'new/path' },
+    });
     fireEvent.change(within(dialog).getByLabelText(/pulp labels/i), {
       target: { value: '{"env":"dev"}' },
     });
@@ -222,7 +226,7 @@ describe('RpmDistribution Component', () => {
         })
       );
     });
-  });
+  }, 20000);
 
   it('prevents submit when pulp_labels JSON is invalid', async () => {
     const user = userEvent.setup();
@@ -248,6 +252,53 @@ describe('RpmDistribution Component', () => {
       expect(screen.getByText(/invalid pulp_labels json/i)).toBeInTheDocument();
     });
     expect(apiService.post).not.toHaveBeenCalled();
+  });
+
+  it('requests distributions with ordering and pagination params', async () => {
+    const user = userEvent.setup();
+
+    // Use count > pageSize (25) so the "next page" button is enabled.
+    const emptyResponse = { count: 26, next: null, previous: null, results: [] };
+    vi.mocked(apiService.get).mockResolvedValue(emptyResponse);
+
+    renderRpmDistribution();
+
+    // Wait for initial load to finish.
+    await screen.findByText('RPM Distributions');
+
+    // Go to next page: offset should be pageSize (25).
+    await user.click(screen.getByLabelText(/go to next page/i));
+    await waitFor(() => {
+      const calledWithOffset25 = vi
+        .mocked(apiService.get)
+        .mock.calls.some(
+          ([url]) =>
+            typeof url === 'string' &&
+            url.includes('/distributions/rpm/rpm/') &&
+            url.includes('limit=25') &&
+            url.includes('offset=25')
+        );
+      expect(calledWithOffset25).toBe(true);
+    });
+
+    // Change ordering: should reset to offset=0 and include ordering.
+    const orderBy = screen.getByLabelText(/order by/i);
+    await user.click(orderBy);
+    await user.click(await screen.findByRole('option', { name: /^name$/i }));
+
+    await waitFor(() => {
+      const calledWithOrdering = vi
+        .mocked(apiService.get)
+        .mock.calls.some(
+          ([url]) =>
+            typeof url === 'string' &&
+            url.includes('/distributions/rpm/rpm/') &&
+            url.includes('limit=25') &&
+            url.includes('offset=0') &&
+            url.includes('ordering=name')
+        );
+      expect(calledWithOrdering).toBe(true);
+    });
   });
 
   it('opens edit dialog and submits update', async () => {

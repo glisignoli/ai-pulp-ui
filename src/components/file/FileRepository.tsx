@@ -38,6 +38,7 @@ import { apiService, DEFAULT_PAGE_SIZE, formatPulpApiError, withPaginationParams
 import { fileRepositoryOrderingOptions } from '../../constants/orderingOptions';
 import { PulpListResponse, Remote, Repository } from '../../types/pulp';
 import { ForegroundSnackbar } from '../ForegroundSnackbar';
+import { parsePulpLabelsJson } from '../../utils/pulp';
 
 interface RepositoryFormData {
   name: string;
@@ -47,32 +48,6 @@ interface RepositoryFormData {
   autopublish: boolean;
   manifest: string;
 }
-
-const parsePulpLabelsJson = (
-  input: string
-): { labels: Record<string, string> | null; error: string | null } => {
-  const trimmed = input.trim();
-  if (!trimmed) return { labels: null, error: null };
-
-  try {
-    const parsed = JSON.parse(trimmed) as unknown;
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-      return { labels: null, error: 'Invalid pulp_labels JSON (must be an object of string values)' };
-    }
-
-    const record: Record<string, string> = {};
-    for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
-      if (typeof value !== 'string') {
-        return { labels: null, error: 'Invalid pulp_labels JSON (must be an object of string values)' };
-      }
-      record[key] = value;
-    }
-
-    return { labels: record, error: null };
-  } catch {
-    return { labels: null, error: 'Invalid pulp_labels JSON (must be an object of string values)' };
-  }
-};
 
 interface FileUploadFormState {
   repository: string;

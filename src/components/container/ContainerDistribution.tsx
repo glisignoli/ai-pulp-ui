@@ -38,6 +38,7 @@ import { containerService } from '../../services/container';
 import { DEFAULT_PAGE_SIZE, formatPulpApiError } from '../../services/api';
 import { containerDistributionOrderingOptions } from '../../constants/orderingOptions';
 import { ForegroundSnackbar } from '../ForegroundSnackbar';
+import { stripPulpOrigin } from '../../utils/pulp';
 
 interface DistributionFormData {
   name: string;
@@ -49,20 +50,6 @@ interface DistributionFormData {
   private: boolean;
   description: string;
 }
-
-const stripPulpOrigin = (href: string) => {
-  const trimmed = href.trim();
-  if (!trimmed) return '';
-  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-    try {
-      const parsed = new URL(trimmed);
-      return parsed.pathname;
-    } catch {
-      return trimmed;
-    }
-  }
-  return trimmed;
-};
 
 export const ContainerDistribution: React.FC = () => {
   const navigate = useNavigate();

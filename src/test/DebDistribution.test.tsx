@@ -164,4 +164,52 @@ describe('DebDistribution', () => {
     });
     expect(apiService.post).not.toHaveBeenCalled();
   });
+
+  it('requests distributions with ordering and pagination params', async () => {
+    const user = userEvent.setup();
+
+    // Use count > pageSize (25) so the "next page" button is enabled.
+    const emptyResponse = { count: 26, next: null, previous: null, results: [] };
+    vi.mocked(apiService.get).mockResolvedValue(emptyResponse);
+
+    render(
+      <MemoryRouter>
+        <DebDistribution />
+      </MemoryRouter>
+    );
+
+    await screen.findByText('DEB Distributions');
+
+    await user.click(screen.getByLabelText(/go to next page/i));
+    await waitFor(() => {
+      const calledWithOffset25 = vi
+        .mocked(apiService.get)
+        .mock.calls.some(
+          ([url]) =>
+            typeof url === 'string' &&
+            url.includes('/distributions/deb/apt/') &&
+            url.includes('limit=25') &&
+            url.includes('offset=25')
+        );
+      expect(calledWithOffset25).toBe(true);
+    });
+
+    const orderBy = screen.getByLabelText(/order by/i);
+    await user.click(orderBy);
+    await user.click(await screen.findByRole('option', { name: /^name$/i }));
+
+    await waitFor(() => {
+      const calledWithOrdering = vi
+        .mocked(apiService.get)
+        .mock.calls.some(
+          ([url]) =>
+            typeof url === 'string' &&
+            url.includes('/distributions/deb/apt/') &&
+            url.includes('limit=25') &&
+            url.includes('offset=0') &&
+            url.includes('ordering=name')
+        );
+      expect(calledWithOrdering).toBe(true);
+    });
+  });
 });
