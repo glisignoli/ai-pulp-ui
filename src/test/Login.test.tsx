@@ -32,7 +32,7 @@ describe('Login Component', () => {
   it('renders login form', () => {
     renderLogin();
     
-    expect(screen.getByText('Pulp UI')).toBeInTheDocument();
+    expect(screen.getByText('AI Pulp UI')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /sign in/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/username/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/password/i)).toBeInTheDocument();

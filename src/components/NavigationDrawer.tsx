@@ -14,6 +14,7 @@ import {
 } from '@mui/material';
 import {
   Home,
+  People,
   Assignment,
   Storage,
   Article,
@@ -43,6 +44,21 @@ const navigationItems: NavigationItem[] = [
     title: 'Home',
     path: ROUTES.ROOT,
     icon: <Home />,
+  },
+  {
+    title: 'About',
+    path: ROUTES.ABOUT,
+    icon: <Article />,
+  },
+  {
+    title: 'Management',
+    path: ROUTES.MANAGEMENT.ROOT,
+    icon: <Storage />,
+    children: [
+      { title: 'Users', path: ROUTES.USERS, icon: <People /> },
+      { title: 'Orphans Cleanup', path: ROUTES.MANAGEMENT.ORPHANS_CLEANUP, icon: <Assignment /> },
+      { title: 'Repair', path: ROUTES.MANAGEMENT.REPAIR, icon: <Assignment /> },
+    ],
   },
   {
     title: 'Container',

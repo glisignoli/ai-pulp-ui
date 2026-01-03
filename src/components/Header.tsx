@@ -16,7 +16,7 @@ export const Header: React.FC = () => {
     <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
       <Toolbar>
         <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-          Pulp UI
+          AI Pulp UI
         </Typography>
         {isAuthenticated && (
           <Box>

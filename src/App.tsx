@@ -49,6 +49,13 @@ import {
   ContainerRepositoryDetail,
 } from './components/container';
 
+import { Users } from './components/users/Users';
+
+import { OrphansCleanup } from './components/management/OrphansCleanup';
+import { Repair } from './components/management/Repair';
+
+import { About } from './components/About';
+
 import { ROUTES } from './constants/routes';
 
 const theme = createTheme({
@@ -83,6 +90,7 @@ function App() {
               }
             >
               <Route index element={<Dashboard />} />
+              <Route path={ROUTES.ABOUT} element={<About />} />
               <Route path={ROUTES.RPM.DISTRIBUTION} element={<RpmDistribution />} />
               <Route path={ROUTES.RPM.DISTRIBUTION_VIEW} element={<RpmDistributionDetail />} />
               <Route path={ROUTES.RPM.PUBLICATION} element={<RpmPublication />} />
@@ -131,6 +139,11 @@ function App() {
                 path={ROUTES.CONTAINER.REPOSITORY_VIEW}
                 element={<ContainerRepositoryDetail />}
               />
+
+              <Route path={ROUTES.USERS} element={<Users />} />
+
+              <Route path={ROUTES.MANAGEMENT.ORPHANS_CLEANUP} element={<OrphansCleanup />} />
+              <Route path={ROUTES.MANAGEMENT.REPAIR} element={<Repair />} />
             </Route>
             <Route path="*" element={<Navigate to={ROUTES.ROOT} replace />} />
           </Routes>

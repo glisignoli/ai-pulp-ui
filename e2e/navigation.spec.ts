@@ -10,6 +10,26 @@ test.describe('Navigation Tests', () => {
     }, ADMIN_TOKEN);
   });
 
+  test('can fill Orphans Cleanup content hrefs', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+
+    const drawer = page.locator('.MuiDrawer-paper');
+    await drawer.getByRole('button', { name: 'Management', exact: true }).click();
+    await drawer.getByRole('button', { name: 'Orphans Cleanup', exact: true }).click();
+
+    await expect(page.getByRole('heading', { name: 'Orphans Cleanup', exact: true })).toBeVisible();
+
+    await page
+      .getByLabel('Content hrefs', { exact: true })
+      .fill('/pulp/api/v3/content/file/files/123/\n/pulp/api/v3/content/file/files/456/');
+    await expect(page.getByLabel('Content hrefs', { exact: true })).toHaveValue(
+      '/pulp/api/v3/content/file/files/123/\n/pulp/api/v3/content/file/files/456/'
+    );
+
+    await expect(page.getByText('Request body', { exact: true })).toHaveCount(0);
+  });
+
   test('navigation drawer is present and contains all sections', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
@@ -21,15 +41,25 @@ test.describe('Navigation Tests', () => {
     const mainNavLabels = (await mainNavButtons.allTextContents())
       .map((text) => text.trim())
       .filter(Boolean);
-    expect([...mainNavLabels].sort()).toEqual(['Container', 'DEB', 'File', 'Home', 'RPM', 'Tasks'].sort());
+    expect([...mainNavLabels].sort()).toEqual(
+      ['About', 'Container', 'DEB', 'File', 'Home', 'Management', 'RPM', 'Tasks'].sort()
+    );
 
     // Check for main navigation items
     await expect(drawer.getByRole('button', { name: 'Home', exact: true })).toBeVisible();
+    await expect(drawer.getByRole('button', { name: 'Management', exact: true })).toBeVisible();
+    await expect(drawer.getByRole('button', { name: 'About', exact: true })).toBeVisible();
     await expect(drawer.getByRole('button', { name: 'Tasks', exact: true })).toBeVisible();
     await expect(drawer.getByRole('button', { name: 'RPM', exact: true })).toBeVisible();
     await expect(drawer.getByRole('button', { name: 'File', exact: true })).toBeVisible();
     await expect(drawer.getByRole('button', { name: 'DEB', exact: true })).toBeVisible();
     await expect(drawer.getByRole('button', { name: 'Container', exact: true })).toBeVisible();
+
+    // Expand Management and ensure expected items are available.
+    await drawer.getByRole('button', { name: 'Management', exact: true }).click();
+    await expect(drawer.getByRole('button', { name: 'Users', exact: true })).toBeVisible();
+    await expect(drawer.getByRole('button', { name: 'Orphans Cleanup', exact: true })).toBeVisible();
+    await expect(drawer.getByRole('button', { name: 'Repair', exact: true })).toBeVisible();
   });
 
   test('can navigate from dashboard to Container sections', async ({ page }) => {

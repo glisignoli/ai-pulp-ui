@@ -1,6 +1,15 @@
 export const ROUTES = {
   ROOT: '/',
   LOGIN: '/login',
+  ABOUT: '/about',
+
+  USERS: '/users',
+
+  MANAGEMENT: {
+    ROOT: '/management',
+    ORPHANS_CLEANUP: '/management/orphans/cleanup',
+    REPAIR: '/management/repair',
+  },
 
   RPM: {
     ROOT: '/rpm',

@@ -198,3 +198,18 @@ export interface Task {
   // Tasks can include task-specific fields; keep the model flexible.
   [key: string]: any;
 }
+
+export interface PulpUser {
+  pulp_href: string;
+  prn?: string;
+  id: number;
+  username: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  is_staff: boolean;
+  is_active: boolean;
+  date_joined?: string;
+  groups?: unknown[];
+  hidden_fields?: Array<{ name: string; is_set: boolean }>;
+}

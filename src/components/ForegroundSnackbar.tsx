@@ -8,6 +8,7 @@ export interface ForegroundSnackbarProps {
   message: string;
   severity: ForegroundSnackbarSeverity;
   onClose: () => void;
+  autoHideDuration?: number;
 }
 
 export const ForegroundSnackbar: React.FC<ForegroundSnackbarProps> = ({
@@ -15,11 +16,13 @@ export const ForegroundSnackbar: React.FC<ForegroundSnackbarProps> = ({
   message,
   severity,
   onClose,
+  autoHideDuration,
 }) => {
   return (
     <Snackbar
       open={open}
       onClose={onClose}
+      autoHideDuration={autoHideDuration}
       anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       sx={{ zIndex: (theme) => theme.zIndex.modal + 1 }}
     >
