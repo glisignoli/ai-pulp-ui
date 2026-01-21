@@ -234,6 +234,50 @@ test.describe('Navigation Tests', () => {
     }
   });
 
+  test('can navigate to File Publication detail view', async ({ page }) => {
+    await page.goto('/file/publication');
+    await page.waitForLoadState('networkidle');
+
+    // Try to find a view button and click it
+    const viewButtons = page.locator('button[aria-label="view"]');
+    const count = await viewButtons.count();
+
+    if (count > 0) {
+      await viewButtons.first().click();
+      await page.waitForLoadState('networkidle');
+
+      // Should be on detail view page
+      await expect(page.locator('h4').filter({ hasText: 'Publication Details' })).toBeVisible();
+      await expect(page.getByRole('button', { name: /back/i })).toBeVisible();
+
+      // Click back button
+      await page.getByRole('button', { name: /back/i }).click();
+      await expect(page).toHaveURL('/file/publication');
+    }
+  });
+
+  test('can navigate to DEB Publication detail view', async ({ page }) => {
+    await page.goto('/deb/publication');
+    await page.waitForLoadState('networkidle');
+
+    // Try to find a view button and click it
+    const viewButtons = page.locator('button[aria-label="view"]');
+    const count = await viewButtons.count();
+
+    if (count > 0) {
+      await viewButtons.first().click();
+      await page.waitForLoadState('networkidle');
+
+      // Should be on detail view page
+      await expect(page.locator('h4').filter({ hasText: 'Publication Details' })).toBeVisible();
+      await expect(page.getByRole('button', { name: /back/i })).toBeVisible();
+
+      // Click back button
+      await page.getByRole('button', { name: /back/i }).click();
+      await expect(page).toHaveURL('/deb/publication');
+    }
+  });
+
   test('can navigate to RPM Remote detail view', async ({ page }) => {
     await page.goto('/rpm/remote');
     await page.waitForLoadState('networkidle');
@@ -283,6 +327,8 @@ test.describe('Navigation Tests', () => {
     const detailRoutes = [
       '/rpm/distribution/view?href=%2Fpulp%2Fapi%2Fv3%2Fdistributions%2Frpm%2Frpm%2Ftest%2F',
       '/rpm/publication/view?href=%2Fpulp%2Fapi%2Fv3%2Fpublications%2Frpm%2Frpm%2Ftest%2F',
+      '/file/publication/view?href=%2Fpulp%2Fapi%2Fv3%2Fpublications%2Ffile%2Ffile%2Ftest%2F',
+      '/deb/publication/view?href=%2Fpulp%2Fapi%2Fv3%2Fpublications%2Fdeb%2Fapt%2Ftest%2F',
       '/rpm/remote/view?href=%2Fpulp%2Fapi%2Fv3%2Fremotes%2Frpm%2Frpm%2Ftest%2F',
       '/rpm/repository/view?href=%2Fpulp%2Fapi%2Fv3%2Frepositories%2Frpm%2Frpm%2Ftest%2F',
       '/rpm/content/packages/view?href=%2Fpulp%2Fapi%2Fv3%2Fcontent%2Frpm%2Fpackages%2Ftest%2F',
