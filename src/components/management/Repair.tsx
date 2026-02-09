@@ -10,14 +10,13 @@ import {
   Typography,
 } from '@mui/material';
 import { formatPulpApiError } from '../../services/api';
-import { repairService, type RepairResponse } from '../../services/repair';
+import { repairService } from '../../services/repair';
 import { ForegroundSnackbar } from '../ForegroundSnackbar';
 
 export const Repair: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [response, setResponse] = useState<RepairResponse | null>(null);
   const [verifyChecksums, setVerifyChecksums] = useState(true);
 
   const requestBody = {
@@ -29,11 +28,9 @@ export const Repair: React.FC = () => {
       setLoading(true);
       setError(null);
       setSuccess(null);
-      setResponse(null);
 
       const result = await repairService.repair(requestBody);
-
-      setResponse(result);
+      void result;
       setSuccess('Repair triggered successfully');
     } catch (err) {
       setError(formatPulpApiError(err, 'Failed to trigger repair'));

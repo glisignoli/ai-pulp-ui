@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
 import { Box, Button, CircularProgress, Container, Paper, TextField, Typography } from '@mui/material';
 import { formatPulpApiError } from '../../services/api';
-import { orphansService, type OrphansCleanupResponse } from '../../services/orphans';
+import { orphansService } from '../../services/orphans';
 import { ForegroundSnackbar } from '../ForegroundSnackbar';
 
 export const OrphansCleanup: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [response, setResponse] = useState<OrphansCleanupResponse | null>(null);
   const [orphanProtectionTimeMinutes, setOrphanProtectionTimeMinutes] = useState<string>('');
   const [contentHrefs, setContentHrefs] = useState<string>('');
 
@@ -24,7 +23,6 @@ export const OrphansCleanup: React.FC = () => {
       setLoading(true);
       setError(null);
       setSuccess(null);
-      setResponse(null);
 
       const requestBody: { content_hrefs?: string[]; orphan_protection_time?: number } = {};
 
@@ -44,8 +42,7 @@ export const OrphansCleanup: React.FC = () => {
       }
 
       const result = await orphansService.cleanup(requestBody as any);
-
-      setResponse(result);
+      void result;
       setSuccess('Orphans cleanup triggered successfully');
     } catch (err) {
       setError(formatPulpApiError(err, 'Failed to trigger orphans cleanup'));

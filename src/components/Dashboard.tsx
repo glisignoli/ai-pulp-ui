@@ -14,7 +14,6 @@ import {
   TableRow,
   Typography,
 } from '@mui/material';
-import { Storage, Article, Cloud } from '@mui/icons-material';
 
 import { formatPulpApiError } from '../services/api';
 import { statusService } from '../services/status';

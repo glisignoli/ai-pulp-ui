@@ -2,6 +2,26 @@ import { test, expect } from '@playwright/test';
 
 const ADMIN_TOKEN = 'YWRtaW46cGFzc3dvcmQ='; // base64('admin:password')
 
+function isExplicitRunForSpec(specBasename: string): boolean {
+  return process.argv.some((arg) =>
+    arg === specBasename ||
+    arg.endsWith(`/${specBasename}`) ||
+    arg.includes(`/${specBasename}:`) ||
+    arg.endsWith(`\\${specBasename}`) ||
+    arg.includes(`\\${specBasename}:`)
+  );
+}
+
+const SHOULD_RUN_SCREENSHOTS =
+  process.env.RUN_E2E_SCREENSHOTS === '1' ||
+  process.env.RUN_README_SCREENSHOTS === '1' ||
+  isExplicitRunForSpec('readme-screenshots.spec.ts');
+
+test.skip(
+  !SHOULD_RUN_SCREENSHOTS,
+  'Screenshot generation is opt-in. Run `playwright test e2e/readme-screenshots.spec.ts` or set RUN_E2E_SCREENSHOTS=1.'
+);
+
 test.describe('README Screenshots', () => {
   test('generate README screenshots', async ({ page }) => {
     // Use deterministic viewport for consistent README images.

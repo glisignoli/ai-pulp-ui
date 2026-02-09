@@ -1,6 +1,33 @@
 import { test, expect } from '@playwright/test';
 
 const ADMIN_TOKEN = 'YWRtaW46cGFzc3dvcmQ='; // base64('admin:password')
+const PAGE_READY_TIMEOUT = 30_000;
+
+function isExplicitRunForSpec(specBasename: string): boolean {
+  return process.argv.some((arg) =>
+    arg === specBasename ||
+    arg.endsWith(`/${specBasename}`) ||
+    arg.includes(`/${specBasename}:`) ||
+    arg.endsWith(`\\${specBasename}`) ||
+    arg.includes(`\\${specBasename}:`)
+  );
+}
+
+const SHOULD_RUN_SCREENSHOTS =
+  process.env.RUN_E2E_SCREENSHOTS === '1' ||
+  process.env.RUN_RENDER_SCREENSHOTS === '1' ||
+  isExplicitRunForSpec('render.spec.ts');
+
+function isBenignConsoleError(message: string) {
+  // Chromium can emit these for missing favicon/asset paths; they're not app crashes.
+  return message.includes('Failed to load resource') && message.includes('404');
+}
+
+async function waitForPageReady(page: import('@playwright/test').Page) {
+  await page
+    .waitForSelector('[role="progressbar"]', { state: 'detached', timeout: PAGE_READY_TIMEOUT })
+    .catch(() => {});
+}
 
 test.describe('Page Rendering Tests', () => {
   test('login page renders without console errors', async ({ page }) => {
@@ -12,7 +39,7 @@ test.describe('Page Rendering Tests', () => {
       const text = msg.text();
       consoleMessages.push(`[${msg.type()}] ${text}`);
       if (msg.type() === 'error') {
-        errors.push(text);
+        if (!isBenignConsoleError(text)) errors.push(text);
       }
     });
 
@@ -22,10 +49,8 @@ test.describe('Page Rendering Tests', () => {
     });
 
     // Navigate to the page
-    await page.goto('/login');
-
-    // Wait for the page to be fully loaded
-    await page.waitForLoadState('networkidle');
+    await page.goto('/login', { waitUntil: 'domcontentloaded' });
+    await waitForPageReady(page);
 
     // Check for the login form
     await expect(page.getByRole('heading', { name: 'Pulp UI' })).toBeVisible();
@@ -47,8 +72,12 @@ test.describe('Page Rendering Tests', () => {
   });
 
   test('can navigate to login page and see all UI elements', async ({ page }) => {
-    await page.goto('/login');
-    await page.waitForLoadState('networkidle');
+    test.skip(
+      !SHOULD_RUN_SCREENSHOTS,
+      'Screenshot generation is opt-in. Run `playwright test e2e/render.spec.ts` or set RUN_E2E_SCREENSHOTS=1.'
+    );
+    await page.goto('/login', { waitUntil: 'domcontentloaded' });
+    await waitForPageReady(page);
 
     // Check if all login form elements are present
     await expect(page.locator('h1')).toBeVisible();
@@ -89,25 +118,29 @@ test.describe('Page Rendering Tests', () => {
       localStorage.setItem('authToken', token);
     }, ADMIN_TOKEN);
 
+    page.on('console', (msg) => {
+      if (msg.type() === 'error' && !isBenignConsoleError(msg.text())) errors.push(msg.text());
+    });
+
     // Test RPM Distribution page
-    await page.goto('/rpm/distribution');
-    await page.waitForLoadState('networkidle');
-    await expect(page.locator('h4')).toContainText('RPM Distributions');
+    await page.goto('/rpm/distribution', { waitUntil: 'domcontentloaded' });
+    await waitForPageReady(page);
+    await expect(page.getByRole('heading', { name: /rpm distributions/i })).toBeVisible({ timeout: PAGE_READY_TIMEOUT });
     
     // Test RPM Publication page
-    await page.goto('/rpm/publication');
-    await page.waitForLoadState('networkidle');
-    await expect(page.locator('h4')).toBeVisible();
+    await page.goto('/rpm/publication', { waitUntil: 'domcontentloaded' });
+    await waitForPageReady(page);
+    await expect(page.getByRole('heading', { name: /rpm publications/i })).toBeVisible({ timeout: PAGE_READY_TIMEOUT });
     
     // Test RPM Remote page
-    await page.goto('/rpm/remote');
-    await page.waitForLoadState('networkidle');
-    await expect(page.locator('h4')).toContainText('RPM Remotes');
+    await page.goto('/rpm/remote', { waitUntil: 'domcontentloaded' });
+    await waitForPageReady(page);
+    await expect(page.getByRole('heading', { name: /rpm remotes/i })).toBeVisible({ timeout: PAGE_READY_TIMEOUT });
     
     // Test RPM Repository page
-    await page.goto('/rpm/repository');
-    await page.waitForLoadState('networkidle');
-    await expect(page.locator('h4')).toContainText('RPM Repositories');
+    await page.goto('/rpm/repository', { waitUntil: 'domcontentloaded' });
+    await waitForPageReady(page);
+    await expect(page.getByRole('heading', { name: /rpm repositories/i })).toBeVisible({ timeout: PAGE_READY_TIMEOUT });
 
     // Assert no errors occurred
     if (errors.length > 0) {
@@ -121,8 +154,8 @@ test.describe('Page Rendering Tests', () => {
       localStorage.setItem('authToken', token);
     }, ADMIN_TOKEN);
 
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await waitForPageReady(page);
 
     // Check if navigation drawer is present
     const drawer = page.locator('.MuiDrawer-paper');

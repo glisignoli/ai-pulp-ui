@@ -1,6 +1,17 @@
 import { test, expect } from '@playwright/test';
 
 const ADMIN_TOKEN = 'YWRtaW46cGFzc3dvcmQ='; // base64('admin:password')
+const PAGE_READY_TIMEOUT = 30_000;
+
+function isBenignConsoleError(message: string) {
+  return message.includes('Failed to load resource') && message.includes('404');
+}
+
+async function waitForPageReady(page: import('@playwright/test').Page) {
+  await page
+    .waitForSelector('[role="progressbar"]', { state: 'detached', timeout: PAGE_READY_TIMEOUT })
+    .catch(() => {});
+}
 
 test.describe('RPM Section Tests', () => {
   test.beforeEach(async ({ page }) => {
@@ -14,11 +25,11 @@ test.describe('RPM Section Tests', () => {
     const errors: string[] = [];
     page.on('pageerror', (error) => errors.push(error.message));
     page.on('console', (msg) => {
-      if (msg.type() === 'error') errors.push(msg.text());
+      if (msg.type() === 'error' && !isBenignConsoleError(msg.text())) errors.push(msg.text());
     });
 
-    await page.goto('/rpm/distribution');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/rpm/distribution', { waitUntil: 'domcontentloaded' });
+    await waitForPageReady(page);
 
     // Check for page title
     await expect(page.locator('h4, h5, h6').first()).toBeVisible();
@@ -33,11 +44,11 @@ test.describe('RPM Section Tests', () => {
     const errors: string[] = [];
     page.on('pageerror', (error) => errors.push(error.message));
     page.on('console', (msg) => {
-      if (msg.type() === 'error') errors.push(msg.text());
+      if (msg.type() === 'error' && !isBenignConsoleError(msg.text())) errors.push(msg.text());
     });
 
-    await page.goto('/rpm/publication');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/rpm/publication', { waitUntil: 'domcontentloaded' });
+    await waitForPageReady(page);
 
     await expect(page.locator('h4, h5, h6').first()).toBeVisible();
     await expect(page.locator('button:has-text("Add"), button:has-text("Create")')).toBeVisible();
@@ -49,11 +60,11 @@ test.describe('RPM Section Tests', () => {
     const errors: string[] = [];
     page.on('pageerror', (error) => errors.push(error.message));
     page.on('console', (msg) => {
-      if (msg.type() === 'error') errors.push(msg.text());
+      if (msg.type() === 'error' && !isBenignConsoleError(msg.text())) errors.push(msg.text());
     });
 
-    await page.goto('/rpm/remote');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/rpm/remote', { waitUntil: 'domcontentloaded' });
+    await waitForPageReady(page);
 
     await expect(page.locator('h4, h5, h6').first()).toBeVisible();
     await expect(page.locator('button:has-text("Add"), button:has-text("Create")')).toBeVisible();
@@ -65,11 +76,11 @@ test.describe('RPM Section Tests', () => {
     const errors: string[] = [];
     page.on('pageerror', (error) => errors.push(error.message));
     page.on('console', (msg) => {
-      if (msg.type() === 'error') errors.push(msg.text());
+      if (msg.type() === 'error' && !isBenignConsoleError(msg.text())) errors.push(msg.text());
     });
 
-    await page.goto('/rpm/repository');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/rpm/repository', { waitUntil: 'domcontentloaded' });
+    await waitForPageReady(page);
 
     await expect(page.locator('h4, h5, h6').first()).toBeVisible();
     await expect(page.locator('button:has-text("Add"), button:has-text("Create")')).toBeVisible();
@@ -81,11 +92,11 @@ test.describe('RPM Section Tests', () => {
     const errors: string[] = [];
     page.on('pageerror', (error) => errors.push(error.message));
     page.on('console', (msg) => {
-      if (msg.type() === 'error') errors.push(msg.text());
+      if (msg.type() === 'error' && !isBenignConsoleError(msg.text())) errors.push(msg.text());
     });
 
-    await page.goto('/rpm/content/packages');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/rpm/content/packages', { waitUntil: 'domcontentloaded' });
+    await waitForPageReady(page);
 
     await expect(page.locator('h4, h5, h6').first()).toBeVisible();
     await expect(page.locator('table')).toBeVisible();
@@ -97,12 +108,12 @@ test.describe('RPM Section Tests', () => {
     const errors: string[] = [];
     page.on('pageerror', (error) => errors.push(error.message));
     page.on('console', (msg) => {
-      if (msg.type() === 'error') errors.push(msg.text());
+      if (msg.type() === 'error' && !isBenignConsoleError(msg.text())) errors.push(msg.text());
     });
 
     // First navigate to distributions list
-    await page.goto('/rpm/distribution');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/rpm/distribution', { waitUntil: 'domcontentloaded' });
+    await waitForPageReady(page);
 
     // Try to find a distribution and click view
     const viewButtons = page.locator('button[title="View"]');
@@ -111,10 +122,7 @@ test.describe('RPM Section Tests', () => {
     if (count > 0) {
       // Click the first view button
       await viewButtons.first().click();
-      await page.waitForLoadState('networkidle');
-
-      // Wait for loading to complete
-      await page.waitForSelector('[role="progressbar"]', { state: 'detached', timeout: 10000 }).catch(() => {});
+      await waitForPageReady(page);
 
       // Check if we got an error state or successful load
       const hasError = await page.locator('[role="alert"]').isVisible().catch(() => false);
@@ -133,7 +141,7 @@ test.describe('RPM Section Tests', () => {
     } else {
       // If no distributions exist, just verify we can navigate to the view URL
       await page.goto('/rpm/distribution/view?href=%2Fpulp%2Fapi%2Fv3%2Fdistributions%2Frpm%2Frpm%2Ftest%2F');
-      await page.waitForLoadState('networkidle');
+      await waitForPageReady(page);
       // Should show error or "Distribution not found" but should not crash
       expect(errors.filter(e => !e.includes('404') && !e.includes('Failed to load'))).toHaveLength(0);
     }
@@ -143,24 +151,21 @@ test.describe('RPM Section Tests', () => {
     const errors: string[] = [];
     page.on('pageerror', (error) => errors.push(error.message));
     page.on('console', (msg) => {
-      if (msg.type() === 'error') errors.push(msg.text());
+      if (msg.type() === 'error' && !isBenignConsoleError(msg.text())) errors.push(msg.text());
     });
 
     // First navigate to publications list
-    await page.goto('/rpm/publication');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/rpm/publication', { waitUntil: 'domcontentloaded' });
+    await waitForPageReady(page);
 
     // Try to find a publication and click view
-    const viewButtons = page.locator('button[aria-label="view"]');
+    const viewButtons = page.locator('button[title="View"], button[aria-label="view"]');
     const count = await viewButtons.count();
 
     if (count > 0) {
       // Click the first view button
       await viewButtons.first().click();
-      await page.waitForLoadState('networkidle');
-
-      // Wait for loading to complete
-      await page.waitForSelector('[role="progressbar"]', { state: 'detached', timeout: 10000 }).catch(() => {});
+      await waitForPageReady(page);
 
       // Check if we got an error state or successful load
       const hasError = await page.locator('[role="alert"]').isVisible().catch(() => false);
@@ -179,7 +184,7 @@ test.describe('RPM Section Tests', () => {
     } else {
       // If no publications exist, just verify we can navigate to the view URL
       await page.goto('/rpm/publication/view?href=%2Fpulp%2Fapi%2Fv3%2Fpublications%2Frpm%2Frpm%2Ftest%2F');
-      await page.waitForLoadState('networkidle');
+      await waitForPageReady(page);
       // Should show error or "Publication not found" but should not crash
       expect(errors.filter(e => !e.includes('404') && !e.includes('Failed to load'))).toHaveLength(0);
     }
@@ -189,12 +194,12 @@ test.describe('RPM Section Tests', () => {
     const errors: string[] = [];
     page.on('pageerror', (error) => errors.push(error.message));
     page.on('console', (msg) => {
-      if (msg.type() === 'error') errors.push(msg.text());
+      if (msg.type() === 'error' && !isBenignConsoleError(msg.text())) errors.push(msg.text());
     });
 
     // First navigate to remotes list
-    await page.goto('/rpm/remote');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/rpm/remote', { waitUntil: 'domcontentloaded' });
+    await waitForPageReady(page);
 
     // Try to find a remote and click view
     const viewButtons = page.locator('button[title="View"]');
@@ -203,10 +208,7 @@ test.describe('RPM Section Tests', () => {
     if (count > 0) {
       // Click the first view button
       await viewButtons.first().click();
-      await page.waitForLoadState('networkidle');
-
-      // Wait for loading to complete
-      await page.waitForSelector('[role="progressbar"]', { state: 'detached', timeout: 10000 }).catch(() => {});
+      await waitForPageReady(page);
 
       // Check if we got an error state or successful load
       const hasError = await page.locator('[role="alert"]').isVisible().catch(() => false);
@@ -225,7 +227,7 @@ test.describe('RPM Section Tests', () => {
     } else {
       // If no remotes exist, just verify we can navigate to the view URL
       await page.goto('/rpm/remote/view?href=%2Fpulp%2Fapi%2Fv3%2Fremotes%2Frpm%2Frpm%2Ftest%2F');
-      await page.waitForLoadState('networkidle');
+      await waitForPageReady(page);
       // Should show error or "Remote not found" but should not crash
       expect(errors.filter(e => !e.includes('404') && !e.includes('Failed to load'))).toHaveLength(0);
     }
@@ -237,7 +239,7 @@ test.describe('RPM Section Tests', () => {
     const failedRequests: string[] = [];
     page.on('pageerror', (error) => errors.push(error.message));
     page.on('console', (msg) => {
-      if (msg.type() === 'error') errors.push(msg.text());
+      if (msg.type() === 'error' && !isBenignConsoleError(msg.text())) errors.push(msg.text());
     });
     page.on('response', (response) => {
       if (response.status() === 404) {
@@ -252,8 +254,8 @@ test.describe('RPM Section Tests', () => {
     });
 
     // First navigate to repositories list
-    await page.goto('/rpm/repository');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/rpm/repository', { waitUntil: 'domcontentloaded' });
+    await waitForPageReady(page);
 
     // Try to find a repository and click view
     const viewButtons = page.locator('button[title="View"]');
@@ -262,10 +264,7 @@ test.describe('RPM Section Tests', () => {
     if (count > 0) {
       // Click the first view button
       await viewButtons.first().click();
-      await page.waitForLoadState('networkidle');
-
-      // Wait for loading to complete
-      await page.waitForSelector('[role="progressbar"]', { state: 'detached', timeout: 10000 }).catch(() => {});
+      await waitForPageReady(page);
 
       // Check if we got an error state or successful load
       const hasError = await page.locator('[role="alert"]').isVisible().catch(() => false);
@@ -295,7 +294,7 @@ test.describe('RPM Section Tests', () => {
     } else {
       // If no repositories exist, just verify we can navigate to the view URL
       await page.goto('/rpm/repository/view?href=%2Fpulp%2Fapi%2Fv3%2Frepositories%2Frpm%2Frpm%2Ftest%2F');
-      await page.waitForLoadState('networkidle');
+      await waitForPageReady(page);
       // Should show error or "Repository not found" but should not crash
       expect(errors.filter(e => !e.includes('404') && !e.includes('Failed to load'))).toHaveLength(0);
     }

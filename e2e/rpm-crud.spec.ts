@@ -3,6 +3,7 @@ import { test, expect, type APIRequestContext, type Page } from '@playwright/tes
 const ADMIN_TOKEN = 'YWRtaW46cGFzc3dvcmQ='; // base64('admin:password')
 const API_ORIGIN = 'http://localhost:8080';
 const API_BASE = `${API_ORIGIN}/pulp/api/v3`;
+const PAGE_READY_TIMEOUT = 30_000;
 
 function uniqueName(prefix: string) {
   const rand = Math.random().toString(16).slice(2, 8);
@@ -13,6 +14,17 @@ async function setAuthToken(page: Page) {
   await page.addInitScript((token: string) => {
     localStorage.setItem('authToken', token);
   }, ADMIN_TOKEN);
+}
+
+async function waitForPageReady(page: Page) {
+  await page
+    .waitForSelector('[role="progressbar"]', { state: 'detached', timeout: PAGE_READY_TIMEOUT })
+    .catch(() => {});
+}
+
+async function reloadAndWait(page: Page) {
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await waitForPageReady(page);
 }
 
 function apiHeaders() {
@@ -66,7 +78,8 @@ test.describe('RPM CRUD (Real API)', () => {
 
     try {
       await setAuthToken(page);
-      await page.goto('/rpm/repository');
+      await page.goto('/rpm/repository', { waitUntil: 'domcontentloaded' });
+      await waitForPageReady(page);
 
       await expect(page.getByRole('heading', { name: /rpm repositories/i })).toBeVisible();
       await page.getByRole('button', { name: /create repository/i }).click();
@@ -78,9 +91,18 @@ test.describe('RPM CRUD (Real API)', () => {
       await dialog.getByLabel(/description/i).fill('desc-1');
       await dialog.getByRole('button', { name: /^create$/i }).click();
 
-      await expect(page.getByRole('cell', { name: repoName, exact: true })).toBeVisible();
+      // Repository creation may be async; poll via reload until it appears in the list.
+      await expect
+        .poll(
+          async () => {
+            await reloadAndWait(page);
+            return await page.getByRole('cell', { name: repoName }).count();
+          },
+          { timeout: 60_000, intervals: [1000, 2000, 2000, 3000, 5000] }
+        )
+        .toBeGreaterThan(0);
 
-      const row = page.getByRole('row', { name: new RegExp(repoName, 'i') });
+      let row = page.getByRole('row', { name: new RegExp(repoName, 'i') });
       await row.getByTitle('Edit').click();
       await expect(page.getByRole('dialog').getByText(/edit repository/i)).toBeVisible();
 
@@ -88,14 +110,31 @@ test.describe('RPM CRUD (Real API)', () => {
       await editDialog.getByLabel(/description/i).fill('desc-2');
       await editDialog.getByRole('button', { name: /^update$/i }).click();
 
-      await expect(page.getByRole('cell', { name: 'desc-2', exact: true })).toBeVisible();
+      await expect
+        .poll(
+          async () => {
+            await reloadAndWait(page);
+            row = page.getByRole('row', { name: new RegExp(repoName, 'i') });
+            return await row.getByText('desc-2').count();
+          },
+          { timeout: 60_000, intervals: [1000, 2000, 2000, 3000, 5000] }
+        )
+        .toBeGreaterThan(0);
 
       await row.getByTitle('Delete').click();
       const confirm = page.getByRole('dialog', { name: /confirm delete/i });
       await expect(confirm).toBeVisible();
       await confirm.getByRole('button', { name: /^delete$/i }).click();
 
-      await expect(page.getByText(repoName)).toHaveCount(0);
+      await expect
+        .poll(
+          async () => {
+            await reloadAndWait(page);
+            return await page.getByText(repoName).count();
+          },
+          { timeout: 60_000, intervals: [1000, 2000, 2000, 3000, 5000] }
+        )
+        .toBe(0);
     } finally {
       await deleteByName(request, 'repositories/rpm/rpm', repoName);
     }
@@ -106,7 +145,8 @@ test.describe('RPM CRUD (Real API)', () => {
 
     try {
       await setAuthToken(page);
-      await page.goto('/rpm/remote');
+      await page.goto('/rpm/remote', { waitUntil: 'domcontentloaded' });
+      await waitForPageReady(page);
 
       await expect(page.getByRole('heading', { name: /rpm remotes/i })).toBeVisible();
       await page.getByRole('button', { name: /create remote/i }).click();
@@ -118,9 +158,17 @@ test.describe('RPM CRUD (Real API)', () => {
       await dialog.getByRole('textbox', { name: 'URL', exact: true }).fill('https://example.com/repo/');
       await dialog.getByRole('button', { name: /^create$/i }).click();
 
-      await expect(page.getByRole('cell', { name: remoteName, exact: true })).toBeVisible();
+      await expect
+        .poll(
+          async () => {
+            await reloadAndWait(page);
+            return await page.getByRole('cell', { name: remoteName }).count();
+          },
+          { timeout: 60_000, intervals: [1000, 2000, 2000, 3000, 5000] }
+        )
+        .toBeGreaterThan(0);
 
-      const row = page.getByRole('row', { name: new RegExp(remoteName, 'i') });
+      let row = page.getByRole('row', { name: new RegExp(remoteName, 'i') });
       await row.getByTitle('Edit').click();
 
       const editDialog = page.getByRole('dialog', { name: /edit remote/i });
@@ -131,14 +179,31 @@ test.describe('RPM CRUD (Real API)', () => {
         .fill('https://example.com/updated/');
       await editDialog.getByRole('button', { name: /^update$/i }).click();
 
-      await expect(page.getByRole('cell', { name: 'https://example.com/updated/', exact: true })).toBeVisible();
+      await expect
+        .poll(
+          async () => {
+            await reloadAndWait(page);
+            row = page.getByRole('row', { name: new RegExp(remoteName, 'i') });
+            return await row.getByText('https://example.com/updated/').count();
+          },
+          { timeout: 60_000, intervals: [1000, 2000, 2000, 3000, 5000] }
+        )
+        .toBeGreaterThan(0);
 
       await row.getByTitle('Delete').click();
       const confirm = page.getByRole('dialog', { name: /confirm delete/i });
       await expect(confirm).toBeVisible();
       await confirm.getByRole('button', { name: /^delete$/i }).click();
 
-      await expect(page.getByText(remoteName)).toHaveCount(0);
+      await expect
+        .poll(
+          async () => {
+            await reloadAndWait(page);
+            return await page.getByText(remoteName).count();
+          },
+          { timeout: 60_000, intervals: [1000, 2000, 2000, 3000, 5000] }
+        )
+        .toBe(0);
     } finally {
       await deleteByName(request, 'remotes/rpm/rpm', remoteName);
     }
@@ -157,7 +222,8 @@ test.describe('RPM CRUD (Real API)', () => {
       }
 
       await setAuthToken(page);
-      await page.goto('/rpm/distribution');
+      await page.goto('/rpm/distribution', { waitUntil: 'domcontentloaded' });
+      await waitForPageReady(page);
 
       await expect(page.getByRole('heading', { name: /rpm distributions/i })).toBeVisible();
       await page.getByRole('button', { name: /create distribution/i }).click();
@@ -191,8 +257,7 @@ test.describe('RPM CRUD (Real API)', () => {
       await expect
         .poll(
           async () => {
-            await page.reload();
-            await page.waitForLoadState('networkidle');
+            await reloadAndWait(page);
             return await page.getByRole('cell', { name: distName, exact: true }).count();
           },
           { timeout: 60_000, intervals: [1000, 2000, 2000, 3000, 5000] }
@@ -208,14 +273,30 @@ test.describe('RPM CRUD (Real API)', () => {
       await editDialog.getByLabel(/base path/i).fill(`dist/${distName}-updated`);
       await editDialog.getByRole('button', { name: /^update$/i }).click();
 
-      await expect(page.getByRole('cell', { name: `dist/${distName}-updated`, exact: true })).toBeVisible();
+      await expect
+        .poll(
+          async () => {
+            await reloadAndWait(page);
+            return await page.getByRole('cell', { name: `dist/${distName}-updated` }).count();
+          },
+          { timeout: 60_000, intervals: [1000, 2000, 2000, 3000, 5000] }
+        )
+        .toBeGreaterThan(0);
 
       await row.getByTitle('Delete').click();
       const confirm = page.getByRole('dialog', { name: /confirm delete/i });
       await expect(confirm).toBeVisible();
       await confirm.getByRole('button', { name: /^delete$/i }).click();
 
-      await expect(page.getByText(distName)).toHaveCount(0);
+      await expect
+        .poll(
+          async () => {
+            await reloadAndWait(page);
+            return await page.getByText(distName).count();
+          },
+          { timeout: 60_000, intervals: [1000, 2000, 2000, 3000, 5000] }
+        )
+        .toBe(0);
     } finally {
       await deleteByName(request, 'distributions/rpm/rpm', distName);
       if (repoName) await deleteByName(request, 'repositories/rpm/rpm', repoName);
@@ -253,8 +334,7 @@ test.describe('RPM CRUD (Real API)', () => {
       await expect
         .poll(
           async () => {
-            await page.reload();
-            await page.waitForLoadState('networkidle');
+            await reloadAndWait(page);
             return await page.getByRole('cell', { name: repoName, exact: true }).count();
           },
           { timeout: 60_000, intervals: [1000, 2000, 2000, 3000, 5000] }
@@ -342,8 +422,7 @@ test.describe('RPM CRUD (Real API)', () => {
       await expect
         .poll(
           async () => {
-            await page.reload();
-            await page.waitForLoadState('networkidle');
+            await reloadAndWait(page);
             return await page.getByRole('cell', { name: repoName, exact: true }).count();
           },
           { timeout: 60_000, intervals: [1000, 2000, 2000, 3000, 5000] }

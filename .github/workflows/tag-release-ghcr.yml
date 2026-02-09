@@ -1,0 +1,74 @@
+name: Release (tag -> GHCR)
+
+on:
+  push:
+    tags:
+      - '*'
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  test-build-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read Pulp version
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "PULP_VERSION=$(tr -d '\n\r' < .pulp_version)" >> "$GITHUB_ENV"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Unit tests (Vitest)
+        run: npm test
+
+      - name: Install browsers (Playwright)
+        run: npx playwright install --with-deps chromium
+
+      - name: E2E tests (Playwright + ephemeral Pulp)
+        run: ./tests/run_container.sh npm run test:e2e
+        env:
+          IMAGE_TAG: ${{ env.PULP_VERSION }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=ref,event=tag
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          build-args: |
+            PULP_VERSION=${{ env.PULP_VERSION }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

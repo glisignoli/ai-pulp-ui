@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-
+ARG PULP_VERSION=3.101.0
 FROM node:20-alpine AS build
 
 WORKDIR /app
@@ -24,7 +24,8 @@ COPY . .
 RUN npm run build
 
 
-FROM ghcr.io/pulp/pulp:latest
+FROM ghcr.io/pulp/pulp:${PULP_VERSION}
+ARG PULP_VERSION
 
 # Add the built UI assets to the image.
 # Note: this Dockerfile does not change Pulp's web server configuration;

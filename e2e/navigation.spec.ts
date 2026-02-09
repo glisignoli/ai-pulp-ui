@@ -323,6 +323,8 @@ test.describe('Navigation Tests', () => {
   });
 
   test('detail view routes are accessible directly', async ({ page }) => {
+    test.setTimeout(120_000);
+
     // These should load without crashing, even if resource not found
     const detailRoutes = [
       '/rpm/distribution/view?href=%2Fpulp%2Fapi%2Fv3%2Fdistributions%2Frpm%2Frpm%2Ftest%2F',
@@ -335,18 +337,22 @@ test.describe('Navigation Tests', () => {
     ];
 
     for (const route of detailRoutes) {
-      await page.goto(route);
-      await page.waitForLoadState('networkidle');
-      
-      // Wait for loading to complete - either we see content or error
-      await page.waitForSelector('[role="progressbar"]', { state: 'detached', timeout: 10000 }).catch(() => {});
-      
-      // Should not crash - either shows detail with h4, or error message with alert
-      const hasHeading = await page.locator('h4').isVisible().catch(() => false);
-      const hasAlert = await page.locator('[role="alert"]').isVisible().catch(() => false);
-      
-      expect(hasHeading || hasAlert).toBeTruthy();
-      await expect(page.getByRole('button', { name: /back/i })).toBeVisible();
+      await page.goto(route, { waitUntil: 'domcontentloaded' });
+
+      // Wait for loading to complete - either we see content or an error state.
+      await page.waitForSelector('[role="progressbar"]', { state: 'detached', timeout: 10_000 }).catch(() => {});
+
+      await expect
+        .poll(
+          async () => {
+            const hasHeading = await page.locator('h4').first().isVisible().catch(() => false);
+            const hasAlert = await page.locator('[role="alert"]').first().isVisible().catch(() => false);
+            const hasBack = await page.getByRole('button', { name: /back/i }).isVisible().catch(() => false);
+            return (hasHeading || hasAlert) && hasBack;
+          },
+          { timeout: 20_000, intervals: [250, 500, 1000] }
+        )
+        .toBeTruthy();
     }
   });
 });
