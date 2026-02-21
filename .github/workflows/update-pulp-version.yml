@@ -16,6 +16,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Check for existing open pull request
+        id: existing_pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER=$(gh pr list --state open --json number,headRefName \
+            | jq -r '.[] | select(.headRefName == "chore/update-pulp-version") | .number' \
+            | head -1)
+          if [[ -n "${PR_NUMBER}" ]]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "pr_number=${PR_NUMBER}" >> "$GITHUB_OUTPUT"
+            echo "Found existing open PR #${PR_NUMBER}"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "No existing open PR found"
+          fi
+
       - name: Get latest pulpcore release
         id: latest
         run: |
@@ -37,12 +54,12 @@ jobs:
         if: steps.latest.outputs.version != steps.current.outputs.version
         run: echo "${{ steps.latest.outputs.version }}" > .pulp_version
 
-      - name: Open pull request
+      - name: Open or update pull request
         if: steps.latest.outputs.version != steps.current.outputs.version
         uses: peter-evans/create-pull-request@v7
         with:
           commit-message: "chore: update pulp version to ${{ steps.latest.outputs.version }}"
-          branch: "chore/update-pulp-version-${{ steps.latest.outputs.version }}"
+          branch: "chore/update-pulp-version"
           title: "chore: update pulp version to ${{ steps.latest.outputs.version }}"
           body: |
             Automated PR to update the Pulp version from `${{ steps.current.outputs.version }}` to `${{ steps.latest.outputs.version }}`.
