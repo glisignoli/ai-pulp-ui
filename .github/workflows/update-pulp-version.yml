@@ -1,0 +1,68 @@
+name: Update Pulp Version
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-pulp-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check for existing open pull request
+        id: existing_pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER=$(gh pr list --state open --json number,headRefName \
+            | jq -r '.[] | select(.headRefName == "chore/update-pulp-version") | .number' \
+            | head -1)
+          if [[ -n "${PR_NUMBER}" ]]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "pr_number=${PR_NUMBER}" >> "$GITHUB_OUTPUT"
+            echo "Found existing open PR #${PR_NUMBER}"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "No existing open PR found"
+          fi
+
+      - name: Get latest pulpcore release
+        id: latest
+        run: |
+          RESPONSE=$(curl -sSf "https://api.github.com/repos/pulp/pulpcore/releases/latest" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}")
+          VERSION=$(echo "${RESPONSE}" | jq -r '.tag_name')
+          if [[ -z "${VERSION}" || "${VERSION}" == "null" ]]; then
+            echo "ERROR: Failed to retrieve a valid version from pulpcore releases" >&2
+            exit 1
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Read current pulp version
+        id: current
+        run: |
+          echo "version=$(tr -d '\n\r' < .pulp_version)" >> "$GITHUB_OUTPUT"
+
+      - name: Write new version
+        if: steps.latest.outputs.version != steps.current.outputs.version
+        run: echo "${{ steps.latest.outputs.version }}" > .pulp_version
+
+      - name: Open or update pull request
+        if: steps.latest.outputs.version != steps.current.outputs.version
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: "chore: update pulp version to ${{ steps.latest.outputs.version }}"
+          branch: "chore/update-pulp-version"
+          title: "chore: update pulp version to ${{ steps.latest.outputs.version }}"
+          body: |
+            Automated PR to update the Pulp version from `${{ steps.current.outputs.version }}` to `${{ steps.latest.outputs.version }}`.
+
+            See the [pulpcore release](https://github.com/pulp/pulpcore/releases/tag/${{ steps.latest.outputs.version }}) for details.
+          add-paths: .pulp_version
