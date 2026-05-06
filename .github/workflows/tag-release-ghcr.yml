@@ -1,9 +1,8 @@
 name: Release (tag -> GHCR)
 
 on:
-  push:
-    tags:
-      - '*'
+  release:
+    types: [created]
 
 permissions:
   contents: read
@@ -60,7 +59,8 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
-            type=ref,event=tag
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
 
       - name: Build and push
         uses: docker/build-push-action@v6
