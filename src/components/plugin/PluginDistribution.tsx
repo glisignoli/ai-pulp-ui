@@ -30,7 +30,7 @@ import {
   Visibility as VisibilityIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import type { Distribution, Publication, Repository } from '../../types/pulp';
+import type { Distribution, Publication, Remote, Repository } from '../../types/pulp';
 import type { PluginConfig } from '../../constants/plugins';
 import { pluginRoutePaths } from '../../constants/plugins';
 import { createPluginService } from '../../services/pluginCrud';
@@ -44,6 +44,7 @@ interface DistributionFormData {
   base_path: string;
   repository: string;
   publication: string;
+  remote: string;
 }
 
 interface PluginDistributionProps {
@@ -55,13 +56,16 @@ export const PluginDistribution: React.FC<PluginDistributionProps> = ({ plugin }
   const service = useMemo(() => createPluginService(plugin), [plugin]);
   const paths = useMemo(() => pluginRoutePaths(plugin), [plugin]);
   const hasPublications = !!service.publications;
+  const hasPullThrough = plugin.hasPullThrough;
 
   const [distributions, setDistributions] = useState<Distribution[]>([]);
   const [repositories, setRepositories] = useState<Repository[]>([]);
   const [publications, setPublications] = useState<Publication[]>([]);
+  const [remotes, setRemotes] = useState<Remote[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [repositoriesLoading, setRepositoriesLoading] = useState(false);
+  const [remotesLoading, setRemotesLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [page, setPage] = useState(0);
@@ -76,6 +80,7 @@ export const PluginDistribution: React.FC<PluginDistributionProps> = ({ plugin }
     base_path: '',
     repository: '',
     publication: '',
+    remote: '',
   });
 
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -85,6 +90,11 @@ export const PluginDistribution: React.FC<PluginDistributionProps> = ({ plugin }
   const repositoryOptions = useMemo(
     () => repositories.map((r) => ({ label: r.name, value: r.pulp_href })),
     [repositories]
+  );
+
+  const remoteOptions = useMemo(
+    () => remotes.map((r) => ({ label: r.name, value: r.pulp_href })),
+    [remotes]
   );
 
   const publicationOptions = useMemo(
@@ -133,10 +143,24 @@ export const PluginDistribution: React.FC<PluginDistributionProps> = ({ plugin }
     }
   };
 
+  const fetchRemotes = async () => {
+    if (!hasPullThrough) return;
+    try {
+      setRemotesLoading(true);
+      const response = await service.remotes.list(0);
+      setRemotes(response.results);
+    } catch {
+      // optional
+    } finally {
+      setRemotesLoading(false);
+    }
+  };
+
   useEffect(() => {
     void fetchDistributions(0);
     void fetchRepositories();
     void fetchPublications();
+    void fetchRemotes();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [plugin]);
 
@@ -159,6 +183,7 @@ export const PluginDistribution: React.FC<PluginDistributionProps> = ({ plugin }
         base_path: dist.base_path,
         repository: stripPulpOrigin(dist.repository || ''),
         publication: stripPulpOrigin(dist.publication || ''),
+        remote: stripPulpOrigin(dist.remote || ''),
       });
     } else {
       setEditingDistribution(null);
@@ -167,6 +192,7 @@ export const PluginDistribution: React.FC<PluginDistributionProps> = ({ plugin }
         base_path: '',
         repository: '',
         publication: '',
+        remote: '',
       });
     }
     setOpenDialog(true);
@@ -195,6 +221,10 @@ export const PluginDistribution: React.FC<PluginDistributionProps> = ({ plugin }
         if (payload.repository && payload.publication) {
           payload.repository = null;
         }
+      }
+
+      if (hasPullThrough) {
+        payload.remote = formData.remote || null;
       }
 
       if (editingDistribution) {
@@ -292,13 +322,14 @@ export const PluginDistribution: React.FC<PluginDistributionProps> = ({ plugin }
                 <TableCell>Base Path</TableCell>
                 <TableCell>Repository</TableCell>
                 {hasPublications ? <TableCell>Publication</TableCell> : null}
+                {hasPullThrough ? <TableCell>Remote</TableCell> : null}
                 <TableCell>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {distributions.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={hasPublications ? 5 : 4} align="center">
+                  <TableCell colSpan={4 + (hasPublications ? 1 : 0) + (hasPullThrough ? 1 : 0)} align="center">
                     No distributions found
                   </TableCell>
                 </TableRow>
@@ -313,6 +344,13 @@ export const PluginDistribution: React.FC<PluginDistributionProps> = ({ plugin }
                         : '-'}
                     </TableCell>
                     {hasPublications ? <TableCell>{dist.publication || '-'}</TableCell> : null}
+                    {hasPullThrough ? (
+                      <TableCell>
+                        {dist.remote
+                          ? remotes.find((r) => r.pulp_href === dist.remote)?.name || dist.remote
+                          : '-'}
+                      </TableCell>
+                    ) : null}
                     <TableCell>
                       <IconButton
                         color="primary"
@@ -384,6 +422,22 @@ export const PluginDistribution: React.FC<PluginDistributionProps> = ({ plugin }
                   label="Publication"
                   margin="normal"
                   helperText="Optional; if set, repository will be cleared"
+                />
+              )}
+            />
+          ) : null}
+          {hasPullThrough ? (
+            <Autocomplete
+              options={remoteOptions}
+              loading={remotesLoading}
+              value={remoteOptions.find((o) => o.value === formData.remote) || null}
+              onChange={(_, value) => handleFormChange('remote', value?.value || '')}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Remote"
+                  margin="normal"
+                  helperText="Remote used to fetch content on demand (pull-through caching)"
                 />
               )}
             />

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { CONTENT_PLUGINS, getPlugin, pluginRoutePaths } from '../constants/plugins';
+import {
+  CONTAINER_PULL_THROUGH_PLUGIN,
+  CONTENT_PLUGINS,
+  getPlugin,
+  pluginRoutePaths,
+} from '../constants/plugins';
+import { ROUTES } from '../constants/routes';
 
 describe('CONTENT_PLUGINS', () => {
   it('contains the expected plugins', () => {
@@ -48,6 +54,11 @@ describe('CONTENT_PLUGINS', () => {
     }
   });
 
+  it('declares pull-through caching only for plugins whose distributions accept a remote', () => {
+    const withPullThrough = CONTENT_PLUGINS.filter((p) => p.hasPullThrough).map((p) => p.key);
+    expect(withPullThrough.sort()).toEqual(['gem', 'hugging_face', 'maven', 'npm', 'python', 'rust']);
+  });
+
   it('python uses the pypi distribution and publication endpoints', () => {
     const python = getPlugin('python');
     expect(python.endpoints.distributions).toBe('/distributions/python/pypi/');
@@ -79,6 +90,34 @@ describe('pluginRoutePaths', () => {
       repository: '/gem/repository',
       repositoryView: '/gem/repository/view',
     });
+  });
+});
+
+describe('CONTAINER_PULL_THROUGH_PLUGIN', () => {
+  it('is not part of CONTENT_PLUGINS', () => {
+    expect(CONTENT_PLUGINS).not.toContain(CONTAINER_PULL_THROUGH_PLUGIN);
+  });
+
+  it('uses the container pull-through endpoints without publications or sync', () => {
+    expect(CONTAINER_PULL_THROUGH_PLUGIN.endpoints).toEqual({
+      repositories: '/repositories/container/container/',
+      remotes: '/remotes/container/pull-through/',
+      distributions: '/distributions/container/pull-through/',
+    });
+    expect(CONTAINER_PULL_THROUGH_PLUGIN.hasSync).toBe(false);
+    expect(CONTAINER_PULL_THROUGH_PLUGIN.hasPullThrough).toBe(true);
+  });
+
+  it('only allows the on_demand policy', () => {
+    expect(CONTAINER_PULL_THROUGH_PLUGIN.remotePolicies).toEqual(['on_demand']);
+  });
+
+  it('derives route paths matching the ROUTES constants', () => {
+    const paths = pluginRoutePaths(CONTAINER_PULL_THROUGH_PLUGIN);
+    expect(paths.distribution).toBe(ROUTES.CONTAINER.PULL_THROUGH_DISTRIBUTION);
+    expect(paths.distributionView).toBe(ROUTES.CONTAINER.PULL_THROUGH_DISTRIBUTION_VIEW);
+    expect(paths.remote).toBe(ROUTES.CONTAINER.PULL_THROUGH_REMOTE);
+    expect(paths.remoteView).toBe(ROUTES.CONTAINER.PULL_THROUGH_REMOTE_VIEW);
   });
 });
 

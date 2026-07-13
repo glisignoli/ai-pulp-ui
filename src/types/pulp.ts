@@ -8,6 +8,7 @@ export interface Distribution {
   repository?: string | null;
   repository_version?: string | null;
   publication?: string | null;
+  remote?: string | null;
   private?: boolean;
   description?: string | null;
   generate_repo_config?: boolean;

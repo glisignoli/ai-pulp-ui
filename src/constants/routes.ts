@@ -66,5 +66,10 @@ export const ROUTES = {
     REMOTE_VIEW: '/container/remote/view',
     REPOSITORY: '/container/repository',
     REPOSITORY_VIEW: '/container/repository/view',
+    // Must match pluginRoutePaths(CONTAINER_PULL_THROUGH_PLUGIN).
+    PULL_THROUGH_DISTRIBUTION: '/container/pull-through/distribution',
+    PULL_THROUGH_DISTRIBUTION_VIEW: '/container/pull-through/distribution/view',
+    PULL_THROUGH_REMOTE: '/container/pull-through/remote',
+    PULL_THROUGH_REMOTE_VIEW: '/container/pull-through/remote/view',
   },
 } as const;

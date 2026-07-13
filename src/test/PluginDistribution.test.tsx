@@ -22,6 +22,7 @@ vi.mock('../services/api', async (importOriginal) => {
 
 const python = getPlugin('python');
 const maven = getPlugin('maven');
+const ansible = getPlugin('ansible');
 
 describe('PluginDistribution', () => {
   beforeEach(() => {
@@ -125,6 +126,78 @@ describe('PluginDistribution', () => {
         base_path: 'pypi',
         repository: null,
         publication: null,
+        remote: null,
+      });
+    });
+  });
+
+  it('hides the remote column for plugins without pull-through caching', async () => {
+    vi.mocked(apiService.get).mockResolvedValue({ count: 0, next: null, previous: null, results: [] } as any);
+
+    render(
+      <MemoryRouter>
+        <PluginDistribution plugin={ansible} />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Ansible Distributions')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText('Remote')).not.toBeInTheDocument();
+  });
+
+  it('sends the selected remote for pull-through plugins', async () => {
+    const remoteHref = '/pulp/api/v3/remotes/python/python/1/';
+    vi.mocked(apiService.get).mockImplementation((url: string) => {
+      if (url.startsWith('/remotes/python/python/')) {
+        return Promise.resolve({
+          count: 1,
+          next: null,
+          previous: null,
+          results: [{ pulp_href: remoteHref, name: 'pypi-remote', url: 'https://pypi.org/' }],
+        } as any);
+      }
+      return Promise.resolve({ count: 0, next: null, previous: null, results: [] } as any);
+    });
+    vi.mocked(apiService.post).mockResolvedValue({} as any);
+
+    render(
+      <MemoryRouter>
+        <PluginDistribution plugin={python} />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Create Distribution' })).toBeInTheDocument();
+    });
+
+    // Pull-through plugins get a Remote column.
+    expect(screen.getByText('Remote')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Create Distribution' }));
+
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.change(within(dialog).getByRole('textbox', { name: /name/i }), {
+      target: { value: 'pypi-cache' },
+    });
+    fireEvent.change(within(dialog).getByRole('textbox', { name: /base path/i }), {
+      target: { value: 'pypi-cache' },
+    });
+
+    const remoteInput = within(dialog).getByRole('combobox', { name: 'Remote' });
+    fireEvent.keyDown(remoteInput, { key: 'ArrowDown' });
+    fireEvent.click(await screen.findByText('pypi-remote'));
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Create' }));
+
+    await waitFor(() => {
+      expect(apiService.post).toHaveBeenCalledWith('/distributions/python/pypi/', {
+        name: 'pypi-cache',
+        base_path: 'pypi-cache',
+        repository: null,
+        publication: null,
+        remote: remoteHref,
       });
     });
   });

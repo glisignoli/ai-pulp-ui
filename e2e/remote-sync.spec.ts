@@ -21,8 +21,19 @@ import {
  * sync from the repository detail page, and verifies the sync task completes
  * and repository version 1 shows up in the UI.
  *
- * Covers both UI implementations: the dedicated RPM/DEB components and the
- * generic config-driven components (via Gem).
+ * Covers both UI implementations: the dedicated RPM/DEB/File components and
+ * the generic config-driven components (Gem, Python, OSTree).
+ *
+ * Plugins that support sync but are not covered here, because the fixtures
+ * server has nothing they can sync from without internet access:
+ *  - container: needs a real registry (the docker/ fixture is not a v2 API);
+ *    the Sync button is covered by src/test/ContainerRepositoryDetail.test.tsx.
+ *  - ansible: collection sync needs a Galaxy server plus a requirements file.
+ *  - npm, rust: sync only works against the public registries.
+ *  - hugging_face: pulp_hugging_face 0.3.0 rejects attaching its remote to a
+ *    repository (see plugins.spec.ts), so the sync flow cannot be reached.
+ * Maven has no sync endpoint at all (pull-through cache), so its repository
+ * detail page intentionally shows no Sync button (asserted in plugins.spec.ts).
  */
 
 type Policy = 'immediate' | 'on_demand' | 'streamed';
@@ -42,6 +53,12 @@ interface SyncTarget {
   policyOptionName: (policy: Policy) => string | RegExp;
   /** Extra dialog fields required by this plugin's remote. */
   fillExtraRemoteFields?: (page: Page) => Promise<void>;
+  /**
+   * How the create-repository dialog picks a remote. Most dialogs use an MUI
+   * Autocomplete (type to filter, then click the option); File uses a plain
+   * MUI Select (open, then click the option).
+   */
+  remotePicker?: 'autocomplete' | 'select';
 }
 
 // The dedicated RPM/DEB dialogs use verbose policy labels; the generic
@@ -84,6 +101,20 @@ const SYNC_TARGETS: SyncTarget[] = [
     },
   },
   {
+    component: 'file',
+    label: 'File',
+    remoteListPath: '/file/remote',
+    repoListPath: '/file/repository',
+    repoViewPath: '/file/repository/view',
+    remotesEndpoint: '/remotes/file/file/',
+    repositoriesEndpoint: '/repositories/file/file/',
+    fixtureUrl: `${FIXTURES_URL}/file/PULP_MANIFEST`,
+    policies: ['immediate', 'on_demand', 'streamed'],
+    // The File remote dialog uses the raw policy values as option labels.
+    policyOptionName: (policy) => policy,
+    remotePicker: 'select',
+  },
+  {
     // Exercises the generic config-driven components from src/components/plugin/.
     component: 'gem',
     label: 'Gem',
@@ -94,6 +125,35 @@ const SYNC_TARGETS: SyncTarget[] = [
     repositoriesEndpoint: '/repositories/gem/gem/',
     fixtureUrl: `${FIXTURES_URL}/gem/`,
     policies: ['immediate', 'on_demand', 'streamed'],
+    policyOptionName: (policy) => policy,
+  },
+  {
+    component: 'python',
+    label: 'Python',
+    remoteListPath: '/python/remote',
+    repoListPath: '/python/repository',
+    repoViewPath: '/python/repository/view',
+    remotesEndpoint: '/remotes/python/python/',
+    repositoriesEndpoint: '/repositories/python/python/',
+    fixtureUrl: `${FIXTURES_URL}/python-pypi/`,
+    // The UI has no "includes" field, so a sync pulls every project in the
+    // fixture index. Its simple pages link packages via absolute URLs to the
+    // public fixtures server, so an immediate sync would download hundreds of
+    // MB (scipy et al) from the internet; on_demand/streamed only read the
+    // metadata from the local fixtures container.
+    policies: ['on_demand', 'streamed'],
+    policyOptionName: (policy) => policy,
+  },
+  {
+    component: 'ostree',
+    label: 'OSTree',
+    remoteListPath: '/ostree/remote',
+    repoListPath: '/ostree/repository',
+    repoViewPath: '/ostree/repository/view',
+    remotesEndpoint: '/remotes/ostree/ostree/',
+    repositoriesEndpoint: '/repositories/ostree/ostree/',
+    fixtureUrl: `${FIXTURES_URL}/ostree/small/`,
+    policies: ['immediate', 'on_demand'],
     policyOptionName: (policy) => policy,
   },
 ];
@@ -150,10 +210,16 @@ for (const target of SYNC_TARGETS) {
 
           const repoDialog = page.getByRole('dialog');
           await repoDialog.getByRole('textbox', { name: 'Name', exact: true }).fill(repoName);
-          const remoteSelect = repoDialog.getByRole('combobox', { name: 'Remote' });
-          await remoteSelect.click();
-          await remoteSelect.fill(remoteName);
-          await page.getByRole('option', { name: remoteName, exact: true }).click();
+          if (target.remotePicker === 'select') {
+            // MUI Select: its accessible name is "Remote <current value>".
+            await repoDialog.getByRole('combobox', { name: /^Remote/ }).click();
+            await page.getByRole('option', { name: remoteName, exact: true }).click();
+          } else {
+            const remoteSelect = repoDialog.getByRole('combobox', { name: 'Remote' });
+            await remoteSelect.click();
+            await remoteSelect.fill(remoteName);
+            await page.getByRole('option', { name: remoteName, exact: true }).click();
+          }
 
           const [repoResponse] = await Promise.all([
             page.waitForResponse(

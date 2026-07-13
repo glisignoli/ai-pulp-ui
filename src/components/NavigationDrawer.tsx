@@ -66,6 +66,12 @@ const contentNavigationItems: NavigationItem[] = [
       { title: 'Distributions', path: ROUTES.CONTAINER.DISTRIBUTION, icon: <Cloud /> },
       { title: 'Remotes', path: ROUTES.CONTAINER.REMOTE, icon: <Cloud /> },
       { title: 'Repositories', path: ROUTES.CONTAINER.REPOSITORY, icon: <Folder /> },
+      {
+        title: 'Pull-Through Distributions',
+        path: ROUTES.CONTAINER.PULL_THROUGH_DISTRIBUTION,
+        icon: <Cloud />,
+      },
+      { title: 'Pull-Through Remotes', path: ROUTES.CONTAINER.PULL_THROUGH_REMOTE, icon: <Cloud /> },
     ],
   },
   {

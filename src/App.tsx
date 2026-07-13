@@ -66,7 +66,7 @@ import { Repair } from './components/management/Repair';
 import { About } from './components/About';
 
 import { ROUTES } from './constants/routes';
-import { CONTENT_PLUGINS, pluginRoutePaths } from './constants/plugins';
+import { CONTAINER_PULL_THROUGH_PLUGIN, CONTENT_PLUGINS, pluginRoutePaths } from './constants/plugins';
 
 const theme = createTheme({
   palette: {
@@ -148,6 +148,22 @@ function App() {
               <Route
                 path={ROUTES.CONTAINER.REPOSITORY_VIEW}
                 element={<ContainerRepositoryDetail />}
+              />
+              <Route
+                path={ROUTES.CONTAINER.PULL_THROUGH_DISTRIBUTION}
+                element={<PluginDistribution plugin={CONTAINER_PULL_THROUGH_PLUGIN} />}
+              />
+              <Route
+                path={ROUTES.CONTAINER.PULL_THROUGH_DISTRIBUTION_VIEW}
+                element={<PluginResourceDetail plugin={CONTAINER_PULL_THROUGH_PLUGIN} resource="distribution" />}
+              />
+              <Route
+                path={ROUTES.CONTAINER.PULL_THROUGH_REMOTE}
+                element={<PluginRemote plugin={CONTAINER_PULL_THROUGH_PLUGIN} />}
+              />
+              <Route
+                path={ROUTES.CONTAINER.PULL_THROUGH_REMOTE_VIEW}
+                element={<PluginResourceDetail plugin={CONTAINER_PULL_THROUGH_PLUGIN} resource="remote" />}
               />
 
               {CONTENT_PLUGINS.map((plugin) => {

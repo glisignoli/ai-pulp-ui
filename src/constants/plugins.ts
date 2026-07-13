@@ -20,6 +20,8 @@ export interface PluginConfig {
   hasSync: boolean;
   /** Download policies accepted by this plugin's remote. */
   remotePolicies: readonly RemotePolicy[];
+  /** Whether the distribution accepts a `remote` href (pull-through caching). */
+  hasPullThrough: boolean;
 }
 
 /**
@@ -39,6 +41,7 @@ export const CONTENT_PLUGINS: readonly PluginConfig[] = [
     },
     hasSync: true,
     remotePolicies: ['immediate'],
+    hasPullThrough: false,
   },
   {
     key: 'gem',
@@ -52,6 +55,7 @@ export const CONTENT_PLUGINS: readonly PluginConfig[] = [
     },
     hasSync: true,
     remotePolicies: ['immediate', 'on_demand', 'streamed'],
+    hasPullThrough: true,
   },
   {
     key: 'hugging_face',
@@ -65,6 +69,7 @@ export const CONTENT_PLUGINS: readonly PluginConfig[] = [
     },
     hasSync: true,
     remotePolicies: ['immediate', 'on_demand', 'streamed'],
+    hasPullThrough: true,
   },
   {
     key: 'maven',
@@ -77,6 +82,7 @@ export const CONTENT_PLUGINS: readonly PluginConfig[] = [
     },
     hasSync: false,
     remotePolicies: ['immediate'],
+    hasPullThrough: true,
   },
   {
     key: 'npm',
@@ -89,6 +95,7 @@ export const CONTENT_PLUGINS: readonly PluginConfig[] = [
     },
     hasSync: true,
     remotePolicies: ['immediate', 'on_demand', 'streamed'],
+    hasPullThrough: true,
   },
   {
     key: 'ostree',
@@ -101,6 +108,7 @@ export const CONTENT_PLUGINS: readonly PluginConfig[] = [
     },
     hasSync: true,
     remotePolicies: ['immediate', 'on_demand'],
+    hasPullThrough: false,
   },
   {
     key: 'python',
@@ -114,6 +122,7 @@ export const CONTENT_PLUGINS: readonly PluginConfig[] = [
     },
     hasSync: true,
     remotePolicies: ['immediate', 'on_demand', 'streamed'],
+    hasPullThrough: true,
   },
   {
     key: 'rust',
@@ -126,8 +135,30 @@ export const CONTENT_PLUGINS: readonly PluginConfig[] = [
     },
     hasSync: true,
     remotePolicies: ['immediate', 'on_demand', 'streamed'],
+    hasPullThrough: true,
   },
 ];
+
+/**
+ * Container pull-through caching, rendered with the generic components under the
+ * dedicated Container section (not part of CONTENT_PLUGINS, so it gets no nav
+ * section or routes of its own — App.tsx and NavigationDrawer.tsx wire it in).
+ * A pull-through distribution proxies its remote and caches whatever clients
+ * pull; the API only accepts the on_demand policy for pull-through remotes.
+ */
+export const CONTAINER_PULL_THROUGH_PLUGIN: PluginConfig = {
+  key: 'container-pull-through',
+  label: 'Container Pull-Through',
+  routeBase: '/container/pull-through',
+  endpoints: {
+    repositories: '/repositories/container/container/',
+    remotes: '/remotes/container/pull-through/',
+    distributions: '/distributions/container/pull-through/',
+  },
+  hasSync: false,
+  remotePolicies: ['on_demand'],
+  hasPullThrough: true,
+};
 
 export interface PluginRoutePaths {
   root: string;
