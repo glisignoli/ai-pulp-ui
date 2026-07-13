@@ -28,6 +28,7 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { ROUTES } from '../constants/routes';
+import { CONTENT_PLUGINS, pluginRoutePaths } from '../constants/plugins';
 
 const DRAWER_WIDTH = 240;
 const DRAWER_WIDTH_COLLAPSED = 60;
@@ -39,27 +40,24 @@ interface NavigationItem {
   children?: NavigationItem[];
 }
 
-const navigationItems: NavigationItem[] = [
-  {
-    title: 'Home',
-    path: ROUTES.ROOT,
-    icon: <Home />,
-  },
-  {
-    title: 'About',
-    path: ROUTES.ABOUT,
-    icon: <Article />,
-  },
-  {
-    title: 'Management',
-    path: ROUTES.MANAGEMENT.ROOT,
+const pluginNavigationItems: NavigationItem[] = CONTENT_PLUGINS.map((plugin) => {
+  const paths = pluginRoutePaths(plugin);
+  return {
+    title: plugin.label,
+    path: paths.root,
     icon: <Storage />,
     children: [
-      { title: 'Users', path: ROUTES.USERS, icon: <People /> },
-      { title: 'Orphans Cleanup', path: ROUTES.MANAGEMENT.ORPHANS_CLEANUP, icon: <Assignment /> },
-      { title: 'Repair', path: ROUTES.MANAGEMENT.REPAIR, icon: <Assignment /> },
+      { title: 'Distribution', path: paths.distribution, icon: <Cloud /> },
+      ...(plugin.endpoints.publications
+        ? [{ title: 'Publication', path: paths.publication, icon: <Article /> }]
+        : []),
+      { title: 'Remote', path: paths.remote, icon: <Cloud /> },
+      { title: 'Repository', path: paths.repository, icon: <Folder /> },
     ],
-  },
+  };
+});
+
+const contentNavigationItems: NavigationItem[] = [
   {
     title: 'Container',
     path: ROUTES.CONTAINER.ROOT,
@@ -106,6 +104,31 @@ const navigationItems: NavigationItem[] = [
       { title: 'Repository', path: ROUTES.RPM.REPOSITORY, icon: <Folder /> },
     ],
   },
+  ...pluginNavigationItems,
+].sort((a, b) => a.title.localeCompare(b.title));
+
+const navigationItems: NavigationItem[] = [
+  {
+    title: 'Home',
+    path: ROUTES.ROOT,
+    icon: <Home />,
+  },
+  {
+    title: 'About',
+    path: ROUTES.ABOUT,
+    icon: <Article />,
+  },
+  {
+    title: 'Management',
+    path: ROUTES.MANAGEMENT.ROOT,
+    icon: <Storage />,
+    children: [
+      { title: 'Users', path: ROUTES.USERS, icon: <People /> },
+      { title: 'Orphans Cleanup', path: ROUTES.MANAGEMENT.ORPHANS_CLEANUP, icon: <Assignment /> },
+      { title: 'Repair', path: ROUTES.MANAGEMENT.REPAIR, icon: <Assignment /> },
+    ],
+  },
+  ...contentNavigationItems,
   {
     title: 'Tasks',
     path: ROUTES.TASKS.ROOT,

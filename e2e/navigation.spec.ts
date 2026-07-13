@@ -42,7 +42,24 @@ test.describe('Navigation Tests', () => {
       .map((text) => text.trim())
       .filter(Boolean);
     expect([...mainNavLabels].sort()).toEqual(
-      ['About', 'Container', 'DEB', 'File', 'Home', 'Management', 'RPM', 'Tasks'].sort()
+      [
+        'About',
+        'Ansible',
+        'Container',
+        'DEB',
+        'File',
+        'Gem',
+        'Home',
+        'Hugging Face',
+        'Management',
+        'Maven',
+        'NPM',
+        'OSTree',
+        'Python',
+        'RPM',
+        'Rust',
+        'Tasks',
+      ].sort()
     );
 
     // Check for main navigation items

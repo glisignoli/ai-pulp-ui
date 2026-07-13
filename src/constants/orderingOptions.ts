@@ -211,6 +211,24 @@ export const rpmPackageOrderingOptions: OrderingOption[] = [
   common.pk_desc,
 ];
 
+// Generic content plugins (Ansible, Gem, Maven, NPM, OSTree, Python, Rust, Hugging Face)
+// share the core repository/remote/distribution/publication ordering fields.
+export const pluginRepositoryOrderingOptions: OrderingOption[] = [
+  ...debRepositoryOrderingOptions,
+];
+
+export const pluginRemoteOrderingOptions: OrderingOption[] = [
+  ...containerRemoteOrderingOptions,
+];
+
+export const pluginDistributionOrderingOptions: OrderingOption[] = [
+  ...debDistributionOrderingOptions,
+];
+
+export const pluginPublicationOrderingOptions: OrderingOption[] = [
+  ...debPublicationOrderingOptions,
+];
+
 export const taskOrderingOptions: OrderingOption[] = [
   common.pulp_id,
   common.pulp_id_desc,

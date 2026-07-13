@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
 import { AuthProvider } from './contexts/AuthContext';
@@ -49,6 +50,14 @@ import {
   ContainerRepositoryDetail,
 } from './components/container';
 
+import {
+  PluginDistribution,
+  PluginPublication,
+  PluginRemote,
+  PluginRepository,
+  PluginResourceDetail,
+} from './components/plugin';
+
 import { Users } from './components/users/Users';
 
 import { OrphansCleanup } from './components/management/OrphansCleanup';
@@ -57,6 +66,7 @@ import { Repair } from './components/management/Repair';
 import { About } from './components/About';
 
 import { ROUTES } from './constants/routes';
+import { CONTENT_PLUGINS, pluginRoutePaths } from './constants/plugins';
 
 const theme = createTheme({
   palette: {
@@ -139,6 +149,38 @@ function App() {
                 path={ROUTES.CONTAINER.REPOSITORY_VIEW}
                 element={<ContainerRepositoryDetail />}
               />
+
+              {CONTENT_PLUGINS.map((plugin) => {
+                const paths = pluginRoutePaths(plugin);
+                return (
+                  <Fragment key={plugin.key}>
+                    <Route path={paths.distribution} element={<PluginDistribution plugin={plugin} />} />
+                    <Route
+                      path={paths.distributionView}
+                      element={<PluginResourceDetail plugin={plugin} resource="distribution" />}
+                    />
+                    {plugin.endpoints.publications ? (
+                      <>
+                        <Route path={paths.publication} element={<PluginPublication plugin={plugin} />} />
+                        <Route
+                          path={paths.publicationView}
+                          element={<PluginResourceDetail plugin={plugin} resource="publication" />}
+                        />
+                      </>
+                    ) : null}
+                    <Route path={paths.remote} element={<PluginRemote plugin={plugin} />} />
+                    <Route
+                      path={paths.remoteView}
+                      element={<PluginResourceDetail plugin={plugin} resource="remote" />}
+                    />
+                    <Route path={paths.repository} element={<PluginRepository plugin={plugin} />} />
+                    <Route
+                      path={paths.repositoryView}
+                      element={<PluginResourceDetail plugin={plugin} resource="repository" />}
+                    />
+                  </Fragment>
+                );
+              })}
 
               <Route path={ROUTES.USERS} element={<Users />} />
 
