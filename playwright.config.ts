@@ -7,10 +7,14 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: [['html', { open: 'never' }]],
+  // First paint can exceed the default 5s when parallel workers contend for
+  // the Vite dev server and Pulp backend.
+  expect: { timeout: 10_000 },
   use: {
     baseURL: 'http://localhost:3000',
     screenshot: 'on',
-    trace: 'on',
+    // Trace export hangs ~30s per test on WSL2, so only record traces in CI.
+    trace: process.env.CI ? 'on' : 'off',
   },
 
   projects: [

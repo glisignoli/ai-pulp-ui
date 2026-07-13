@@ -133,7 +133,7 @@ test.describe('RPM Section Tests', () => {
       } else {
         // Check for detail page elements in successful state
         await expect(page.locator('h4').filter({ hasText: 'Distribution:' })).toBeVisible();
-        await expect(page.locator('text=Distribution Information')).toBeVisible();
+        await expect(page.locator('h6').filter({ hasText: 'GET Result' })).toBeVisible();
         await expect(page.getByRole('button', { name: /back/i })).toBeVisible();
       }
 
@@ -176,7 +176,7 @@ test.describe('RPM Section Tests', () => {
       } else {
         // Check for detail page elements in successful state
         await expect(page.locator('h4').filter({ hasText: 'Publication Details' })).toBeVisible();
-        await expect(page.locator('text=Publication Information')).toBeVisible();
+        await expect(page.locator('h6').filter({ hasText: 'GET Result' })).toBeVisible();
         await expect(page.getByRole('button', { name: /back/i })).toBeVisible();
       }
 
