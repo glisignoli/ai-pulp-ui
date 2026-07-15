@@ -16,7 +16,9 @@ const common = {
   pk_desc: { value: '-pk', label: 'Pk (descending)' },
 } satisfies Record<string, OrderingOption>;
 
-export const containerDistributionOrderingOptions: OrderingOption[] = [
+// Repository/remote/distribution/publication ordering fields come from the
+// pulpcore base serializers, so every plugin shares the same sets.
+export const pluginRepositoryOrderingOptions: OrderingOption[] = [
   common.pulp_id,
   common.pulp_id_desc,
   common.pulp_created,
@@ -25,15 +27,15 @@ export const containerDistributionOrderingOptions: OrderingOption[] = [
   common.pulp_last_updated_desc,
   common.name,
   common.name_desc,
-  { value: 'base_path', label: 'Base path' },
-  { value: '-base_path', label: 'Base path (descending)' },
-  { value: 'hidden', label: 'Hidden' },
-  { value: '-hidden', label: 'Hidden (descending)' },
+  { value: 'description', label: 'Description' },
+  { value: '-description', label: 'Description (descending)' },
+  { value: 'retain_repo_versions', label: 'Retain repo versions' },
+  { value: '-retain_repo_versions', label: 'Retain repo versions (descending)' },
   common.pk,
   common.pk_desc,
 ];
 
-export const containerRemoteOrderingOptions: OrderingOption[] = [
+export const pluginRemoteOrderingOptions: OrderingOption[] = [
   common.pulp_id,
   common.pulp_id_desc,
   common.pulp_created,
@@ -44,6 +46,8 @@ export const containerRemoteOrderingOptions: OrderingOption[] = [
   common.name_desc,
   { value: 'url', label: 'Url' },
   { value: '-url', label: 'Url (descending)' },
+  { value: 'policy', label: 'Policy' },
+  { value: '-policy', label: 'Policy (descending)' },
   { value: 'username', label: 'Username' },
   { value: '-username', label: 'Username (descending)' },
   { value: 'tls_validation', label: 'Tls validation' },
@@ -52,24 +56,7 @@ export const containerRemoteOrderingOptions: OrderingOption[] = [
   common.pk_desc,
 ];
 
-export const containerRepositoryOrderingOptions: OrderingOption[] = [
-  common.pulp_id,
-  common.pulp_id_desc,
-  common.pulp_created,
-  common.pulp_created_desc,
-  common.pulp_last_updated,
-  common.pulp_last_updated_desc,
-  common.name,
-  common.name_desc,
-  { value: 'description', label: 'Description' },
-  { value: '-description', label: 'Description (descending)' },
-  { value: 'retain_repo_versions', label: 'Retain repo versions' },
-  { value: '-retain_repo_versions', label: 'Retain repo versions (descending)' },
-  common.pk,
-  common.pk_desc,
-];
-
-export const debDistributionOrderingOptions: OrderingOption[] = [
+export const pluginDistributionOrderingOptions: OrderingOption[] = [
   common.pulp_id,
   common.pulp_id_desc,
   common.pulp_created,
@@ -86,7 +73,7 @@ export const debDistributionOrderingOptions: OrderingOption[] = [
   common.pk_desc,
 ];
 
-export const debPublicationOrderingOptions: OrderingOption[] = [
+export const pluginPublicationOrderingOptions: OrderingOption[] = [
   common.pulp_id,
   common.pulp_id_desc,
   common.pulp_created,
@@ -97,27 +84,6 @@ export const debPublicationOrderingOptions: OrderingOption[] = [
   { value: '-complete', label: 'Complete (descending)' },
   { value: 'pass_through', label: 'Pass through' },
   { value: '-pass_through', label: 'Pass through (descending)' },
-  common.pk,
-  common.pk_desc,
-];
-
-export const debRemoteOrderingOptions: OrderingOption[] = [
-  ...containerRemoteOrderingOptions,
-];
-
-export const debRepositoryOrderingOptions: OrderingOption[] = [
-  common.pulp_id,
-  common.pulp_id_desc,
-  common.pulp_created,
-  common.pulp_created_desc,
-  common.pulp_last_updated,
-  common.pulp_last_updated_desc,
-  common.name,
-  common.name_desc,
-  { value: 'description', label: 'Description' },
-  { value: '-description', label: 'Description (descending)' },
-  { value: 'retain_repo_versions', label: 'Retain repo versions' },
-  { value: '-retain_repo_versions', label: 'Retain repo versions (descending)' },
   common.pk,
   common.pk_desc,
 ];
@@ -154,40 +120,6 @@ export const fileContentOrderingOptions: OrderingOption[] = [
   { value: '-timestamp_of_interest', label: 'Timestamp of interest (descending)' },
   common.pk,
   common.pk_desc,
-];
-
-export const fileDistributionOrderingOptions: OrderingOption[] = [
-  ...debDistributionOrderingOptions,
-];
-
-export const filePublicationOrderingOptions: OrderingOption[] = [
-  ...debPublicationOrderingOptions,
-];
-
-export const fileRemoteOrderingOptions: OrderingOption[] = [
-  ...containerRemoteOrderingOptions,
-];
-
-export const fileRepositoryOrderingOptions: OrderingOption[] = [
-  ...debRepositoryOrderingOptions,
-];
-
-export const rpmDistributionOrderingOptions: OrderingOption[] = [
-  ...debDistributionOrderingOptions,
-];
-
-export const rpmPublicationOrderingOptions: OrderingOption[] = [
-  ...debPublicationOrderingOptions,
-];
-
-export const rpmRemoteOrderingOptions: OrderingOption[] = [
-  ...containerRemoteOrderingOptions,
-  { value: 'policy', label: 'Policy' },
-  { value: '-policy', label: 'Policy (descending)' },
-];
-
-export const rpmRepositoryOrderingOptions: OrderingOption[] = [
-  ...debRepositoryOrderingOptions,
 ];
 
 export const rpmPackageOrderingOptions: OrderingOption[] = [

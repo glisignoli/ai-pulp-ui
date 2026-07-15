@@ -48,6 +48,19 @@ else
     SELINUX=""
 fi;
 
+# Also run fixtures container docker.io/pulp/pulp-fixtures:latest
+"${CONTAINER_RUNTIME}" run ${RM:+--rm} \
+  --detach \
+  --name "pulp-fixtures" \
+  --publish "8081:8080" \
+  --network "bridge" \
+  "docker.io/pulp/pulp-fixtures:latest"
+
+# shellcheck disable=SC2064
+trap "${CONTAINER_RUNTIME} stop pulp-fixtures" EXIT
+# shellcheck disable=SC2064
+trap "${CONTAINER_RUNTIME} stop pulp-fixtures" INT
+
 "${CONTAINER_RUNTIME}" \
   run ${RM:+--rm} \
   --env S6_KEEP_ENV=1 \
@@ -59,10 +72,12 @@ fi;
   --network "bridge" \
   "ghcr.io/pulp/pulp:${IMAGE_TAG}"
 
+# A later trap replaces an earlier one for the same signal, so stop both
+# containers in a single trap.
 # shellcheck disable=SC2064
-trap "${CONTAINER_RUNTIME} stop pulp-ephemeral" EXIT
+trap "${CONTAINER_RUNTIME} stop pulp-ephemeral pulp-fixtures" EXIT
 # shellcheck disable=SC2064
-trap "${CONTAINER_RUNTIME} stop pulp-ephemeral" INT
+trap "${CONTAINER_RUNTIME} stop pulp-ephemeral pulp-fixtures" INT
 
 echo "Wait for pulp to start."
 for counter in $(seq 40 -1 0)
@@ -90,6 +105,13 @@ curl -s "http://localhost:8080${PULP_API_ROOT:-/pulp/}api/v3/status/" | jq '.ver
 
 # Set admin password
 "${CONTAINER_RUNTIME}" exec "pulp-ephemeral" pulpcore-manager reset-admin-password --password password
+
+# URL where the pulp container can reach the fixtures server. localhost:8081 only
+# works from the host, so point tests at the fixtures container's bridge IP.
+FIXTURES_IP="$("${CONTAINER_RUNTIME}" inspect pulp-fixtures --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')"
+PULP_FIXTURES_URL="${PULP_FIXTURES_URL:-http://${FIXTURES_IP}:8080}"
+export PULP_FIXTURES_URL
+echo "Fixtures reachable from pulp at ${PULP_FIXTURES_URL}"
 
 if [ -d "${BASEPATH}/container_setup.d/" ]
 then

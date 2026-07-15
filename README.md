@@ -4,7 +4,31 @@
 >
 > If you find any bugs or have any requests feel free to raise a github issue.
 
-React + TypeScript frontend for managing Pulp resources (RPM, File, DEB) via the Pulp REST API.
+React + TypeScript frontend for managing Pulp resources via the Pulp REST API.
+
+## Supported content plugins
+
+| Plugin | Repositories | Remotes | Distributions | Publications | Content browsing |
+| --- | --- | --- | --- | --- | --- |
+| RPM | ✅ | ✅ | ✅ | ✅ | ✅ (packages) |
+| File | ✅ | ✅ | ✅ | ✅ | ✅ (files) |
+| DEB | ✅ | ✅ | ✅ | ✅ | ✅ (packages) |
+| Container | ✅ | ✅ | ✅ | n/a | — |
+| Ansible | ✅ | ✅ (collection) | ✅ | n/a | — |
+| Gem | ✅ | ✅ | ✅ | ✅ | — |
+| Hugging Face | ✅ | ✅ | ✅ | ✅ | — |
+| Maven | ✅ | ✅ | ✅ | n/a | — |
+| NPM | ✅ | ✅ | ✅ | n/a | — |
+| OSTree | ✅ | ✅ | ✅ | n/a | — |
+| Python | ✅ | ✅ | ✅ | ✅ | — |
+| Rust | ✅ | ✅ | ✅ | n/a | — |
+
+Notes:
+
+- Publications only exist for plugins that use them (Gem, Python, Hugging Face, plus RPM/File/DEB).
+- Maven repositories have no sync operation (Maven acts as a pull-through cache via its remote).
+- Ansible remotes managed by the UI are collection remotes (`/remotes/ansible/collection/`).
+- The corresponding plugin must be installed on the Pulp backend for its section to work.
 
 The UI talks to the backend at `http://localhost:8080/pulp/api/v3/` (by default).
 
@@ -172,6 +196,16 @@ Notes:
 
 - Pulp user docs: https://pulpproject.org/user/
 - REST APIs:
+  - Pulpcore: https://pulpproject.org/pulpcore/restapi/
   - RPM: https://pulpproject.org/pulp_rpm/restapi/
   - File: https://pulpproject.org/pulp_file/restapi/
   - DEB: https://pulpproject.org/pulp_deb/restapi/
+  - Container: https://pulpproject.org/pulp_container/restapi/
+  - Ansible: https://pulpproject.org/pulp_ansible/restapi/
+  - Gem: https://pulpproject.org/pulp_gem/restapi/
+  - Hugging Face: https://pulpproject.org/pulp_hugging_face/restapi/
+  - Maven: https://pulpproject.org/pulp_maven/restapi/
+  - NPM: https://pulpproject.org/pulp_npm/restapi/
+  - OSTree: https://pulpproject.org/pulp_ostree/restapi/
+  - Python: https://pulpproject.org/pulp_python/restapi/
+  - Rust: https://pulpproject.org/pulp_rust/restapi/

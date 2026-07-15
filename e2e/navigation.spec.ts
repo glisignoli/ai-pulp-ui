@@ -42,7 +42,24 @@ test.describe('Navigation Tests', () => {
       .map((text) => text.trim())
       .filter(Boolean);
     expect([...mainNavLabels].sort()).toEqual(
-      ['About', 'Container', 'DEB', 'File', 'Home', 'Management', 'RPM', 'Tasks'].sort()
+      [
+        'About',
+        'Ansible',
+        'Container',
+        'DEB',
+        'File',
+        'Gem',
+        'Home',
+        'Hugging Face',
+        'Management',
+        'Maven',
+        'NPM',
+        'OSTree',
+        'Python',
+        'RPM',
+        'Rust',
+        'Tasks',
+      ].sort()
     );
 
     // Check for main navigation items
@@ -203,7 +220,7 @@ test.describe('Navigation Tests', () => {
       await page.waitForLoadState('networkidle');
 
       // Should be on detail view page
-      await expect(page.locator('h4').filter({ hasText: 'Distribution:' })).toBeVisible();
+      await expect(page.locator('h4').filter({ hasText: 'RPM Distribution' })).toBeVisible();
       await expect(page.getByRole('button', { name: /back/i })).toBeVisible();
 
       // Click back button
@@ -217,7 +234,7 @@ test.describe('Navigation Tests', () => {
     await page.waitForLoadState('networkidle');
 
     // Try to find a view button and click it
-    const viewButtons = page.locator('button[aria-label="view"]');
+    const viewButtons = page.locator('button[title="View"]');
     const count = await viewButtons.count();
 
     if (count > 0) {
@@ -225,7 +242,7 @@ test.describe('Navigation Tests', () => {
       await page.waitForLoadState('networkidle');
 
       // Should be on detail view page
-      await expect(page.locator('h4').filter({ hasText: 'Publication Details' })).toBeVisible();
+      await expect(page.locator('h4').filter({ hasText: 'RPM Publication' })).toBeVisible();
       await expect(page.getByRole('button', { name: /back/i })).toBeVisible();
 
       // Click back button
@@ -239,7 +256,7 @@ test.describe('Navigation Tests', () => {
     await page.waitForLoadState('networkidle');
 
     // Try to find a view button and click it
-    const viewButtons = page.locator('button[aria-label="view"]');
+    const viewButtons = page.locator('button[title="View"]');
     const count = await viewButtons.count();
 
     if (count > 0) {
@@ -247,7 +264,7 @@ test.describe('Navigation Tests', () => {
       await page.waitForLoadState('networkidle');
 
       // Should be on detail view page
-      await expect(page.locator('h4').filter({ hasText: 'Publication Details' })).toBeVisible();
+      await expect(page.locator('h4').filter({ hasText: 'File Publication' })).toBeVisible();
       await expect(page.getByRole('button', { name: /back/i })).toBeVisible();
 
       // Click back button
@@ -261,7 +278,7 @@ test.describe('Navigation Tests', () => {
     await page.waitForLoadState('networkidle');
 
     // Try to find a view button and click it
-    const viewButtons = page.locator('button[aria-label="view"]');
+    const viewButtons = page.locator('button[title="View"]');
     const count = await viewButtons.count();
 
     if (count > 0) {
@@ -269,7 +286,7 @@ test.describe('Navigation Tests', () => {
       await page.waitForLoadState('networkidle');
 
       // Should be on detail view page
-      await expect(page.locator('h4').filter({ hasText: 'Publication Details' })).toBeVisible();
+      await expect(page.locator('h4').filter({ hasText: 'DEB Publication' })).toBeVisible();
       await expect(page.getByRole('button', { name: /back/i })).toBeVisible();
 
       // Click back button
@@ -291,7 +308,7 @@ test.describe('Navigation Tests', () => {
       await page.waitForLoadState('networkidle');
 
       // Should be on detail view page
-      await expect(page.locator('h4').filter({ hasText: 'Remote:' })).toBeVisible();
+      await expect(page.locator('h4').filter({ hasText: 'RPM Remote' })).toBeVisible();
       await expect(page.getByRole('button', { name: /back/i })).toBeVisible();
 
       // Click back button
@@ -313,7 +330,7 @@ test.describe('Navigation Tests', () => {
       await page.waitForLoadState('networkidle');
 
       // Should be on detail view page
-      await expect(page.locator('h4').filter({ hasText: 'Repository:' })).toBeVisible();
+      await expect(page.locator('h4').filter({ hasText: 'RPM Repository' })).toBeVisible();
       await expect(page.getByRole('button', { name: /back/i })).toBeVisible();
 
       // Click back button
