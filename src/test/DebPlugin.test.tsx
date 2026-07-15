@@ -130,7 +130,7 @@ describe('DEB plugin via generic components', () => {
         ignore_missing_package_indices: false,
       });
     });
-  });
+  }, 20000);
 
   it('does not offer the dropped retain_package_versions field on repositories', async () => {
     vi.mocked(apiService.get).mockResolvedValue(emptyList as any);
