@@ -32,6 +32,7 @@ import { createPluginService } from '../../services/pluginCrud';
 import { DEFAULT_PAGE_SIZE, formatPulpApiError } from '../../services/api';
 import { pluginPublicationOrderingOptions } from '../../constants/orderingOptions';
 import { ForegroundSnackbar } from '../ForegroundSnackbar';
+import { PluginFieldInputs, buildFieldPayload, initialFieldValues, type PluginFieldValues } from './pluginFields';
 
 interface PublicationFormData {
   repository: string;
@@ -70,6 +71,9 @@ export const PluginPublication: React.FC<PluginPublicationProps> = ({ plugin }) 
     repository: '',
     repository_version: '',
   });
+  const [extraValues, setExtraValues] = useState<PluginFieldValues>(
+    initialFieldValues(plugin.publicationFields)
+  );
 
   const repositoryMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -77,13 +81,13 @@ export const PluginPublication: React.FC<PluginPublicationProps> = ({ plugin }) 
     return map;
   }, [repositories]);
 
-  const fetchPublications = async (pageToLoad = page) => {
+  const fetchPublications = async (pageToLoad = page, orderingParam = ordering) => {
     if (!service.publications) return;
 
     try {
       setLoading(true);
       const offset = pageToLoad * DEFAULT_PAGE_SIZE;
-      const response = await service.publications.list(offset, ordering);
+      const response = await service.publications.list(offset, orderingParam);
       setPublications(response.results);
       setTotalCount(response.count);
       setError(null);
@@ -137,12 +141,13 @@ export const PluginPublication: React.FC<PluginPublicationProps> = ({ plugin }) 
   const handleOrderingChange = (newOrdering: string) => {
     setOrdering(newOrdering);
     setPage(0);
-    void fetchPublications(0);
+    void fetchPublications(0, newOrdering);
   };
 
   const handleCreateClick = () => {
     setRepositoryVersions([]);
     setFormData({ repository: '', repository_version: '' });
+    setExtraValues(initialFieldValues(plugin.publicationFields));
     setOpenCreateDialog(true);
   };
 
@@ -158,7 +163,16 @@ export const PluginPublication: React.FC<PluginPublicationProps> = ({ plugin }) 
     if (!service.publications) return;
 
     try {
-      const payload: any = {};
+      const { payload: extraPayload, error: extraError } = buildFieldPayload(
+        plugin.publicationFields,
+        extraValues
+      );
+      if (extraError) {
+        setError(extraError);
+        return;
+      }
+
+      const payload: any = { ...extraPayload };
       if (formData.repository_version) payload.repository_version = formData.repository_version;
       else if (formData.repository) payload.repository = formData.repository;
 
@@ -323,6 +337,12 @@ export const PluginPublication: React.FC<PluginPublicationProps> = ({ plugin }) 
                   helperText="Optional. If set, overrides repository."
                 />
               )}
+            />
+
+            <PluginFieldInputs
+              fields={plugin.publicationFields}
+              values={extraValues}
+              onChange={(key, value) => setExtraValues((prev) => ({ ...prev, [key]: value }))}
             />
           </Box>
         </DialogContent>

@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Autocomplete,
   Box,
   Button,
   CircularProgress,
@@ -37,19 +36,15 @@ import { createPluginService } from '../../services/pluginCrud';
 import { DEFAULT_PAGE_SIZE, formatPulpApiError } from '../../services/api';
 import { pluginRepositoryOrderingOptions } from '../../constants/orderingOptions';
 import { ForegroundSnackbar } from '../ForegroundSnackbar';
-
-interface RepositoryFormData {
-  name: string;
-  description: string;
-  retain_repo_versions: number | null;
-  remote: string;
-}
+import { RepositoryFormDialog } from './RepositoryFormDialog';
 
 interface PluginRepositoryProps {
   plugin: PluginConfig;
+  /** Extra buttons rendered next to "Create Repository" (e.g. File's upload). */
+  headerActions?: React.ReactNode;
 }
 
-export const PluginRepository: React.FC<PluginRepositoryProps> = ({ plugin }) => {
+export const PluginRepository: React.FC<PluginRepositoryProps> = ({ plugin, headerActions }) => {
   const navigate = useNavigate();
   const service = useMemo(() => createPluginService(plugin), [plugin]);
   const paths = useMemo(() => pluginRoutePaths(plugin), [plugin]);
@@ -58,7 +53,6 @@ export const PluginRepository: React.FC<PluginRepositoryProps> = ({ plugin }) =>
   const [remotes, setRemotes] = useState<Remote[]>([]);
 
   const [loading, setLoading] = useState(true);
-  const [remotesLoading, setRemotesLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [page, setPage] = useState(0);
@@ -68,24 +62,16 @@ export const PluginRepository: React.FC<PluginRepositoryProps> = ({ plugin }) =>
 
   const [openDialog, setOpenDialog] = useState(false);
   const [editingRepo, setEditingRepo] = useState<Repository | null>(null);
-  const [formData, setFormData] = useState<RepositoryFormData>({
-    name: '',
-    description: '',
-    retain_repo_versions: null,
-    remote: '',
-  });
 
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [repoToDelete, setRepoToDelete] = useState<Repository | null>(null);
 
-  const remoteOptions = useMemo(() => remotes.map((r) => ({ label: r.name, value: r.pulp_href })), [remotes]);
-
-  const fetchRepositories = async (pageToLoad = page) => {
+  const fetchRepositories = async (pageToLoad = page, orderingParam = ordering) => {
     try {
       setLoading(true);
       const offset = pageToLoad * DEFAULT_PAGE_SIZE;
-      const response = await service.repositories.list(offset, ordering);
+      const response = await service.repositories.list(offset, orderingParam);
       setRepositories(response.results);
       setTotalCount(response.count);
       setError(null);
@@ -98,13 +84,10 @@ export const PluginRepository: React.FC<PluginRepositoryProps> = ({ plugin }) =>
 
   const fetchRemotes = async () => {
     try {
-      setRemotesLoading(true);
       const response = await service.remotes.list(0);
       setRemotes(response.results);
     } catch {
-      // optional
-    } finally {
-      setRemotesLoading(false);
+      // optional; only used to resolve remote names in the table
     }
   };
 
@@ -122,27 +105,11 @@ export const PluginRepository: React.FC<PluginRepositoryProps> = ({ plugin }) =>
   const handleOrderingChange = (newOrdering: string) => {
     setOrdering(newOrdering);
     setPage(0);
-    void fetchRepositories(0);
+    void fetchRepositories(0, newOrdering);
   };
 
   const handleOpenDialog = (repo?: Repository) => {
-    if (repo) {
-      setEditingRepo(repo);
-      setFormData({
-        name: repo.name,
-        description: repo.description || '',
-        retain_repo_versions: repo.retain_repo_versions ?? null,
-        remote: repo.remote || '',
-      });
-    } else {
-      setEditingRepo(null);
-      setFormData({
-        name: '',
-        description: '',
-        retain_repo_versions: null,
-        remote: '',
-      });
-    }
+    setEditingRepo(repo ?? null);
     setOpenDialog(true);
   };
 
@@ -151,32 +118,9 @@ export const PluginRepository: React.FC<PluginRepositoryProps> = ({ plugin }) =>
     setEditingRepo(null);
   };
 
-  const handleFormChange = (field: keyof RepositoryFormData, value: any) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleSubmit = async () => {
-    try {
-      const payload: any = {
-        name: formData.name,
-        description: formData.description.trim() || null,
-        retain_repo_versions: formData.retain_repo_versions,
-        remote: formData.remote || null,
-      };
-
-      if (editingRepo) {
-        await service.repositories.update(editingRepo.pulp_href, payload);
-        setSuccessMessage('Repository updated successfully');
-      } else {
-        await service.repositories.create(payload);
-        setSuccessMessage('Repository created successfully');
-      }
-
-      handleCloseDialog();
-      await fetchRepositories();
-    } catch (error) {
-      setError(formatPulpApiError(error, `Failed to ${editingRepo ? 'update' : 'create'} repository`));
-    }
+  const handleSaved = async (message: string) => {
+    setSuccessMessage(message);
+    await fetchRepositories();
   };
 
   const handleDeleteClick = (repo: Repository) => {
@@ -218,9 +162,12 @@ export const PluginRepository: React.FC<PluginRepositoryProps> = ({ plugin }) =>
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4">{plugin.label} Repositories</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenDialog()}>
-          Create Repository
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          {headerActions}
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenDialog()}>
+            Create Repository
+          </Button>
+        </Box>
       </Box>
 
       <Box display="flex" justifyContent="flex-start" alignItems="center" mb={2}>
@@ -310,50 +257,13 @@ export const PluginRepository: React.FC<PluginRepositoryProps> = ({ plugin }) =>
         />
       </Paper>
 
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>{editingRepo ? 'Edit Repository' : 'Create Repository'}</DialogTitle>
-        <DialogContent>
-          <TextField
-            fullWidth
-            margin="normal"
-            label="Name"
-            value={formData.name}
-            onChange={(e) => handleFormChange('name', e.target.value)}
-            required
-          />
-          <TextField
-            fullWidth
-            margin="normal"
-            label="Description"
-            value={formData.description}
-            onChange={(e) => handleFormChange('description', e.target.value)}
-          />
-          <TextField
-            fullWidth
-            margin="normal"
-            label="Retain Repo Versions"
-            type="number"
-            value={formData.retain_repo_versions ?? ''}
-            onChange={(e) =>
-              handleFormChange('retain_repo_versions', e.target.value ? Number(e.target.value) : null)
-            }
-          />
-
-          <Autocomplete
-            options={remoteOptions}
-            loading={remotesLoading}
-            value={remoteOptions.find((o) => o.value === formData.remote) || null}
-            onChange={(_, value) => handleFormChange('remote', value?.value || '')}
-            renderInput={(params) => <TextField {...params} label="Remote" margin="normal" />}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancel</Button>
-          <Button onClick={handleSubmit} variant="contained">
-            {editingRepo ? 'Save' : 'Create'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <RepositoryFormDialog
+        plugin={plugin}
+        open={openDialog}
+        repository={editingRepo}
+        onClose={handleCloseDialog}
+        onSaved={handleSaved}
+      />
 
       <Dialog open={deleteConfirmOpen} onClose={handleDeleteCancel}>
         <DialogTitle>Confirm Delete</DialogTitle>

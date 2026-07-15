@@ -20,13 +20,16 @@ import {
   TableRow,
   Typography,
 } from '@mui/material';
-import { ArrowBack as ArrowBackIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { ArrowBack as ArrowBackIcon, Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import type { Repository, RepositoryVersion } from '../../types/pulp';
+import type { Distribution, Remote, Repository, RepositoryVersion } from '../../types/pulp';
 import type { PluginConfig } from '../../constants/plugins';
 import { pluginRoutePaths } from '../../constants/plugins';
 import { createPluginService } from '../../services/pluginCrud';
 import { formatPulpApiError } from '../../services/api';
+import { RemoteFormDialog } from './RemoteFormDialog';
+import { RepositoryFormDialog } from './RepositoryFormDialog';
+import { DistributionFormDialog } from './DistributionFormDialog';
 
 export type PluginResource = 'repository' | 'remote' | 'distribution' | 'publication';
 
@@ -63,6 +66,7 @@ export const PluginResourceDetail: React.FC<PluginResourceDetailProps> = ({ plug
 
   const [syncing, setSyncing] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   const read = async (resourceHref: string): Promise<Record<string, any>> => {
     switch (resource) {
@@ -192,6 +196,11 @@ export const PluginResourceDetail: React.FC<PluginResourceDetailProps> = ({ plug
               {syncing ? 'Syncing…' : 'Sync'}
             </Button>
           ) : null}
+          {resource !== 'publication' ? (
+            <IconButton color="primary" onClick={() => setEditOpen(true)} title="Edit">
+              <EditIcon />
+            </IconButton>
+          ) : null}
           <IconButton color="error" onClick={() => setDeleteConfirmOpen(true)} title="Delete">
             <DeleteIcon />
           </IconButton>
@@ -250,6 +259,43 @@ export const PluginResourceDetail: React.FC<PluginResourceDetailProps> = ({ plug
             </TableContainer>
           )}
         </Paper>
+      ) : null}
+
+      {resource === 'repository' ? (
+        <RepositoryFormDialog
+          plugin={plugin}
+          open={editOpen}
+          repository={item as Repository}
+          onClose={() => setEditOpen(false)}
+          onSaved={(message) => {
+            setSuccessMessage(message);
+            void fetchItem();
+          }}
+        />
+      ) : null}
+      {resource === 'remote' ? (
+        <RemoteFormDialog
+          plugin={plugin}
+          open={editOpen}
+          remote={item as Remote}
+          onClose={() => setEditOpen(false)}
+          onSaved={(message) => {
+            setSuccessMessage(message);
+            void fetchItem();
+          }}
+        />
+      ) : null}
+      {resource === 'distribution' ? (
+        <DistributionFormDialog
+          plugin={plugin}
+          open={editOpen}
+          distribution={item as Distribution}
+          onClose={() => setEditOpen(false)}
+          onSaved={(message) => {
+            setSuccessMessage(message);
+            void fetchItem();
+          }}
+        />
       ) : null}
 
       <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)}>

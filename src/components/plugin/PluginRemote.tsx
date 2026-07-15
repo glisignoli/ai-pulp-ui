@@ -2,14 +2,12 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   Box,
   Button,
-  Checkbox,
   CircularProgress,
   Container,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
-  FormControlLabel,
   IconButton,
   MenuItem,
   Paper,
@@ -32,22 +30,14 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import type { Remote } from '../../types/pulp';
-import type { PluginConfig, RemotePolicy } from '../../constants/plugins';
+import type { PluginConfig } from '../../constants/plugins';
 import { pluginRoutePaths } from '../../constants/plugins';
 import { createPluginService } from '../../services/pluginCrud';
 import { DEFAULT_PAGE_SIZE, formatPulpApiError } from '../../services/api';
 import { pluginRemoteOrderingOptions } from '../../constants/orderingOptions';
 import { ForegroundSnackbar } from '../ForegroundSnackbar';
-
-interface RemoteFormData {
-  name: string;
-  url: string;
-  policy: RemotePolicy;
-  tls_validation: boolean;
-  username: string;
-  password: string;
-  proxy_url: string;
-}
+import { RemoteFormDialog } from './RemoteFormDialog';
+import { formatColumnValue } from './columns';
 
 interface PluginRemoteProps {
   plugin: PluginConfig;
@@ -57,16 +47,7 @@ export const PluginRemote: React.FC<PluginRemoteProps> = ({ plugin }) => {
   const navigate = useNavigate();
   const service = useMemo(() => createPluginService(plugin), [plugin]);
   const paths = useMemo(() => pluginRoutePaths(plugin), [plugin]);
-
-  const emptyForm: RemoteFormData = {
-    name: '',
-    url: '',
-    policy: plugin.remotePolicies[0],
-    tls_validation: true,
-    username: '',
-    password: '',
-    proxy_url: '',
-  };
+  const extraColumns = plugin.remoteColumns ?? [];
 
   const [remotes, setRemotes] = useState<Remote[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,17 +60,16 @@ export const PluginRemote: React.FC<PluginRemoteProps> = ({ plugin }) => {
 
   const [openDialog, setOpenDialog] = useState(false);
   const [editingRemote, setEditingRemote] = useState<Remote | null>(null);
-  const [formData, setFormData] = useState<RemoteFormData>(emptyForm);
 
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [remoteToDelete, setRemoteToDelete] = useState<Remote | null>(null);
 
-  const fetchRemotes = async (pageToLoad = page) => {
+  const fetchRemotes = async (pageToLoad = page, orderingParam = ordering) => {
     try {
       setLoading(true);
       const offset = pageToLoad * DEFAULT_PAGE_SIZE;
-      const response = await service.remotes.list(offset, ordering);
+      const response = await service.remotes.list(offset, orderingParam);
       setRemotes(response.results);
       setTotalCount(response.count);
       setError(null);
@@ -113,25 +93,11 @@ export const PluginRemote: React.FC<PluginRemoteProps> = ({ plugin }) => {
   const handleOrderingChange = (newOrdering: string) => {
     setOrdering(newOrdering);
     setPage(0);
-    void fetchRemotes(0);
+    void fetchRemotes(0, newOrdering);
   };
 
   const handleOpenDialog = (remote?: Remote) => {
-    if (remote) {
-      setEditingRemote(remote);
-      setFormData({
-        name: remote.name,
-        url: remote.url,
-        policy: (remote.policy as RemotePolicy) || plugin.remotePolicies[0],
-        tls_validation: remote.tls_validation ?? true,
-        username: '',
-        password: '',
-        proxy_url: remote.proxy_url || '',
-      });
-    } else {
-      setEditingRemote(null);
-      setFormData(emptyForm);
-    }
+    setEditingRemote(remote ?? null);
     setOpenDialog(true);
   };
 
@@ -140,36 +106,9 @@ export const PluginRemote: React.FC<PluginRemoteProps> = ({ plugin }) => {
     setEditingRemote(null);
   };
 
-  const handleFormChange = (field: keyof RemoteFormData, value: any) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleSubmit = async () => {
-    try {
-      const payload: any = {
-        name: formData.name,
-        url: formData.url,
-        policy: formData.policy,
-        tls_validation: formData.tls_validation,
-      };
-
-      if (formData.username) payload.username = formData.username;
-      if (formData.password) payload.password = formData.password;
-      if (formData.proxy_url) payload.proxy_url = formData.proxy_url;
-
-      if (editingRemote) {
-        await service.remotes.update(editingRemote.pulp_href, payload);
-        setSuccessMessage('Remote updated successfully');
-      } else {
-        await service.remotes.create(payload);
-        setSuccessMessage('Remote created successfully');
-      }
-
-      handleCloseDialog();
-      await fetchRemotes();
-    } catch (error) {
-      setError(formatPulpApiError(error, `Failed to ${editingRemote ? 'update' : 'create'} remote`));
-    }
+  const handleSaved = async (message: string) => {
+    setSuccessMessage(message);
+    await fetchRemotes();
   };
 
   const handleDeleteClick = (remote: Remote) => {
@@ -248,6 +187,9 @@ export const PluginRemote: React.FC<PluginRemoteProps> = ({ plugin }) => {
               <TableRow>
                 <TableCell>Name</TableCell>
                 <TableCell>URL</TableCell>
+                {extraColumns.map((column) => (
+                  <TableCell key={column.key}>{column.label}</TableCell>
+                ))}
                 <TableCell>Policy</TableCell>
                 <TableCell>Actions</TableCell>
               </TableRow>
@@ -255,7 +197,7 @@ export const PluginRemote: React.FC<PluginRemoteProps> = ({ plugin }) => {
             <TableBody>
               {remotes.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} align="center">
+                  <TableCell colSpan={4 + extraColumns.length} align="center">
                     No remotes found
                   </TableCell>
                 </TableRow>
@@ -264,6 +206,9 @@ export const PluginRemote: React.FC<PluginRemoteProps> = ({ plugin }) => {
                   <TableRow key={remote.pulp_href}>
                     <TableCell>{remote.name}</TableCell>
                     <TableCell>{remote.url}</TableCell>
+                    {extraColumns.map((column) => (
+                      <TableCell key={column.key}>{formatColumnValue(remote, column)}</TableCell>
+                    ))}
                     <TableCell>{remote.policy || '-'}</TableCell>
                     <TableCell>
                       <IconButton
@@ -299,82 +244,13 @@ export const PluginRemote: React.FC<PluginRemoteProps> = ({ plugin }) => {
         />
       </Paper>
 
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>{editingRemote ? 'Edit Remote' : 'Create Remote'}</DialogTitle>
-        <DialogContent>
-          <TextField
-            fullWidth
-            margin="normal"
-            label="Name"
-            value={formData.name}
-            onChange={(e) => handleFormChange('name', e.target.value)}
-            required
-          />
-          <TextField
-            fullWidth
-            margin="normal"
-            label="URL"
-            value={formData.url}
-            onChange={(e) => handleFormChange('url', e.target.value)}
-            required
-          />
-          <TextField
-            select
-            fullWidth
-            margin="normal"
-            label="Policy"
-            value={formData.policy}
-            onChange={(e) => handleFormChange('policy', e.target.value)}
-            helperText="Download policy for this remote"
-          >
-            {plugin.remotePolicies.map((policy) => (
-              <MenuItem key={policy} value={policy}>
-                {policy}
-              </MenuItem>
-            ))}
-          </TextField>
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={formData.tls_validation}
-                onChange={(e) => handleFormChange('tls_validation', e.target.checked)}
-              />
-            }
-            label="TLS Validation"
-          />
-          <TextField
-            fullWidth
-            margin="normal"
-            label="Username"
-            value={formData.username}
-            onChange={(e) => handleFormChange('username', e.target.value)}
-            helperText="Username for authentication when syncing"
-          />
-          <TextField
-            fullWidth
-            margin="normal"
-            label="Password"
-            type="password"
-            value={formData.password}
-            onChange={(e) => handleFormChange('password', e.target.value)}
-            helperText="Password for authentication when syncing"
-          />
-          <TextField
-            fullWidth
-            margin="normal"
-            label="Proxy URL"
-            value={formData.proxy_url}
-            onChange={(e) => handleFormChange('proxy_url', e.target.value)}
-            helperText="The proxy URL. Format: scheme://host:port"
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancel</Button>
-          <Button onClick={handleSubmit} variant="contained">
-            {editingRemote ? 'Save' : 'Create'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <RemoteFormDialog
+        plugin={plugin}
+        open={openDialog}
+        remote={editingRemote}
+        onClose={handleCloseDialog}
+        onSaved={handleSaved}
+      />
 
       <Dialog open={deleteConfirmOpen} onClose={handleDeleteCancel}>
         <DialogTitle>Confirm Delete</DialogTitle>

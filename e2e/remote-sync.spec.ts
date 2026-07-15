@@ -21,8 +21,9 @@ import {
  * sync from the repository detail page, and verifies the sync task completes
  * and repository version 1 shows up in the UI.
  *
- * Covers both UI implementations: the dedicated RPM/DEB/File components and
- * the generic config-driven components (Gem, Python, OSTree).
+ * Every plugin uses the generic config-driven components; RPM/DEB/File
+ * exercise the dedicated-plugin configs and Gem/Python/OSTree the
+ * CONTENT_PLUGINS ones.
  *
  * Plugins that support sync but are not covered here, because the fixtures
  * server has nothing they can sync from without internet access:
@@ -49,25 +50,9 @@ interface SyncTarget {
   repositoriesEndpoint: string;
   fixtureUrl: string;
   policies: Policy[];
-  /** How the policy is labelled in this plugin's create-remote dialog. */
-  policyOptionName: (policy: Policy) => string | RegExp;
   /** Extra dialog fields required by this plugin's remote. */
   fillExtraRemoteFields?: (page: Page) => Promise<void>;
-  /**
-   * How the create-repository dialog picks a remote. Most dialogs use an MUI
-   * Autocomplete (type to filter, then click the option); File uses a plain
-   * MUI Select (open, then click the option).
-   */
-  remotePicker?: 'autocomplete' | 'select';
 }
-
-// The dedicated RPM/DEB dialogs use verbose policy labels; the generic
-// plugin dialog uses the raw policy value.
-const VERBOSE_POLICY_LABELS: Record<Policy, RegExp> = {
-  immediate: /^Immediate \(/,
-  on_demand: /^On Demand \(/,
-  streamed: /^Streamed \(/,
-};
 
 const SYNC_TARGETS: SyncTarget[] = [
   {
@@ -80,7 +65,6 @@ const SYNC_TARGETS: SyncTarget[] = [
     repositoriesEndpoint: '/repositories/rpm/rpm/',
     fixtureUrl: `${FIXTURES_URL}/rpm-unsigned/`,
     policies: ['immediate', 'on_demand', 'streamed'],
-    policyOptionName: (policy) => VERBOSE_POLICY_LABELS[policy],
   },
   {
     component: 'deb',
@@ -92,7 +76,6 @@ const SYNC_TARGETS: SyncTarget[] = [
     repositoriesEndpoint: '/repositories/deb/apt/',
     fixtureUrl: `${FIXTURES_URL}/debian/`,
     policies: ['immediate'],
-    policyOptionName: (policy) => VERBOSE_POLICY_LABELS[policy],
     fillExtraRemoteFields: async (page) => {
       await page
         .getByRole('dialog')
@@ -110,9 +93,6 @@ const SYNC_TARGETS: SyncTarget[] = [
     repositoriesEndpoint: '/repositories/file/file/',
     fixtureUrl: `${FIXTURES_URL}/file/PULP_MANIFEST`,
     policies: ['immediate', 'on_demand', 'streamed'],
-    // The File remote dialog uses the raw policy values as option labels.
-    policyOptionName: (policy) => policy,
-    remotePicker: 'select',
   },
   {
     // Exercises the generic config-driven components from src/components/plugin/.
@@ -125,7 +105,6 @@ const SYNC_TARGETS: SyncTarget[] = [
     repositoriesEndpoint: '/repositories/gem/gem/',
     fixtureUrl: `${FIXTURES_URL}/gem/`,
     policies: ['immediate', 'on_demand', 'streamed'],
-    policyOptionName: (policy) => policy,
   },
   {
     component: 'python',
@@ -142,7 +121,6 @@ const SYNC_TARGETS: SyncTarget[] = [
     // MB (scipy et al) from the internet; on_demand/streamed only read the
     // metadata from the local fixtures container.
     policies: ['on_demand', 'streamed'],
-    policyOptionName: (policy) => policy,
   },
   {
     component: 'ostree',
@@ -154,7 +132,6 @@ const SYNC_TARGETS: SyncTarget[] = [
     repositoriesEndpoint: '/repositories/ostree/ostree/',
     fixtureUrl: `${FIXTURES_URL}/ostree/small/`,
     policies: ['immediate', 'on_demand'],
-    policyOptionName: (policy) => policy,
   },
 ];
 
@@ -187,7 +164,7 @@ for (const target of SYNC_TARGETS) {
           await remoteDialog.getByRole('textbox', { name: 'URL', exact: true }).fill(target.fixtureUrl);
           // The MUI select's accessible name is "Policy <current value>".
           await remoteDialog.getByRole('combobox', { name: /^Policy/ }).click();
-          await page.getByRole('option', { name: target.policyOptionName(policy) }).click();
+          await page.getByRole('option', { name: policy, exact: true }).click();
           await target.fillExtraRemoteFields?.(page);
 
           const [remoteResponse] = await Promise.all([
@@ -210,16 +187,10 @@ for (const target of SYNC_TARGETS) {
 
           const repoDialog = page.getByRole('dialog');
           await repoDialog.getByRole('textbox', { name: 'Name', exact: true }).fill(repoName);
-          if (target.remotePicker === 'select') {
-            // MUI Select: its accessible name is "Remote <current value>".
-            await repoDialog.getByRole('combobox', { name: /^Remote/ }).click();
-            await page.getByRole('option', { name: remoteName, exact: true }).click();
-          } else {
-            const remoteSelect = repoDialog.getByRole('combobox', { name: 'Remote' });
-            await remoteSelect.click();
-            await remoteSelect.fill(remoteName);
-            await page.getByRole('option', { name: remoteName, exact: true }).click();
-          }
+          const remoteSelect = repoDialog.getByRole('combobox', { name: 'Remote' });
+          await remoteSelect.click();
+          await remoteSelect.fill(remoteName);
+          await page.getByRole('option', { name: remoteName, exact: true }).click();
 
           const [repoResponse] = await Promise.all([
             page.waitForResponse(

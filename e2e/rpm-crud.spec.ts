@@ -108,7 +108,7 @@ test.describe('RPM CRUD (Real API)', () => {
 
       const editDialog = page.getByRole('dialog');
       await editDialog.getByLabel(/description/i).fill('desc-2');
-      await editDialog.getByRole('button', { name: /^update$/i }).click();
+      await editDialog.getByRole('button', { name: /^save$/i }).click();
 
       await expect
         .poll(
@@ -177,7 +177,7 @@ test.describe('RPM CRUD (Real API)', () => {
       await editDialog
         .getByRole('textbox', { name: 'URL', exact: true })
         .fill('https://example.com/updated/');
-      await editDialog.getByRole('button', { name: /^update$/i }).click();
+      await editDialog.getByRole('button', { name: /^save$/i }).click();
 
       await expect
         .poll(
@@ -271,7 +271,7 @@ test.describe('RPM CRUD (Real API)', () => {
       await expect(editDialog.getByText(/edit distribution/i)).toBeVisible();
 
       await editDialog.getByLabel(/base path/i).fill(`dist/${distName}-updated`);
-      await editDialog.getByRole('button', { name: /^update$/i }).click();
+      await editDialog.getByRole('button', { name: /^save$/i }).click();
 
       await expect
         .poll(
@@ -317,15 +317,12 @@ test.describe('RPM CRUD (Real API)', () => {
       await expect(page.getByRole('heading', { name: /rpm publications/i })).toBeVisible();
       await page.getByRole('button', { name: /create publication/i }).click();
 
-      const dialog = page.getByRole('dialog', { name: /create rpm publication/i });
+      const dialog = page.getByRole('dialog', { name: /create publication/i });
       await expect(dialog).toBeVisible();
 
-      const repoSelect = dialog
-        .getByText(/^Repository \*$/)
-        .first()
-        .locator('..')
-        .getByRole('combobox');
+      const repoSelect = dialog.getByRole('combobox', { name: 'Repository', exact: true });
       await repoSelect.click();
+      await repoSelect.fill(repoName);
       await page.getByRole('option', { name: repoName, exact: true }).click();
 
       await dialog.getByRole('button', { name: /^create$/i }).click();
@@ -392,28 +389,28 @@ test.describe('RPM CRUD (Real API)', () => {
       await expect(page.getByRole('heading', { name: /rpm publications/i })).toBeVisible();
       await page.getByRole('button', { name: /create publication/i }).click();
 
-      const dialog = page.getByRole('dialog', { name: /create rpm publication/i });
+      const dialog = page.getByRole('dialog', { name: /create publication/i });
       await expect(dialog).toBeVisible();
 
       // Select the repository
-      const repoSelect = dialog
-        .getByText(/^Repository \*$/)
-        .first()
-        .locator('..')
-        .getByRole('combobox');
+      const repoSelect = dialog.getByRole('combobox', { name: 'Repository', exact: true });
       await repoSelect.click();
+      await repoSelect.fill(repoName);
       await page.getByRole('option', { name: repoName, exact: true }).click();
 
       // Wait for repository versions to load
       await page.waitForTimeout(1000);
 
-      // Select a specific repository version
-      const versionInput = dialog.getByLabel(/repository version \(optional\)/i);
+      // Select a specific repository version (options read "#<number> - <href>")
+      const versionInput = dialog.getByRole('combobox', { name: 'Repository Version' });
       await versionInput.click();
-      
+
       // Wait for the dropdown options to appear and select the first version
       await page.waitForTimeout(500);
-      const versionOption = page.getByRole('option').filter({ hasText: `Version ${version0.number}` }).first();
+      const versionOption = page
+        .getByRole('option')
+        .filter({ hasText: `#${version0.number} - ` })
+        .first();
       await versionOption.click();
 
       await dialog.getByRole('button', { name: /^create$/i }).click();

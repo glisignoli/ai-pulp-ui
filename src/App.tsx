@@ -6,49 +6,13 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { Layout } from './components/Layout';
 import { Login } from './components/Login';
 import { Dashboard } from './components/Dashboard';
-import { RpmDistribution } from './components/rpm/RpmDistribution';
-import { RpmDistributionDetail } from './components/rpm/RpmDistributionDetail';
-import { RpmRepository } from './components/rpm/RpmRepository';
-import { RpmRepositoryDetail } from './components/rpm/RpmRepositoryDetail';
-import { RpmRemote } from './components/rpm/RpmRemote';
-import { RpmRemoteDetail } from './components/rpm/RpmRemoteDetail';
-import RpmPublication from './components/rpm/RpmPublication';
-import { RpmPublicationDetail } from './components/rpm/RpmPublicationDetail';
 import { RpmPackages } from './components/rpm/RpmPackages';
 import { RpmPackageDetail } from './components/rpm/RpmPackageDetail';
-import { DebDistribution } from './components/deb/DebDistribution';
-import { DebDistributionDetail } from './components/deb/DebDistributionDetail';
-import { DebRemote } from './components/deb/DebRemote';
-import { DebRemoteDetail } from './components/deb/DebRemoteDetail';
-import { DebRepository } from './components/deb/DebRepository';
-import { DebRepositoryDetail } from './components/deb/DebRepositoryDetail';
-import DebPublication from './components/deb/DebPublication';
-import { DebPublicationDetail } from './components/deb/DebPublicationDetail';
 import { DebPackages } from './components/deb/DebPackages';
 import { DebPackageDetail } from './components/deb/DebPackageDetail';
 import { Tasks } from './components/tasks/Tasks';
 import { TaskDetail } from './components/tasks/TaskDetail';
-import {
-  FileDistribution,
-  FileDistributionDetail,
-  FileContentFileDetail,
-  FileContentFiles,
-  FilePublication,
-  FilePublicationDetail,
-  FileRemote,
-  FileRemoteDetail,
-  FileRepository,
-  FileRepositoryDetail,
-} from './components/file';
-
-import {
-  ContainerDistribution,
-  ContainerDistributionDetail,
-  ContainerRemote,
-  ContainerRemoteDetail,
-  ContainerRepository,
-  ContainerRepositoryDetail,
-} from './components/container';
+import { FileRepository, FileContentFiles, FileContentFileDetail } from './components/file';
 
 import {
   PluginDistribution,
@@ -66,7 +30,16 @@ import { Repair } from './components/management/Repair';
 import { About } from './components/About';
 
 import { ROUTES } from './constants/routes';
-import { CONTAINER_PULL_THROUGH_PLUGIN, CONTENT_PLUGINS, pluginRoutePaths } from './constants/plugins';
+import {
+  CONTAINER_PLUGIN,
+  CONTAINER_PULL_THROUGH_PLUGIN,
+  CONTENT_PLUGINS,
+  DEB_PLUGIN,
+  FILE_PLUGIN,
+  RPM_PLUGIN,
+  pluginRoutePaths,
+} from './constants/plugins';
+import type { PluginConfig } from './constants/plugins';
 
 const theme = createTheme({
   palette: {
@@ -78,6 +51,42 @@ const theme = createTheme({
     },
   },
 });
+
+/** Repository/remote/distribution/publication routes shared by every plugin. */
+const pluginResourceRoutes = (plugin: PluginConfig, repositoryElement?: React.ReactNode) => {
+  const paths = pluginRoutePaths(plugin);
+  return (
+    <Fragment key={plugin.key}>
+      <Route path={paths.distribution} element={<PluginDistribution plugin={plugin} />} />
+      <Route
+        path={paths.distributionView}
+        element={<PluginResourceDetail plugin={plugin} resource="distribution" />}
+      />
+      {plugin.endpoints.publications ? (
+        <>
+          <Route path={paths.publication} element={<PluginPublication plugin={plugin} />} />
+          <Route
+            path={paths.publicationView}
+            element={<PluginResourceDetail plugin={plugin} resource="publication" />}
+          />
+        </>
+      ) : null}
+      <Route path={paths.remote} element={<PluginRemote plugin={plugin} />} />
+      <Route
+        path={paths.remoteView}
+        element={<PluginResourceDetail plugin={plugin} resource="remote" />}
+      />
+      <Route
+        path={paths.repository}
+        element={repositoryElement ?? <PluginRepository plugin={plugin} />}
+      />
+      <Route
+        path={paths.repositoryView}
+        element={<PluginResourceDetail plugin={plugin} resource="repository" />}
+      />
+    </Fragment>
+  );
+};
 
 function App() {
   const routerBasename = import.meta.env.BASE_URL.replace(/\/$/, '');
@@ -101,54 +110,23 @@ function App() {
             >
               <Route index element={<Dashboard />} />
               <Route path={ROUTES.ABOUT} element={<About />} />
-              <Route path={ROUTES.RPM.DISTRIBUTION} element={<RpmDistribution />} />
-              <Route path={ROUTES.RPM.DISTRIBUTION_VIEW} element={<RpmDistributionDetail />} />
-              <Route path={ROUTES.RPM.PUBLICATION} element={<RpmPublication />} />
-              <Route path={ROUTES.RPM.PUBLICATION_VIEW} element={<RpmPublicationDetail />} />
-              <Route path={ROUTES.RPM.REMOTE} element={<RpmRemote />} />
-              <Route path={ROUTES.RPM.REMOTE_VIEW} element={<RpmRemoteDetail />} />
-              <Route path={ROUTES.RPM.REPOSITORY} element={<RpmRepository />} />
-              <Route path={ROUTES.RPM.REPOSITORY_VIEW} element={<RpmRepositoryDetail />} />
+
+              {pluginResourceRoutes(RPM_PLUGIN)}
               <Route path={ROUTES.RPM.PACKAGES} element={<RpmPackages />} />
               <Route path={ROUTES.RPM.PACKAGES_VIEW} element={<RpmPackageDetail />} />
 
-              <Route path={ROUTES.FILE.DISTRIBUTION} element={<FileDistribution />} />
-              <Route path={ROUTES.FILE.DISTRIBUTION_VIEW} element={<FileDistributionDetail />} />
+              {pluginResourceRoutes(FILE_PLUGIN, <FileRepository />)}
               <Route path={ROUTES.FILE.CONTENT_FILES} element={<FileContentFiles />} />
               <Route path={ROUTES.FILE.CONTENT_FILES_VIEW} element={<FileContentFileDetail />} />
-              <Route path={ROUTES.FILE.PUBLICATION} element={<FilePublication />} />
-              <Route path={ROUTES.FILE.PUBLICATION_VIEW} element={<FilePublicationDetail />} />
-              <Route path={ROUTES.FILE.REMOTE} element={<FileRemote />} />
-              <Route path={ROUTES.FILE.REMOTE_VIEW} element={<FileRemoteDetail />} />
-              <Route path={ROUTES.FILE.REPOSITORY} element={<FileRepository />} />
-              <Route path={ROUTES.FILE.REPOSITORY_VIEW} element={<FileRepositoryDetail />} />
 
-              <Route path={ROUTES.DEB.DISTRIBUTION} element={<DebDistribution />} />
-              <Route path={ROUTES.DEB.DISTRIBUTION_VIEW} element={<DebDistributionDetail />} />
-              <Route path={ROUTES.DEB.PUBLICATION} element={<DebPublication />} />
-              <Route path={ROUTES.DEB.PUBLICATION_VIEW} element={<DebPublicationDetail />} />
-              <Route path={ROUTES.DEB.REMOTE} element={<DebRemote />} />
-              <Route path={ROUTES.DEB.REMOTE_VIEW} element={<DebRemoteDetail />} />
-              <Route path={ROUTES.DEB.REPOSITORY} element={<DebRepository />} />
-              <Route path={ROUTES.DEB.REPOSITORY_VIEW} element={<DebRepositoryDetail />} />
+              {pluginResourceRoutes(DEB_PLUGIN)}
               <Route path={ROUTES.DEB.PACKAGES} element={<DebPackages />} />
               <Route path={ROUTES.DEB.PACKAGES_VIEW} element={<DebPackageDetail />} />
 
               <Route path={ROUTES.TASKS.ROOT} element={<Tasks />} />
               <Route path={ROUTES.TASKS.VIEW} element={<TaskDetail />} />
 
-              <Route path={ROUTES.CONTAINER.DISTRIBUTION} element={<ContainerDistribution />} />
-              <Route
-                path={ROUTES.CONTAINER.DISTRIBUTION_VIEW}
-                element={<ContainerDistributionDetail />}
-              />
-              <Route path={ROUTES.CONTAINER.REMOTE} element={<ContainerRemote />} />
-              <Route path={ROUTES.CONTAINER.REMOTE_VIEW} element={<ContainerRemoteDetail />} />
-              <Route path={ROUTES.CONTAINER.REPOSITORY} element={<ContainerRepository />} />
-              <Route
-                path={ROUTES.CONTAINER.REPOSITORY_VIEW}
-                element={<ContainerRepositoryDetail />}
-              />
+              {pluginResourceRoutes(CONTAINER_PLUGIN)}
               <Route
                 path={ROUTES.CONTAINER.PULL_THROUGH_DISTRIBUTION}
                 element={<PluginDistribution plugin={CONTAINER_PULL_THROUGH_PLUGIN} />}
@@ -166,37 +144,7 @@ function App() {
                 element={<PluginResourceDetail plugin={CONTAINER_PULL_THROUGH_PLUGIN} resource="remote" />}
               />
 
-              {CONTENT_PLUGINS.map((plugin) => {
-                const paths = pluginRoutePaths(plugin);
-                return (
-                  <Fragment key={plugin.key}>
-                    <Route path={paths.distribution} element={<PluginDistribution plugin={plugin} />} />
-                    <Route
-                      path={paths.distributionView}
-                      element={<PluginResourceDetail plugin={plugin} resource="distribution" />}
-                    />
-                    {plugin.endpoints.publications ? (
-                      <>
-                        <Route path={paths.publication} element={<PluginPublication plugin={plugin} />} />
-                        <Route
-                          path={paths.publicationView}
-                          element={<PluginResourceDetail plugin={plugin} resource="publication" />}
-                        />
-                      </>
-                    ) : null}
-                    <Route path={paths.remote} element={<PluginRemote plugin={plugin} />} />
-                    <Route
-                      path={paths.remoteView}
-                      element={<PluginResourceDetail plugin={plugin} resource="remote" />}
-                    />
-                    <Route path={paths.repository} element={<PluginRepository plugin={plugin} />} />
-                    <Route
-                      path={paths.repositoryView}
-                      element={<PluginResourceDetail plugin={plugin} resource="repository" />}
-                    />
-                  </Fragment>
-                );
-              })}
+              {CONTENT_PLUGINS.map((plugin) => pluginResourceRoutes(plugin))}
 
               <Route path={ROUTES.USERS} element={<Users />} />
 

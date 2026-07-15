@@ -70,6 +70,7 @@ export interface Repository {
   compression_type?: 'zstd' | 'gz';
   layout?: 'nested_alphabetically' | 'flat';
   pulp_labels?: { [key: string]: string };
+  signing_service?: string;
   signing_service_release_overrides?: { [key: string]: string };
 }
 
@@ -174,6 +175,9 @@ export interface Remote {
   include_tags?: string[];
   exclude_tags?: string[];
   sigstore?: string;
+  distributions?: string;
+  components?: string;
+  architectures?: string;
 }
 
 export interface PulpListResponse<T> {

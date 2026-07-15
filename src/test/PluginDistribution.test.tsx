@@ -127,6 +127,9 @@ describe('PluginDistribution', () => {
         repository: null,
         publication: null,
         remote: null,
+        content_guard: null,
+        hidden: false,
+        allow_uploads: true,
       });
     });
   });
@@ -198,6 +201,9 @@ describe('PluginDistribution', () => {
         repository: null,
         publication: null,
         remote: remoteHref,
+        content_guard: null,
+        hidden: false,
+        allow_uploads: true,
       });
     });
   });

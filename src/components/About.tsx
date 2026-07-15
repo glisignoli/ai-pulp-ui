@@ -13,7 +13,7 @@ export const About: React.FC = () => {
       </Typography>
 
       <Typography variant="body1" paragraph>
-        The repository was created using VS Code and the models GPT-5.2 and Sonnet 4.5.
+        The repository was created using VS Code and the models GPT-5.2, Sonnet 4.5, Github Copilot and Claude.
       </Typography>
 
       <Typography variant="body2" color="text.secondary">

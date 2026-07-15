@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Autocomplete,
   Box,
   Button,
   CircularProgress,
@@ -30,22 +29,15 @@ import {
   Visibility as VisibilityIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import type { Distribution, Publication, Remote, Repository } from '../../types/pulp';
+import type { Distribution, Remote, Repository } from '../../types/pulp';
 import type { PluginConfig } from '../../constants/plugins';
 import { pluginRoutePaths } from '../../constants/plugins';
 import { createPluginService } from '../../services/pluginCrud';
 import { DEFAULT_PAGE_SIZE, formatPulpApiError } from '../../services/api';
 import { pluginDistributionOrderingOptions } from '../../constants/orderingOptions';
 import { ForegroundSnackbar } from '../ForegroundSnackbar';
-import { stripPulpOrigin } from '../../utils/pulp';
-
-interface DistributionFormData {
-  name: string;
-  base_path: string;
-  repository: string;
-  publication: string;
-  remote: string;
-}
+import { DistributionFormDialog } from './DistributionFormDialog';
+import { formatColumnValue } from './columns';
 
 interface PluginDistributionProps {
   plugin: PluginConfig;
@@ -57,15 +49,13 @@ export const PluginDistribution: React.FC<PluginDistributionProps> = ({ plugin }
   const paths = useMemo(() => pluginRoutePaths(plugin), [plugin]);
   const hasPublications = !!service.publications;
   const hasPullThrough = plugin.hasPullThrough;
+  const extraColumns = plugin.distributionColumns ?? [];
 
   const [distributions, setDistributions] = useState<Distribution[]>([]);
   const [repositories, setRepositories] = useState<Repository[]>([]);
-  const [publications, setPublications] = useState<Publication[]>([]);
   const [remotes, setRemotes] = useState<Remote[]>([]);
 
   const [loading, setLoading] = useState(true);
-  const [repositoriesLoading, setRepositoriesLoading] = useState(false);
-  const [remotesLoading, setRemotesLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [page, setPage] = useState(0);
@@ -75,42 +65,16 @@ export const PluginDistribution: React.FC<PluginDistributionProps> = ({ plugin }
 
   const [openDialog, setOpenDialog] = useState(false);
   const [editingDistribution, setEditingDistribution] = useState<Distribution | null>(null);
-  const [formData, setFormData] = useState<DistributionFormData>({
-    name: '',
-    base_path: '',
-    repository: '',
-    publication: '',
-    remote: '',
-  });
 
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [distributionToDelete, setDistributionToDelete] = useState<Distribution | null>(null);
 
-  const repositoryOptions = useMemo(
-    () => repositories.map((r) => ({ label: r.name, value: r.pulp_href })),
-    [repositories]
-  );
-
-  const remoteOptions = useMemo(
-    () => remotes.map((r) => ({ label: r.name, value: r.pulp_href })),
-    [remotes]
-  );
-
-  const publicationOptions = useMemo(
-    () =>
-      publications.map((p) => ({
-        label: `${p.pulp_created ? new Date(p.pulp_created).toLocaleString() : ''} ${p.pulp_href}`.trim(),
-        value: p.pulp_href,
-      })),
-    [publications]
-  );
-
-  const fetchDistributions = async (pageToLoad = page) => {
+  const fetchDistributions = async (pageToLoad = page, orderingParam = ordering) => {
     try {
       setLoading(true);
       const offset = pageToLoad * DEFAULT_PAGE_SIZE;
-      const response = await service.distributions.list(offset, ordering);
+      const response = await service.distributions.list(offset, orderingParam);
       setDistributions(response.results);
       setTotalCount(response.count);
       setError(null);
@@ -123,43 +87,26 @@ export const PluginDistribution: React.FC<PluginDistributionProps> = ({ plugin }
 
   const fetchRepositories = async () => {
     try {
-      setRepositoriesLoading(true);
       const response = await service.repositories.list(0);
       setRepositories(response.results);
     } catch {
-      // optional
-    } finally {
-      setRepositoriesLoading(false);
-    }
-  };
-
-  const fetchPublications = async () => {
-    if (!service.publications) return;
-    try {
-      const response = await service.publications.list(0);
-      setPublications(response.results);
-    } catch {
-      // optional
+      // optional; only used to resolve repository names in the table
     }
   };
 
   const fetchRemotes = async () => {
     if (!hasPullThrough) return;
     try {
-      setRemotesLoading(true);
       const response = await service.remotes.list(0);
       setRemotes(response.results);
     } catch {
-      // optional
-    } finally {
-      setRemotesLoading(false);
+      // optional; only used to resolve remote names in the table
     }
   };
 
   useEffect(() => {
     void fetchDistributions(0);
     void fetchRepositories();
-    void fetchPublications();
     void fetchRemotes();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [plugin]);
@@ -172,29 +119,11 @@ export const PluginDistribution: React.FC<PluginDistributionProps> = ({ plugin }
   const handleOrderingChange = (newOrdering: string) => {
     setOrdering(newOrdering);
     setPage(0);
-    void fetchDistributions(0);
+    void fetchDistributions(0, newOrdering);
   };
 
   const handleOpenDialog = (dist?: Distribution) => {
-    if (dist) {
-      setEditingDistribution(dist);
-      setFormData({
-        name: dist.name,
-        base_path: dist.base_path,
-        repository: stripPulpOrigin(dist.repository || ''),
-        publication: stripPulpOrigin(dist.publication || ''),
-        remote: stripPulpOrigin(dist.remote || ''),
-      });
-    } else {
-      setEditingDistribution(null);
-      setFormData({
-        name: '',
-        base_path: '',
-        repository: '',
-        publication: '',
-        remote: '',
-      });
-    }
+    setEditingDistribution(dist ?? null);
     setOpenDialog(true);
   };
 
@@ -203,45 +132,9 @@ export const PluginDistribution: React.FC<PluginDistributionProps> = ({ plugin }
     setEditingDistribution(null);
   };
 
-  const handleFormChange = (field: keyof DistributionFormData, value: any) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleSubmit = async () => {
-    try {
-      const payload: any = {
-        name: formData.name,
-        base_path: formData.base_path,
-        repository: formData.repository || null,
-      };
-
-      if (hasPublications) {
-        payload.publication = formData.publication || null;
-        // Pulp accepts only one of repository or publication.
-        if (payload.repository && payload.publication) {
-          payload.repository = null;
-        }
-      }
-
-      if (hasPullThrough) {
-        payload.remote = formData.remote || null;
-      }
-
-      if (editingDistribution) {
-        await service.distributions.update(editingDistribution.pulp_href, payload);
-        setSuccessMessage('Distribution updated successfully');
-      } else {
-        await service.distributions.create(payload);
-        setSuccessMessage('Distribution create task started');
-      }
-
-      handleCloseDialog();
-      await fetchDistributions();
-    } catch (error) {
-      setError(
-        formatPulpApiError(error, `Failed to ${editingDistribution ? 'update' : 'create'} distribution`)
-      );
-    }
+  const handleSaved = async (message: string) => {
+    setSuccessMessage(message);
+    await fetchDistributions();
   };
 
   const handleDeleteClick = (dist: Distribution) => {
@@ -278,6 +171,8 @@ export const PluginDistribution: React.FC<PluginDistributionProps> = ({ plugin }
       </Container>
     );
   }
+
+  const columnCount = 4 + (hasPublications ? 1 : 0) + (hasPullThrough ? 1 : 0) + extraColumns.length;
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
@@ -323,13 +218,16 @@ export const PluginDistribution: React.FC<PluginDistributionProps> = ({ plugin }
                 <TableCell>Repository</TableCell>
                 {hasPublications ? <TableCell>Publication</TableCell> : null}
                 {hasPullThrough ? <TableCell>Remote</TableCell> : null}
+                {extraColumns.map((column) => (
+                  <TableCell key={column.key}>{column.label}</TableCell>
+                ))}
                 <TableCell>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {distributions.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4 + (hasPublications ? 1 : 0) + (hasPullThrough ? 1 : 0)} align="center">
+                  <TableCell colSpan={columnCount} align="center">
                     No distributions found
                   </TableCell>
                 </TableRow>
@@ -341,7 +239,7 @@ export const PluginDistribution: React.FC<PluginDistributionProps> = ({ plugin }
                     <TableCell>
                       {dist.repository
                         ? repositories.find((r) => r.pulp_href === dist.repository)?.name || dist.repository
-                        : '-'}
+                        : dist.repository_version || '-'}
                     </TableCell>
                     {hasPublications ? <TableCell>{dist.publication || '-'}</TableCell> : null}
                     {hasPullThrough ? (
@@ -351,6 +249,9 @@ export const PluginDistribution: React.FC<PluginDistributionProps> = ({ plugin }
                           : '-'}
                       </TableCell>
                     ) : null}
+                    {extraColumns.map((column) => (
+                      <TableCell key={column.key}>{formatColumnValue(dist, column)}</TableCell>
+                    ))}
                     <TableCell>
                       <IconButton
                         color="primary"
@@ -385,71 +286,13 @@ export const PluginDistribution: React.FC<PluginDistributionProps> = ({ plugin }
         />
       </Paper>
 
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>{editingDistribution ? 'Edit Distribution' : 'Create Distribution'}</DialogTitle>
-        <DialogContent>
-          <TextField
-            fullWidth
-            margin="normal"
-            label="Name"
-            value={formData.name}
-            onChange={(e) => handleFormChange('name', e.target.value)}
-            required
-          />
-          <TextField
-            fullWidth
-            margin="normal"
-            label="Base Path"
-            value={formData.base_path}
-            onChange={(e) => handleFormChange('base_path', e.target.value)}
-            required
-          />
-          <Autocomplete
-            options={repositoryOptions}
-            loading={repositoriesLoading}
-            value={repositoryOptions.find((o) => o.value === formData.repository) || null}
-            onChange={(_, value) => handleFormChange('repository', value?.value || '')}
-            renderInput={(params) => <TextField {...params} label="Repository" margin="normal" />}
-          />
-          {hasPublications ? (
-            <Autocomplete
-              options={publicationOptions}
-              value={publicationOptions.find((o) => o.value === formData.publication) || null}
-              onChange={(_, value) => handleFormChange('publication', value?.value || '')}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Publication"
-                  margin="normal"
-                  helperText="Optional; if set, repository will be cleared"
-                />
-              )}
-            />
-          ) : null}
-          {hasPullThrough ? (
-            <Autocomplete
-              options={remoteOptions}
-              loading={remotesLoading}
-              value={remoteOptions.find((o) => o.value === formData.remote) || null}
-              onChange={(_, value) => handleFormChange('remote', value?.value || '')}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Remote"
-                  margin="normal"
-                  helperText="Remote used to fetch content on demand (pull-through caching)"
-                />
-              )}
-            />
-          ) : null}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancel</Button>
-          <Button onClick={handleSubmit} variant="contained">
-            {editingDistribution ? 'Save' : 'Create'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <DistributionFormDialog
+        plugin={plugin}
+        open={openDialog}
+        distribution={editingDistribution}
+        onClose={handleCloseDialog}
+        onSaved={handleSaved}
+      />
 
       <Dialog open={deleteConfirmOpen} onClose={handleDeleteCancel}>
         <DialogTitle>Confirm Delete</DialogTitle>

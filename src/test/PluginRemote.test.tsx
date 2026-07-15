@@ -104,6 +104,9 @@ describe('PluginRemote', () => {
         url: 'https://galaxy.ansible.com',
         policy: 'immediate',
         tls_validation: true,
+        // Ansible's boolean extra fields are always part of the payload.
+        sync_dependencies: false,
+        signed_only: false,
       });
     });
   });
