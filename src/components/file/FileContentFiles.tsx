@@ -29,6 +29,12 @@ import { apiService, DEFAULT_PAGE_SIZE, formatPulpApiError, withPaginationParams
 import { fileContentOrderingOptions } from '../../constants/orderingOptions';
 import { FileContent, PulpListResponse } from '../../types/pulp';
 import { ForegroundSnackbar } from '../ForegroundSnackbar';
+import { ApiDocsHelpButton } from '../ApiDocsHelpButton';
+import { CurlPreviewButton } from '../CurlPreviewButton';
+import { contentDocsUrl } from '../../constants/pulpDocs';
+import { buildFormDataCurlCommand } from '../../utils/curl';
+
+const CONTENT_ENDPOINT = '/content/file/files/';
 
 type TaskResponse = { task?: string };
 
@@ -107,7 +113,8 @@ export const FileContentFiles: React.FC = () => {
     setUploadOpen(false);
   };
 
-  const handleUpload = async () => {
+  /** Shared by the upload handler and the "Show curl" preview. */
+  const buildUploadForm = (): { formData: FormData } | { error: string } => {
     const trimmedRepositoryHref = repositoryHref.trim();
     const trimmedRelativePath = relativePath.trim();
     const trimmedArtifactHref = artifactHref.trim();
@@ -116,10 +123,7 @@ export const FileContentFiles: React.FC = () => {
     const trimmedPulpLabelsJson = pulpLabelsJson.trim();
 
     if (!trimmedRelativePath) {
-      setSnackbarMessage('Relative path is required');
-      setSnackbarSeverity('error');
-      setSnackbarOpen(true);
-      return;
+      return { error: 'Relative path is required' };
     }
 
     const sources = [
@@ -130,17 +134,11 @@ export const FileContentFiles: React.FC = () => {
     ].filter(Boolean) as Array<'file' | 'artifact' | 'upload' | 'file_url'>;
 
     if (sources.length === 0) {
-      setSnackbarMessage('Provide a file (or artifact/upload/file_url)');
-      setSnackbarSeverity('error');
-      setSnackbarOpen(true);
-      return;
+      return { error: 'Provide a file (or artifact/upload/file_url)' };
     }
 
     if (sources.length > 1) {
-      setSnackbarMessage('Provide only one source: file, artifact, upload, or file_url');
-      setSnackbarSeverity('error');
-      setSnackbarOpen(true);
-      return;
+      return { error: 'Provide only one source: file, artifact, upload, or file_url' };
     }
 
     let pulpLabels: Record<string, string> | undefined;
@@ -160,38 +158,48 @@ export const FileContentFiles: React.FC = () => {
         }
         pulpLabels = record;
       } catch {
-        setSnackbarMessage('Invalid pulp_labels JSON (must be an object of string values)');
-        setSnackbarSeverity('error');
-        setSnackbarOpen(true);
-        return;
+        return { error: 'Invalid pulp_labels JSON (must be an object of string values)' };
       }
+    }
+
+    const form = new FormData();
+
+    if (pulpLabels && Object.keys(pulpLabels).length > 0) {
+      form.append('pulp_labels', JSON.stringify(pulpLabels));
+    }
+
+    if (trimmedRepositoryHref) {
+      form.append('repository', trimmedRepositoryHref);
+    }
+
+    form.append('relative_path', trimmedRelativePath);
+
+    if (sources[0] === 'file') {
+      form.append('file', selectedFile as File);
+    } else if (sources[0] === 'artifact') {
+      form.append('artifact', trimmedArtifactHref);
+    } else if (sources[0] === 'upload') {
+      form.append('upload', trimmedUploadHref);
+    } else if (sources[0] === 'file_url') {
+      form.append('file_url', trimmedFileUrl);
+    }
+
+    return { formData: form };
+  };
+
+  const handleUpload = async () => {
+    const built = buildUploadForm();
+    if ('error' in built) {
+      setSnackbarMessage(built.error);
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+      return;
     }
 
     try {
       setUploading(true);
-      const form = new FormData();
 
-      if (pulpLabels && Object.keys(pulpLabels).length > 0) {
-        form.append('pulp_labels', JSON.stringify(pulpLabels));
-      }
-
-      if (trimmedRepositoryHref) {
-        form.append('repository', trimmedRepositoryHref);
-      }
-
-      form.append('relative_path', trimmedRelativePath);
-
-      if (sources[0] === 'file') {
-        form.append('file', selectedFile as File);
-      } else if (sources[0] === 'artifact') {
-        form.append('artifact', trimmedArtifactHref);
-      } else if (sources[0] === 'upload') {
-        form.append('upload', trimmedUploadHref);
-      } else if (sources[0] === 'file_url') {
-        form.append('file_url', trimmedFileUrl);
-      }
-
-      const resp = await apiService.post<TaskResponse>('/content/file/files/', form);
+      const resp = await apiService.post<TaskResponse>(CONTENT_ENDPOINT, built.formData);
       setSnackbarMessage(resp?.task ? 'File upload task started' : 'File upload request submitted');
       setSnackbarSeverity('success');
       setSnackbarOpen(true);
@@ -219,7 +227,10 @@ export const FileContentFiles: React.FC = () => {
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">File Contents</Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Typography variant="h4">File Contents</Typography>
+          <ApiDocsHelpButton url={contentDocsUrl(CONTENT_ENDPOINT)} />
+        </Box>
         <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={openUpload}>
           Upload File
         </Button>
@@ -379,6 +390,13 @@ export const FileContentFiles: React.FC = () => {
           </Box>
         </DialogContent>
         <DialogActions>
+          <CurlPreviewButton
+            getCommand={() => {
+              const built = buildUploadForm();
+              if ('error' in built) return `# ${built.error}`;
+              return buildFormDataCurlCommand('POST', CONTENT_ENDPOINT, built.formData);
+            }}
+          />
           <Button onClick={closeUpload} disabled={uploading}>
             Cancel
           </Button>

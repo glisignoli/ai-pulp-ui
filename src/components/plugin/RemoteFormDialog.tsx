@@ -20,6 +20,8 @@ import type { PluginConfig, RemotePolicy } from '../../constants/plugins';
 import { createPluginService } from '../../services/pluginCrud';
 import { formatPulpApiError } from '../../services/api';
 import { parsePulpLabelsJson } from '../../utils/pulp';
+import { buildJsonCurlCommand } from '../../utils/curl';
+import { CurlPreviewButton } from '../CurlPreviewButton';
 import { PluginFieldInputs, buildFieldPayload, initialFieldValues, type PluginFieldValues } from './pluginFields';
 
 function parseHeadersJson(input: string): { headers: Record<string, string> | null; error: string | null } {
@@ -227,25 +229,23 @@ export const RemoteFormDialog: React.FC<RemoteFormDialogProps> = ({
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = async () => {
+  /** Shared by the submit handler and the "Show curl" preview. */
+  const buildPayload = (): { payload: Record<string, unknown> } | { error: string } => {
     for (const spec of Object.values(NUMBER_SPECS)) {
       const message = invalidNumberMessage(spec, formData[spec.key]);
       if (message) {
-        setError(message);
-        return;
+        return { error: message };
       }
     }
 
     const { labels: pulpLabels, error: pulpLabelsError } = parsePulpLabelsJson(formData.pulp_labels);
     if (pulpLabelsError) {
-      setError(pulpLabelsError);
-      return;
+      return { error: pulpLabelsError };
     }
 
     const { headers, error: headersError } = parseHeadersJson(formData.headers);
     if (headersError) {
-      setError(headersError);
-      return;
+      return { error: headersError };
     }
 
     const { payload: extraPayload, error: extraError } = buildFieldPayload(
@@ -253,8 +253,7 @@ export const RemoteFormDialog: React.FC<RemoteFormDialogProps> = ({
       extraValues
     );
     if (extraError) {
-      setError(extraError);
-      return;
+      return { error: extraError };
     }
 
     const payload: Record<string, unknown> = {
@@ -280,13 +279,23 @@ export const RemoteFormDialog: React.FC<RemoteFormDialogProps> = ({
     if (pulpLabels && Object.keys(pulpLabels).length > 0) payload.pulp_labels = pulpLabels;
     if (headers && Object.keys(headers).length > 0) payload.headers = headers;
 
+    return { payload };
+  };
+
+  const handleSubmit = async () => {
+    const result = buildPayload();
+    if ('error' in result) {
+      setError(result.error);
+      return;
+    }
+
     try {
       setSaving(true);
       if (remote) {
-        await service.remotes.update(remote.pulp_href, payload);
+        await service.remotes.update(remote.pulp_href, result.payload);
         onSaved('Remote updated successfully');
       } else {
-        await service.remotes.create(payload);
+        await service.remotes.create(result.payload);
         onSaved('Remote created successfully');
       }
       onClose();
@@ -482,6 +491,15 @@ export const RemoteFormDialog: React.FC<RemoteFormDialogProps> = ({
         </Box>
       </DialogContent>
       <DialogActions>
+        <CurlPreviewButton
+          getCommand={() => {
+            const result = buildPayload();
+            const payload = 'payload' in result ? result.payload : {};
+            return remote
+              ? buildJsonCurlCommand('PUT', remote.pulp_href, payload)
+              : buildJsonCurlCommand('POST', plugin.endpoints.remotes, payload);
+          }}
+        />
         <Button onClick={onClose}>Cancel</Button>
         <Button
           onClick={handleSubmit}

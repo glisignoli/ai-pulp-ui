@@ -32,10 +32,12 @@ import { useNavigate } from 'react-router-dom';
 import type { Remote, Repository } from '../../types/pulp';
 import type { PluginConfig } from '../../constants/plugins';
 import { pluginRoutePaths } from '../../constants/plugins';
+import { repositoriesDocsUrl } from '../../constants/pulpDocs';
 import { createPluginService } from '../../services/pluginCrud';
 import { DEFAULT_PAGE_SIZE, formatPulpApiError } from '../../services/api';
 import { pluginRepositoryOrderingOptions } from '../../constants/orderingOptions';
 import { ForegroundSnackbar } from '../ForegroundSnackbar';
+import { ApiDocsHelpButton } from '../ApiDocsHelpButton';
 import { RepositoryFormDialog } from './RepositoryFormDialog';
 
 interface PluginRepositoryProps {
@@ -161,7 +163,10 @@ export const PluginRepository: React.FC<PluginRepositoryProps> = ({ plugin, head
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">{plugin.label} Repositories</Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Typography variant="h4">{plugin.label} Repositories</Typography>
+          <ApiDocsHelpButton url={repositoriesDocsUrl(plugin)} />
+        </Box>
         <Box sx={{ display: 'flex', gap: 1 }}>
           {headerActions}
           <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenDialog()}>

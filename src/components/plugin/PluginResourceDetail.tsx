@@ -25,8 +25,15 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { Distribution, Remote, Repository, RepositoryVersion } from '../../types/pulp';
 import type { PluginConfig } from '../../constants/plugins';
 import { pluginRoutePaths } from '../../constants/plugins';
+import {
+  distributionsDocsUrl,
+  publicationsDocsUrl,
+  remotesDocsUrl,
+  repositoriesDocsUrl,
+} from '../../constants/pulpDocs';
 import { createPluginService } from '../../services/pluginCrud';
 import { formatPulpApiError } from '../../services/api';
+import { ApiDocsHelpButton } from '../ApiDocsHelpButton';
 import { RemoteFormDialog } from './RemoteFormDialog';
 import { RepositoryFormDialog } from './RepositoryFormDialog';
 import { DistributionFormDialog } from './DistributionFormDialog';
@@ -55,6 +62,12 @@ export const PluginResourceDetail: React.FC<PluginResourceDetailProps> = ({ plug
 
   const listPath = paths[resource];
   const resourceLabel = RESOURCE_LABELS[resource];
+  const docsUrl = {
+    repository: repositoriesDocsUrl(plugin),
+    remote: remotesDocsUrl(plugin),
+    distribution: distributionsDocsUrl(plugin),
+    publication: publicationsDocsUrl(plugin),
+  }[resource];
 
   const [item, setItem] = useState<Record<string, any> | null>(null);
   const [versions, setVersions] = useState<RepositoryVersion[]>([]);
@@ -184,9 +197,12 @@ export const PluginResourceDetail: React.FC<PluginResourceDetailProps> = ({ plug
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">
-          {plugin.label} {resourceLabel}
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Typography variant="h4">
+            {plugin.label} {resourceLabel}
+          </Typography>
+          <ApiDocsHelpButton url={docsUrl} />
+        </Box>
         <Box display="flex" gap={1} alignItems="center">
           <IconButton color="primary" onClick={() => navigate(listPath)} title="Back">
             <ArrowBackIcon />

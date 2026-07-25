@@ -32,10 +32,12 @@ import { useNavigate } from 'react-router-dom';
 import type { Remote } from '../../types/pulp';
 import type { PluginConfig } from '../../constants/plugins';
 import { pluginRoutePaths } from '../../constants/plugins';
+import { remotesDocsUrl } from '../../constants/pulpDocs';
 import { createPluginService } from '../../services/pluginCrud';
 import { DEFAULT_PAGE_SIZE, formatPulpApiError } from '../../services/api';
 import { pluginRemoteOrderingOptions } from '../../constants/orderingOptions';
 import { ForegroundSnackbar } from '../ForegroundSnackbar';
+import { ApiDocsHelpButton } from '../ApiDocsHelpButton';
 import { RemoteFormDialog } from './RemoteFormDialog';
 import { formatColumnValue } from './columns';
 
@@ -149,7 +151,10 @@ export const PluginRemote: React.FC<PluginRemoteProps> = ({ plugin }) => {
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">{plugin.label} Remotes</Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Typography variant="h4">{plugin.label} Remotes</Typography>
+          <ApiDocsHelpButton url={remotesDocsUrl(plugin)} />
+        </Box>
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenDialog()}>
           Create Remote
         </Button>

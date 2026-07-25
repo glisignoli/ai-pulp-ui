@@ -19,6 +19,8 @@ import type { PluginConfig } from '../../constants/plugins';
 import { createPluginService } from '../../services/pluginCrud';
 import { formatPulpApiError } from '../../services/api';
 import { parsePulpLabelsJson, stripPulpOrigin } from '../../utils/pulp';
+import { buildJsonCurlCommand } from '../../utils/curl';
+import { CurlPreviewButton } from '../CurlPreviewButton';
 import { PluginFieldInputs, buildFieldPayload, initialFieldValues, type PluginFieldValues } from './pluginFields';
 
 interface DistributionFormDialogProps {
@@ -135,11 +137,11 @@ export const DistributionFormDialog: React.FC<DistributionFormDialogProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, distribution, plugin]);
 
-  const handleSubmit = async () => {
+  /** Shared by the submit handler and the "Show curl" preview. */
+  const buildPayload = (): { payload: Record<string, unknown> } | { error: string } => {
     const { labels, error: labelsError } = parsePulpLabelsJson(pulpLabels);
     if (labelsError) {
-      setError(labelsError);
-      return;
+      return { error: labelsError };
     }
 
     const { payload: extraPayload, error: extraError } = buildFieldPayload(
@@ -147,8 +149,7 @@ export const DistributionFormDialog: React.FC<DistributionFormDialogProps> = ({
       extraValues
     );
     if (extraError) {
-      setError(extraError);
-      return;
+      return { error: extraError };
     }
 
     const payload: Record<string, unknown> = {
@@ -179,13 +180,23 @@ export const DistributionFormDialog: React.FC<DistributionFormDialogProps> = ({
 
     if (labels && Object.keys(labels).length > 0) payload.pulp_labels = labels;
 
+    return { payload };
+  };
+
+  const handleSubmit = async () => {
+    const result = buildPayload();
+    if ('error' in result) {
+      setError(result.error);
+      return;
+    }
+
     try {
       setSaving(true);
       if (distribution) {
-        await service.distributions.update(distribution.pulp_href, payload);
+        await service.distributions.update(distribution.pulp_href, result.payload);
         onSaved('Distribution updated successfully');
       } else {
-        await service.distributions.create(payload);
+        await service.distributions.create(result.payload);
         onSaved('Distribution create task started');
       }
       onClose();
@@ -291,6 +302,15 @@ export const DistributionFormDialog: React.FC<DistributionFormDialogProps> = ({
         </Box>
       </DialogContent>
       <DialogActions>
+        <CurlPreviewButton
+          getCommand={() => {
+            const result = buildPayload();
+            const payload = 'payload' in result ? result.payload : {};
+            return distribution
+              ? buildJsonCurlCommand('PUT', distribution.pulp_href, payload)
+              : buildJsonCurlCommand('POST', plugin.endpoints.distributions, payload);
+          }}
+        />
         <Button onClick={onClose}>Cancel</Button>
         <Button
           onClick={handleSubmit}

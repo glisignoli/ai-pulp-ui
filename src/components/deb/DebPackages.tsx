@@ -29,6 +29,12 @@ import { apiService, DEFAULT_PAGE_SIZE, formatPulpApiError, withPaginationParams
 import { debPackageOrderingOptions } from '../../constants/orderingOptions';
 import { DebPackage, PulpListResponse } from '../../types/pulp';
 import { ForegroundSnackbar } from '../ForegroundSnackbar';
+import { ApiDocsHelpButton } from '../ApiDocsHelpButton';
+import { CurlPreviewButton } from '../CurlPreviewButton';
+import { contentDocsUrl } from '../../constants/pulpDocs';
+import { buildFormDataCurlCommand } from '../../utils/curl';
+
+const CONTENT_ENDPOINT = '/content/deb/packages/';
 
 type TaskResponse = { task: string };
 
@@ -111,7 +117,8 @@ export const DebPackages: React.FC = () => {
     setUploadOpen(false);
   };
 
-  const handleUpload = async () => {
+  /** Shared by the upload handler and the "Show curl" preview. */
+  const buildUploadForm = (): { formData: FormData; endpoint: string } | { error: string } => {
     const trimmedRepositoryHref = repositoryHref.trim();
     const trimmedDistribution = distribution.trim();
     const trimmedComponent = component.trim();
@@ -122,10 +129,7 @@ export const DebPackages: React.FC = () => {
     const trimmedPulpLabelsJson = pulpLabelsJson.trim();
 
     if (!trimmedDistribution || !trimmedComponent) {
-      setSnackbarMessage('Distribution and component are required');
-      setSnackbarSeverity('error');
-      setSnackbarOpen(true);
-      return;
+      return { error: 'Distribution and component are required' };
     }
 
     const sources = [
@@ -136,17 +140,11 @@ export const DebPackages: React.FC = () => {
     ].filter(Boolean) as Array<'artifact' | 'upload' | 'file_url' | 'file'>;
 
     if (sources.length === 0) {
-      setSnackbarMessage('Provide a file (or artifact/upload/file_url)');
-      setSnackbarSeverity('error');
-      setSnackbarOpen(true);
-      return;
+      return { error: 'Provide a file (or artifact/upload/file_url)' };
     }
 
     if (sources.length > 1) {
-      setSnackbarMessage('Provide only one source: file, artifact, upload, or file_url');
-      setSnackbarSeverity('error');
-      setSnackbarOpen(true);
-      return;
+      return { error: 'Provide only one source: file, artifact, upload, or file_url' };
     }
 
     let pulpLabels: Record<string, string> | undefined;
@@ -166,39 +164,50 @@ export const DebPackages: React.FC = () => {
         }
         pulpLabels = record;
       } catch {
-        setSnackbarMessage('Invalid pulp_labels JSON (must be an object of string values)');
-        setSnackbarSeverity('error');
-        setSnackbarOpen(true);
-        return;
+        return { error: 'Invalid pulp_labels JSON (must be an object of string values)' };
       }
     }
 
+    const formData = new FormData();
+
+    // /content/deb/packages/ is asynchronous (returns a task)
+    const endpoint = CONTENT_ENDPOINT;
+
+    if (pulpLabels && Object.keys(pulpLabels).length > 0) {
+      formData.append('pulp_labels', JSON.stringify(pulpLabels));
+    }
+
+    if (trimmedRepositoryHref) formData.append('repository', trimmedRepositoryHref);
+    if (trimmedRelativePath) formData.append('relative_path', trimmedRelativePath);
+
+    formData.append('distribution', trimmedDistribution);
+    formData.append('component', trimmedComponent);
+
+    if (sources[0] === 'file') {
+      formData.append('file', selectedFile as File);
+    } else if (sources[0] === 'artifact') {
+      formData.append('artifact', trimmedArtifactHref);
+    } else if (sources[0] === 'upload') {
+      formData.append('upload', trimmedUploadHref);
+    } else if (sources[0] === 'file_url') {
+      formData.append('file_url', trimmedFileUrl);
+    }
+
+    return { formData, endpoint };
+  };
+
+  const handleUpload = async () => {
+    const built = buildUploadForm();
+    if ('error' in built) {
+      setSnackbarMessage(built.error);
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+      return;
+    }
+    const { formData, endpoint } = built;
+
     try {
       setUploading(true);
-      const formData = new FormData();
-
-      // /content/deb/packages/ is asynchronous (returns a task)
-      const endpoint = '/content/deb/packages/';
-
-      if (pulpLabels && Object.keys(pulpLabels).length > 0) {
-        formData.append('pulp_labels', JSON.stringify(pulpLabels));
-      }
-
-      if (trimmedRepositoryHref) formData.append('repository', trimmedRepositoryHref);
-      if (trimmedRelativePath) formData.append('relative_path', trimmedRelativePath);
-
-      formData.append('distribution', trimmedDistribution);
-      formData.append('component', trimmedComponent);
-
-      if (sources[0] === 'file') {
-        formData.append('file', selectedFile as File);
-      } else if (sources[0] === 'artifact') {
-        formData.append('artifact', trimmedArtifactHref);
-      } else if (sources[0] === 'upload') {
-        formData.append('upload', trimmedUploadHref);
-      } else if (sources[0] === 'file_url') {
-        formData.append('file_url', trimmedFileUrl);
-      }
 
       const resp = await apiService.post<TaskResponse>(endpoint, formData);
       setSnackbarMessage(resp?.task ? 'Package upload task started' : 'Package upload request submitted');
@@ -227,7 +236,10 @@ export const DebPackages: React.FC = () => {
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">DEB Packages</Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Typography variant="h4">DEB Packages</Typography>
+          <ApiDocsHelpButton url={contentDocsUrl(CONTENT_ENDPOINT)} />
+        </Box>
         <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={openUpload}>
           Upload Package
         </Button>
@@ -406,6 +418,13 @@ export const DebPackages: React.FC = () => {
           </Box>
         </DialogContent>
         <DialogActions>
+          <CurlPreviewButton
+            getCommand={() => {
+              const built = buildUploadForm();
+              if ('error' in built) return `# ${built.error}`;
+              return buildFormDataCurlCommand('POST', built.endpoint, built.formData);
+            }}
+          />
           <Button onClick={closeUpload} disabled={uploading}>
             Cancel
           </Button>

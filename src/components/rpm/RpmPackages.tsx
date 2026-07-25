@@ -29,6 +29,13 @@ import { apiService, DEFAULT_PAGE_SIZE, formatPulpApiError, withPaginationParams
 import { rpmPackageOrderingOptions } from '../../constants/orderingOptions';
 import { PulpListResponse, RpmPackage } from '../../types/pulp';
 import { ForegroundSnackbar } from '../ForegroundSnackbar';
+import { ApiDocsHelpButton } from '../ApiDocsHelpButton';
+import { CurlPreviewButton } from '../CurlPreviewButton';
+import { contentDocsUrl } from '../../constants/pulpDocs';
+import { buildFormDataCurlCommand } from '../../utils/curl';
+
+const CONTENT_ENDPOINT = '/content/rpm/packages/';
+const CONTENT_UPLOAD_ENDPOINT = '/content/rpm/packages/upload/';
 
 type TaskResponse = { task: string };
 
@@ -106,7 +113,10 @@ export const RpmPackages: React.FC = () => {
     setUploadOpen(false);
   };
 
-  const handleUpload = async () => {
+  /** Shared by the upload handler and the "Show curl" preview. */
+  const buildUploadForm = ():
+    | { formData: FormData; endpoint: string; useCreateEndpoint: boolean }
+    | { error: string } => {
     const trimmedRepositoryHref = repositoryHref.trim();
     const trimmedRelativePath = relativePath.trim();
     const trimmedArtifactHref = artifactHref.trim();
@@ -122,17 +132,11 @@ export const RpmPackages: React.FC = () => {
     ].filter(Boolean) as Array<'artifact' | 'upload' | 'file_url' | 'file'>;
 
     if (sources.length === 0) {
-      setSnackbarMessage('Provide a file (or artifact/upload/file_url)');
-      setSnackbarSeverity('error');
-      setSnackbarOpen(true);
-      return;
+      return { error: 'Provide a file (or artifact/upload/file_url)' };
     }
 
     if (sources.length > 1) {
-      setSnackbarMessage('Provide only one source: file, artifact, upload, or file_url');
-      setSnackbarSeverity('error');
-      setSnackbarOpen(true);
-      return;
+      return { error: 'Provide only one source: file, artifact, upload, or file_url' };
     }
 
     let pulpLabels: Record<string, string> | undefined;
@@ -152,39 +156,52 @@ export const RpmPackages: React.FC = () => {
         }
         pulpLabels = record;
       } catch {
-        setSnackbarMessage('Invalid pulp_labels JSON (must be an object of string values)');
-        setSnackbarSeverity('error');
-        setSnackbarOpen(true);
-        return;
+        return { error: 'Invalid pulp_labels JSON (must be an object of string values)' };
       }
     }
 
+    const formData = new FormData();
+
+    const useCreateEndpoint = !!trimmedRepositoryHref || !!trimmedRelativePath;
+    const endpoint = useCreateEndpoint ? CONTENT_ENDPOINT : CONTENT_UPLOAD_ENDPOINT;
+
+    if (pulpLabels && Object.keys(pulpLabels).length > 0) {
+      formData.append('pulp_labels', JSON.stringify(pulpLabels));
+    }
+
+    if (sources[0] === 'file') {
+      // selectedFile is guaranteed non-null when source is 'file'
+      formData.append('file', selectedFile as File);
+    } else if (sources[0] === 'artifact') {
+      formData.append('artifact', trimmedArtifactHref);
+    } else if (sources[0] === 'upload') {
+      formData.append('upload', trimmedUploadHref);
+    } else if (sources[0] === 'file_url') {
+      formData.append('file_url', trimmedFileUrl);
+    }
+
+    if (useCreateEndpoint) {
+      if (trimmedRepositoryHref) formData.append('repository', trimmedRepositoryHref);
+      if (trimmedRelativePath) formData.append('relative_path', trimmedRelativePath);
+    }
+
+    return { formData, endpoint, useCreateEndpoint };
+  };
+
+  const handleUpload = async () => {
+    const built = buildUploadForm();
+    if ('error' in built) {
+      setSnackbarMessage(built.error);
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+      return;
+    }
+    const { formData, endpoint, useCreateEndpoint } = built;
+
     try {
       setUploading(true);
-      const formData = new FormData();
-
-      const useCreateEndpoint = !!trimmedRepositoryHref || !!trimmedRelativePath;
-      const endpoint = useCreateEndpoint ? '/content/rpm/packages/' : '/content/rpm/packages/upload/';
-
-      if (pulpLabels && Object.keys(pulpLabels).length > 0) {
-        formData.append('pulp_labels', JSON.stringify(pulpLabels));
-      }
-
-      if (sources[0] === 'file') {
-        // selectedFile is guaranteed non-null when source is 'file'
-        formData.append('file', selectedFile as File);
-      } else if (sources[0] === 'artifact') {
-        formData.append('artifact', trimmedArtifactHref);
-      } else if (sources[0] === 'upload') {
-        formData.append('upload', trimmedUploadHref);
-      } else if (sources[0] === 'file_url') {
-        formData.append('file_url', trimmedFileUrl);
-      }
 
       if (useCreateEndpoint) {
-        if (trimmedRepositoryHref) formData.append('repository', trimmedRepositoryHref);
-        if (trimmedRelativePath) formData.append('relative_path', trimmedRelativePath);
-
         const resp = await apiService.post<TaskResponse>(endpoint, formData);
         setSnackbarMessage(
           resp?.task ? 'Package creation task started' : 'Package creation request submitted'
@@ -222,7 +239,10 @@ export const RpmPackages: React.FC = () => {
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">RPM Packages</Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Typography variant="h4">RPM Packages</Typography>
+          <ApiDocsHelpButton url={contentDocsUrl(CONTENT_ENDPOINT)} />
+        </Box>
         <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={openUpload}>
           Upload Package
         </Button>
@@ -385,6 +405,13 @@ export const RpmPackages: React.FC = () => {
           </Box>
         </DialogContent>
         <DialogActions>
+          <CurlPreviewButton
+            getCommand={() => {
+              const built = buildUploadForm();
+              if ('error' in built) return `# ${built.error}`;
+              return buildFormDataCurlCommand('POST', built.endpoint, built.formData);
+            }}
+          />
           <Button onClick={closeUpload} disabled={uploading}>
             Cancel
           </Button>

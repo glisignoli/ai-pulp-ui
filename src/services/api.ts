@@ -154,6 +154,27 @@ const buildApiUrl = (endpoint: string) => {
   return `${apiRoot}/${endpoint}`;
 };
 
+/**
+ * Normalizes an endpoint (full URL, full API path, or API-relative path) to
+ * a path that always starts with `/pulp/api/v3`. Used to build "curl
+ * equivalent" previews, where the request path is combined with the exposed
+ * backend origin (see `exposedBackend.ts`) instead of the axios base URL.
+ */
+export const toApiPath = (endpoint: string): string => {
+  if (endpoint.startsWith('http://') || endpoint.startsWith('https://')) {
+    try {
+      const parsed = new URL(endpoint);
+      return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    } catch {
+      return endpoint;
+    }
+  }
+
+  if (endpoint.startsWith(API_PATH)) return endpoint;
+  if (endpoint.startsWith('/')) return `${API_PATH}${endpoint}`;
+  return `${API_PATH}/${endpoint}`;
+};
+
 export interface LoginCredentials {
   username: string;
   password: string;
@@ -236,6 +257,11 @@ class ApiService {
 
   isAuthenticated(): boolean {
     return this.token !== null;
+  }
+
+  /** The `Authorization` header value used for requests, for building curl previews. */
+  getAuthHeader(): string | null {
+    return this.token ? `Basic ${this.token}` : null;
   }
 
   async get<T>(endpoint: string): Promise<T> {

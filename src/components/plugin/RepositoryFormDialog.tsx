@@ -15,6 +15,8 @@ import type { PluginConfig } from '../../constants/plugins';
 import { createPluginService } from '../../services/pluginCrud';
 import { formatPulpApiError } from '../../services/api';
 import { parsePulpLabelsJson } from '../../utils/pulp';
+import { buildJsonCurlCommand } from '../../utils/curl';
+import { CurlPreviewButton } from '../CurlPreviewButton';
 import { PluginFieldInputs, buildFieldPayload, initialFieldValues, type PluginFieldValues } from './pluginFields';
 
 interface RepositoryFormDialogProps {
@@ -92,16 +94,15 @@ export const RepositoryFormDialog: React.FC<RepositoryFormDialogProps> = ({
     retainRepoVersions.trim() !== '' &&
     (!Number.isInteger(Number(retainRepoVersions)) || Number(retainRepoVersions) < 1);
 
-  const handleSubmit = async () => {
+  /** Shared by the submit handler and the "Show curl" preview. */
+  const buildPayload = (): { payload: Record<string, unknown> } | { error: string } => {
     if (retainInvalid) {
-      setError('Retain Repo Versions must be an integer >= 1');
-      return;
+      return { error: 'Retain Repo Versions must be an integer >= 1' };
     }
 
     const { labels, error: labelsError } = parsePulpLabelsJson(pulpLabels);
     if (labelsError) {
-      setError(labelsError);
-      return;
+      return { error: labelsError };
     }
 
     const { payload: extraPayload, error: extraError } = buildFieldPayload(
@@ -109,8 +110,7 @@ export const RepositoryFormDialog: React.FC<RepositoryFormDialogProps> = ({
       extraValues
     );
     if (extraError) {
-      setError(extraError);
-      return;
+      return { error: extraError };
     }
 
     const payload: Record<string, unknown> = {
@@ -122,13 +122,23 @@ export const RepositoryFormDialog: React.FC<RepositoryFormDialogProps> = ({
     };
     if (labels && Object.keys(labels).length > 0) payload.pulp_labels = labels;
 
+    return { payload };
+  };
+
+  const handleSubmit = async () => {
+    const result = buildPayload();
+    if ('error' in result) {
+      setError(result.error);
+      return;
+    }
+
     try {
       setSaving(true);
       if (repository) {
-        await service.repositories.update(repository.pulp_href, payload);
+        await service.repositories.update(repository.pulp_href, result.payload);
         onSaved('Repository updated successfully');
       } else {
-        await service.repositories.create(payload);
+        await service.repositories.create(result.payload);
         onSaved('Repository created successfully');
       }
       onClose();
@@ -204,6 +214,15 @@ export const RepositoryFormDialog: React.FC<RepositoryFormDialogProps> = ({
         </Box>
       </DialogContent>
       <DialogActions>
+        <CurlPreviewButton
+          getCommand={() => {
+            const result = buildPayload();
+            const payload = 'payload' in result ? result.payload : {};
+            return repository
+              ? buildJsonCurlCommand('PUT', repository.pulp_href, payload)
+              : buildJsonCurlCommand('POST', plugin.endpoints.repositories, payload);
+          }}
+        />
         <Button onClick={onClose}>Cancel</Button>
         <Button onClick={handleSubmit} variant="contained" disabled={saving || !name.trim()}>
           {repository ? 'Save' : 'Create'}

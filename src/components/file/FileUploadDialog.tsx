@@ -13,6 +13,10 @@ import {
 import type { PulpListResponse, Repository } from '../../types/pulp';
 import { apiService, formatPulpApiError } from '../../services/api';
 import { parsePulpLabelsJson } from '../../utils/pulp';
+import { buildFormDataCurlCommand } from '../../utils/curl';
+import { CurlPreviewButton } from '../CurlPreviewButton';
+
+const CONTENT_ENDPOINT = '/content/file/files/';
 
 interface UploadFormData {
   repository: string;
@@ -74,7 +78,8 @@ export const FileUploadDialog: React.FC<FileUploadDialogProps> = ({ open, onClos
     onClose();
   };
 
-  const handleUpload = async () => {
+  /** Shared by the upload handler and the "Show curl" preview. */
+  const buildUploadForm = (): { formData: FormData } | { error: string } => {
     const repository = form.repository.trim();
     const relativePath = form.relative_path.trim();
     const artifact = form.artifact.trim();
@@ -82,12 +87,10 @@ export const FileUploadDialog: React.FC<FileUploadDialogProps> = ({ open, onClos
     const fileUrl = form.file_url.trim();
 
     if (!repository) {
-      setError('Repository is required');
-      return;
+      return { error: 'Repository is required' };
     }
     if (!relativePath) {
-      setError('Relative path is required');
-      return;
+      return { error: 'Relative path is required' };
     }
 
     const sources = [
@@ -98,34 +101,41 @@ export const FileUploadDialog: React.FC<FileUploadDialogProps> = ({ open, onClos
     ].filter(Boolean) as Array<'file' | 'artifact' | 'upload' | 'file_url'>;
 
     if (sources.length === 0) {
-      setError('Provide a file (or artifact/upload/file_url)');
-      return;
+      return { error: 'Provide a file (or artifact/upload/file_url)' };
     }
     if (sources.length > 1) {
-      setError('Provide only one source: file, artifact, upload, or file_url');
-      return;
+      return { error: 'Provide only one source: file, artifact, upload, or file_url' };
     }
 
     const { labels, error: labelsError } = parsePulpLabelsJson(form.pulp_labels);
     if (labelsError) {
-      setError(labelsError);
+      return { error: labelsError };
+    }
+
+    const formData = new FormData();
+    formData.append('repository', repository);
+    formData.append('relative_path', relativePath);
+    if (labels && Object.keys(labels).length > 0) {
+      formData.append('pulp_labels', JSON.stringify(labels));
+    }
+    if (sources[0] === 'file') formData.append('file', form.file as File);
+    else if (sources[0] === 'artifact') formData.append('artifact', artifact);
+    else if (sources[0] === 'upload') formData.append('upload', upload);
+    else formData.append('file_url', fileUrl);
+
+    return { formData };
+  };
+
+  const handleUpload = async () => {
+    const built = buildUploadForm();
+    if ('error' in built) {
+      setError(built.error);
       return;
     }
 
     try {
       setUploading(true);
-      const formData = new FormData();
-      formData.append('repository', repository);
-      formData.append('relative_path', relativePath);
-      if (labels && Object.keys(labels).length > 0) {
-        formData.append('pulp_labels', JSON.stringify(labels));
-      }
-      if (sources[0] === 'file') formData.append('file', form.file as File);
-      else if (sources[0] === 'artifact') formData.append('artifact', artifact);
-      else if (sources[0] === 'upload') formData.append('upload', upload);
-      else formData.append('file_url', fileUrl);
-
-      const resp = await apiService.post<{ task?: string }>('/content/file/files/', formData);
+      const resp = await apiService.post<{ task?: string }>(CONTENT_ENDPOINT, built.formData);
       onUploaded(resp?.task ? 'File upload task started' : 'File upload request submitted');
       onClose();
     } catch (err) {
@@ -214,6 +224,13 @@ export const FileUploadDialog: React.FC<FileUploadDialogProps> = ({ open, onClos
         </Box>
       </DialogContent>
       <DialogActions>
+        <CurlPreviewButton
+          getCommand={() => {
+            const built = buildUploadForm();
+            if ('error' in built) return `# ${built.error}`;
+            return buildFormDataCurlCommand('POST', CONTENT_ENDPOINT, built.formData);
+          }}
+        />
         <Button onClick={handleClose} disabled={uploading}>
           Cancel
         </Button>

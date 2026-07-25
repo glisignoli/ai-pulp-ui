@@ -32,10 +32,12 @@ import { useNavigate } from 'react-router-dom';
 import type { Distribution, Remote, Repository } from '../../types/pulp';
 import type { PluginConfig } from '../../constants/plugins';
 import { pluginRoutePaths } from '../../constants/plugins';
+import { distributionsDocsUrl } from '../../constants/pulpDocs';
 import { createPluginService } from '../../services/pluginCrud';
 import { DEFAULT_PAGE_SIZE, formatPulpApiError } from '../../services/api';
 import { pluginDistributionOrderingOptions } from '../../constants/orderingOptions';
 import { ForegroundSnackbar } from '../ForegroundSnackbar';
+import { ApiDocsHelpButton } from '../ApiDocsHelpButton';
 import { DistributionFormDialog } from './DistributionFormDialog';
 import { formatColumnValue } from './columns';
 
@@ -177,7 +179,10 @@ export const PluginDistribution: React.FC<PluginDistributionProps> = ({ plugin }
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">{plugin.label} Distributions</Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Typography variant="h4">{plugin.label} Distributions</Typography>
+          <ApiDocsHelpButton url={distributionsDocsUrl(plugin)} />
+        </Box>
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenDialog()}>
           Create Distribution
         </Button>

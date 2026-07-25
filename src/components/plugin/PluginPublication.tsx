@@ -28,10 +28,14 @@ import { useNavigate } from 'react-router-dom';
 import type { Publication, Repository, RepositoryVersion } from '../../types/pulp';
 import type { PluginConfig } from '../../constants/plugins';
 import { pluginRoutePaths } from '../../constants/plugins';
+import { publicationsDocsUrl } from '../../constants/pulpDocs';
 import { createPluginService } from '../../services/pluginCrud';
 import { DEFAULT_PAGE_SIZE, formatPulpApiError } from '../../services/api';
 import { pluginPublicationOrderingOptions } from '../../constants/orderingOptions';
 import { ForegroundSnackbar } from '../ForegroundSnackbar';
+import { ApiDocsHelpButton } from '../ApiDocsHelpButton';
+import { CurlPreviewButton } from '../CurlPreviewButton';
+import { buildJsonCurlCommand } from '../../utils/curl';
 import { PluginFieldInputs, buildFieldPayload, initialFieldValues, type PluginFieldValues } from './pluginFields';
 
 interface PublicationFormData {
@@ -159,24 +163,28 @@ export const PluginPublication: React.FC<PluginPublicationProps> = ({ plugin }) 
     }
   };
 
+  /** Shared by the submit handler and the "Show curl" preview. */
+  const buildPublicationPayload = (): { payload: Record<string, unknown> } | { error: string } => {
+    const { payload: extraPayload, error: extraError } = buildFieldPayload(plugin.publicationFields, extraValues);
+    if (extraError) return { error: extraError };
+
+    const payload: Record<string, unknown> = { ...extraPayload };
+    if (formData.repository_version) payload.repository_version = formData.repository_version;
+    else if (formData.repository) payload.repository = formData.repository;
+    return { payload };
+  };
+
   const handleSubmit = async () => {
     if (!service.publications) return;
 
     try {
-      const { payload: extraPayload, error: extraError } = buildFieldPayload(
-        plugin.publicationFields,
-        extraValues
-      );
-      if (extraError) {
-        setError(extraError);
+      const result = buildPublicationPayload();
+      if ('error' in result) {
+        setError(result.error);
         return;
       }
 
-      const payload: any = { ...extraPayload };
-      if (formData.repository_version) payload.repository_version = formData.repository_version;
-      else if (formData.repository) payload.repository = formData.repository;
-
-      await service.publications.create(payload);
+      await service.publications.create(result.payload);
       setSuccessMessage('Publication task started');
       setOpenCreateDialog(false);
       setPage(0);
@@ -224,7 +232,10 @@ export const PluginPublication: React.FC<PluginPublicationProps> = ({ plugin }) 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">{plugin.label} Publications</Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Typography variant="h4">{plugin.label} Publications</Typography>
+          <ApiDocsHelpButton url={publicationsDocsUrl(plugin)} />
+        </Box>
         <Button variant="contained" startIcon={<AddIcon />} onClick={handleCreateClick}>
           Create Publication
         </Button>
@@ -347,6 +358,15 @@ export const PluginPublication: React.FC<PluginPublicationProps> = ({ plugin }) 
           </Box>
         </DialogContent>
         <DialogActions>
+          {plugin.endpoints.publications ? (
+            <CurlPreviewButton
+              getCommand={() => {
+                const result = buildPublicationPayload();
+                const payload = 'payload' in result ? result.payload : {};
+                return buildJsonCurlCommand('POST', plugin.endpoints.publications as string, payload);
+              }}
+            />
+          ) : null}
           <Button onClick={() => setOpenCreateDialog(false)}>Cancel</Button>
           <Button onClick={handleSubmit} variant="contained">
             Create
